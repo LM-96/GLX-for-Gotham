@@ -1,0 +1,32 @@
+classDiagram
+
+    class AngleTransformer {
+        <<callback>>
+        + call(angle: Angle) Angle
+    }
+
+    class MatrixTransformer {
+        <<callback>>
+        + call(matrix: Matrix) Matrix
+    }
+
+    class Point3DTransformer {
+        <<callback>>
+        + call(point3D: Point3D) Point3D
+    }
+
+    class AngleUnit {
+        <<enumeration>>
+        + RADIANS: string
+        + DEGREES: string
+        + checkAngleUnit(unit: string)$ void
+    }
+
+    class Axis {
+        <<enumeration>>
+        + X: string
+        + Y: string
+        + Z: string
+        + checkAxis(axis: string)$ void
+    }
+

@@ -1,0 +1,162 @@
+@import url("https://webglfundamentals.org/webgl/resources/webgl-tutorials.css");
+
+html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: #dddddd;
+}
+
+#parent_div {
+    width: 100vw;
+    height: 100vh;
+    padding: 10px;
+    display: block;
+    position: relative;
+}
+
+.canvas {
+    /*padding: 2px;*/
+    background: #ffffff;
+    border: 2px inset #aaaaaa;
+}
+
+#my_Canvas {
+    width: 98%;
+    height: 96vh;
+    margin: 0 auto;
+    display: block;
+}
+
+.container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    margin: 0 1%;
+    width: 35%;
+    height: 96vh;
+    max-width: 450px;
+    min-width: 350px;
+}
+
+.container:hover > #uiContainer {
+    background-color: rgba(221, 221, 221, 1);
+}
+
+
+#ui {
+    padding: 5% 2%;
+    display: block;
+    /*border: 2px solid black;*/
+    width: auto;
+    overflow: scroll;
+    scroll-behavior: smooth;
+}
+
+#ui * {
+    font-size: 9pt;
+}
+
+#uiContainer {
+    position: relative;
+    /*overflow: scroll;*/
+    top: 0 !important;
+    right: 0 !important;
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    width: 70%;
+    height: 100%;
+    align-items: flex-end;
+    border: 2px solid rgba(170, 170, 170, 0.40);
+    /*margin: 35px 2%;*/
+    /*background-color: rgba(221, 221, 221, 0.70);*/
+    overflow: hidden;
+    transition: 1s;
+    float: right;
+    /*opacity: 100%;*/
+}
+
+#uiContainer:hover{
+    border: 2px solid rgba(170, 170, 170, 1);
+    background-color: rgba(221, 221, 221, 0.70);
+    transition: 0.5s;
+}
+
+.menuInv {
+    width: 0;
+    transition: 1s;
+    opacity: 0;
+    border: 0;
+    display: inline-block;
+}
+
+.menuButton {
+    display: inline-block;
+    width: 4.5vw;
+    max-width: 25px;
+    font-size: 1em;
+    text-align: center;
+    text-align-all: center;
+    writing-mode: vertical-lr;
+    text-orientation: upright;
+    background-color: rgba(180, 180, 180, 0.8);
+    border: 2px solid rgba(170, 170, 170, 1);
+    /*border-radius: 10px;*/
+    height: 100%;
+    float: right;
+    position: relative;
+}
+
+
+/** RESPONSIVE FOR MOBILE PHONES **/
+@media screen and (max-width: 500px) {
+    .menuButton {
+        font-size: 9px;
+    }
+
+    html, body {
+        overflow: hidden;
+    }
+
+    #ui * {
+        font-size: 9pt;
+    }
+
+    .container {
+        right: -1px;
+        top: 0;
+        height: 100vh;
+        margin: 0;
+        width: 100vw;
+    }
+
+    .menu {
+        width: 88%;
+    }
+
+    .menuInv {
+        width: 0;
+    }
+
+    #my_Canvas {
+        width: 100%;
+        height: 100vh;
+        margin: 0;
+    }
+
+    #parent_div {
+        padding: 0;
+    }
+}
+
+
+
+
+
+
