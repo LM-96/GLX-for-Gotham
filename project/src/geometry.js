@@ -1,36 +1,36 @@
 /**
  * @callback AngleTransformer
- * @param {Angle} point
- * @return {Angle}
+ * @param {Angle} angle
+ * @returns {Angle}
  */
 
 /**
  * @template T
  * @callback MatrixMapper
  * @param {Matrix} matrix
- * @return {T}
+ * @returns {T}
  */
 
 /**
  * @callback MatrixTransformer
  * @param {Matrix} matrix
- * @return {Matrix}
+ * @returns {Matrix}
  */
 
 /**
  * @template T
  * @callback Point3DMapper
  * @param {Point3D} point
- * @return {T}
+ * @returns {T}
  */
 
 /**
  * @callback Point3DTransformer
  * @param {Point3D} point
- * @return {Point3D}
+ * @returns {Point3D}
  */
 
-class Angle {
+export class Angle {
 
     /**
      *
@@ -60,7 +60,7 @@ class Angle {
     equals(other) {
         if (other instanceof Angle) {
             let alignedOther = other.transform(AngleMath.convert(this.unit));
-            return this.value === alignedOther.value
+            return this.value === alignedOther.value;
         }
         return false;
     }
@@ -72,14 +72,14 @@ class Angle {
     /**
      *
      * @param {AngleTransformer} transformers
-     * @return Angle
+     * @returns {Angle}
      */
     transform(...transformers) {
         return transformers.reduce((acc, transformer) => transformer(acc), this);
     }
 }
 
-class Axis {
+export class Axis {
     static X = "x";
     static Y = "y";
     static Z = "z";
@@ -95,7 +95,7 @@ class Axis {
     }
 }
 
-class AngleUnit {
+export class AngleUnit {
     static RADIANS = "rad";
     static DEGREES = "deg";
 
@@ -106,7 +106,7 @@ class AngleUnit {
     }
 }
 
-class Matrix {
+export class Matrix {
 
     /**
      *
@@ -130,7 +130,7 @@ class Matrix {
      *
      * @param {number} row
      * @param {number} column
-     * @return {number}
+     * @returns {number}
      */
     getCell(row, column) {
         return this.data[row][column];
@@ -139,7 +139,7 @@ class Matrix {
     /**
      *
      * @param {number} column
-     * @return {number[]}
+     * @returns {number[]}
      */
     getColumn(column) {
         return this.data.map(row => row[column]);
@@ -148,7 +148,7 @@ class Matrix {
     /**
      *
      * @param {number} row
-     * @return {number[]}
+     * @returns {number[]}
      */
     getRow(row) {
         return [...this.data[row]];
@@ -161,7 +161,7 @@ class Matrix {
     /**
      * @template T
      * @param {MatrixMapper<T>} mapper
-     * @return {T}
+     * @returns {T}
      */
     map(mapper) {
         return mapper(this);
@@ -179,7 +179,7 @@ class Matrix {
     /**
      *
      * @param {number[][]} data
-     * @return {number[][]}
+     * @returns {number[][]}
      */
     #frozenCloneData(data) {
         let clone = data.map(row => Object.freeze([...row]));
@@ -189,7 +189,7 @@ class Matrix {
 
 }
 
-class Point3D {
+export class Point3D {
 
     /**
      *
@@ -211,7 +211,7 @@ class Point3D {
     /**
      *
      * @param {any} other
-     * @return {boolean}
+     * @returns {boolean}
      */
     equals(other) {
         if (other instanceof Point3D) {
@@ -229,7 +229,7 @@ class Point3D {
      *
      * @template T
      * @param {Point3DMapper<T>} mapper
-     * @return {T}
+     * @returns {T}
      */
     map(mapper) {
         return mapper(this);
@@ -238,7 +238,7 @@ class Point3D {
     /**
      *
      * @param {Point3DTransformer} transformers
-     * @return {Point3D}
+     * @returns {Point3D}
      */
     transform(...transformers) {
         return transformers.reduce((acc, transformer) => transformer(acc), this);
@@ -246,14 +246,14 @@ class Point3D {
 
 }
 
-class AngleMath {
+export class AngleMath {
     static #TO_DEGREES = AngleMath.convert(AngleUnit.DEGREES);
     static #TO_RADIANS = AngleMath.convert(AngleUnit.RADIANS);
 
     /**
      *
      * @param {string} unit
-     * @return {AngleTransformer}
+     * @returns {AngleTransformer}
      */
     static convert(unit) {
         return angle => {
@@ -264,7 +264,7 @@ class AngleMath {
             } else if (angle.unit === AngleUnit.DEGREES && unit === AngleUnit.RADIANS) {
                 return new Angle(AngleMath.#deg2Rad(angle.value), unit);
             }
-        }
+        };
     }
 
     static toDegrees() {
@@ -295,7 +295,7 @@ class AngleMath {
 
 }
 
-class Math3D {
+export class Math3D {
 
     /**
      * @type {Point3DMapper<Matrix>}
@@ -311,17 +311,17 @@ class Math3D {
      *
      * @param {string} axis
      * @param {Angle} angle
-     * @return {Point3DTransformer}
+     * @returns {Point3DTransformer}
      */
     static rotateAround(axis, angle) {
         return point => {
-            let pointColumnVector = point.transform(Math3D.#TO_COLUMN_VECTOR)
+            let pointColumnVector = point.transform(Math3D.#TO_COLUMN_VECTOR);
             let rotationMatrix = RotationMatrices.R(axis, angle);
 
             return rotationMatrix
                 .transform(MatrixMath.multiply(pointColumnVector))
                 .map(MatrixMath.toPoint3D());
-        }
+        };
     }
 
     /**
@@ -329,7 +329,7 @@ class Math3D {
      * @param {number} mx
      * @param {number} my
      * @param {number} mz
-     * @return {Point3DTransformer}
+     * @returns {Point3DTransformer}
      */
     static scale(mx, my, mz) {
         return point => new Point3D(point.x * mx, point.y * my, point.z * mz);
@@ -355,7 +355,7 @@ class Math3D {
      * @param {number} dx
      * @param {number} dy
      * @param {number} dz
-     * @return {Point3DTransformer}
+     * @returns {Point3DTransformer}
      */
     static translate(dx, dy, dz) {
         return point => new Point3D(point.x + dx, point.y + dy, point.z + dz);
@@ -375,11 +375,11 @@ class MatrixMath {
         }
 
         return new Point3D(matrix.getCell(0, 0), matrix.getCell(1, 0), matrix.getCell(2, 0));
-    }
+    };
 
     /**
      *
-     * @return {MatrixMapper<Point3D>}
+     * @returns {MatrixMapper<Point3D>}
      */
     static toPoint3D() {
         return this.#COLUMN_VECTOR_TO_POINT3D;
@@ -388,7 +388,7 @@ class MatrixMath {
     /**
      *
      * @param {Matrix} other
-     * @return {MatrixTransformer}
+     * @returns {MatrixTransformer}
      */
     static multiply(other) {
         return matrix => {
@@ -424,7 +424,7 @@ class RotationMatrices {
     /**
      *
      * @param {Angle} angle
-     * @return {Matrix}
+     * @returns {Matrix}
      */
     static RX(angle) {
         let theta = angle.transform(AngleMath.toRadians()).value;
@@ -438,7 +438,7 @@ class RotationMatrices {
     /**
      *
      * @param {Angle} angle
-     * @return {Matrix}
+     * @returns {Matrix}
      */
     static RY(angle) {
         let theta = angle.transform(AngleMath.toRadians()).value;
@@ -452,7 +452,7 @@ class RotationMatrices {
     /**
      *
      * @param {Angle} angle
-     * @return {Matrix}
+     * @returns {Matrix}
      */
     static RZ(angle) {
         let theta = angle.transform(AngleMath.toRadians()).value;
@@ -487,10 +487,19 @@ class RotationMatrices {
  *
  * @param {number} value
  * @param {string} unit
- * @return {Angle}
+ * @returns {Angle}
  */
-function angle(value, unit = AngleUnit.RADIANS) {
+export function angle(value, unit) {
     return new Angle(value, unit);
+}
+
+/**
+ *
+ * @param {number} value
+ * @returns {Angle}
+ */
+export function degrees(value) {
+    return angle(value, AngleUnit.DEGREES);
 }
 
 /**
@@ -498,7 +507,7 @@ function angle(value, unit = AngleUnit.RADIANS) {
  * @param {number[][]} data
  * @returns {Matrix}
  */
-function matrix(data) {
+export function matrix(data) {
     return new Matrix(data);
 }
 
@@ -509,7 +518,16 @@ function matrix(data) {
  * @param {number} z
  * @returns {Point3D}
  */
-function point3D(x, y, z) {
+export function point3D(x, y, z) {
     return new Point3D(x, y, z);
+}
+
+/**
+ *
+ * @param {number} value
+ * @returns {Angle}
+ */
+export function radians(value) {
+    return angle(value, AngleUnit.RADIANS);
 }
 

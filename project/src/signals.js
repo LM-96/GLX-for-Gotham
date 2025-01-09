@@ -1,11 +1,21 @@
 /**
- * @callback FireRequestConsumer
+ * @typedef {Readonly<{data: any, source: any}>} FireRequest
+ * @typedef {Readonly<{name: string, subscriber: SignalSubscriber, trigger: SignalTrigger}>} SignalDescriptor
+ */
+
+/**
+ * @callback SignalTrigger
  * @param {FireRequest} fireRequest
  */
 
 /**
  * @callback SignalConsumer
  * @param {Signal} signal
+ */
+
+/**
+ * @callback SignalSubscriber
+ * @param {SignalConsumer} signalConsumer
  */
 
 
@@ -29,49 +39,6 @@ class Signal {
     }
 
 
-}
-
-class FireRequest {
-
-    /**
-     *
-     * @param {any} data
-     * @param {any} source
-     */
-    constructor(data, source) {
-        this.data = data;
-        this.source = source;
-        Object.freeze(this);
-    }
-}
-
-class SignalTrigger {
-    /** @type string */
-    #signalName;
-
-    /** @type FireRequestConsumer */
-    #notifyFire;
-
-    /**
-     *
-     * @param {string} signalName
-     * @param {(fireRequest: FireRequest) => void} notifyFire
-     */
-    constructor(signalName, notifyFire) {
-        this.#signalName = signalName;
-        this.#notifyFire = notifyFire;
-    }
-
-    /**
-     *
-     * @param {any} data
-     * @param {any} source
-     * @return {void}
-     */
-    fire(data = UNSPECIFIED, source = UNSPECIFIED) {
-        let fireRequest = new FireRequest(data, source)
-        this.#notifyFire(fireRequest)
-    }
 }
 
 class SignalSubscription {
@@ -123,11 +90,14 @@ class SignalBroker {
     /**
      *
      * @param {string} signalName
-     * @returns {SignalTrigger}
+     * @returns {SignalDescriptor}
      */
     register(signalName) {
         this.#subscriptions.set(signalName, []);
-        return new SignalTrigger(signalName, (fireRequest) => this.#fire(signalName, fireRequest));
+        let signalTrigger =  fireRequest => this.#fire(signalName, fireRequest);
+        let signalSubscriber = signalConsumer => this.subscribe(signalName, signalConsumer);
+
+        return signalDescriptor(signalName, signalTrigger, signalSubscriber);
     }
 
     /**
@@ -149,7 +119,7 @@ class SignalBroker {
      * @param {SubscriptionToken} token
      */
     unsubscribe(token) {
-        this.#removeSubscription(token.signalName, token.id)
+        this.#removeSubscription(token.signalName, token.id);
     }
 
     /**
@@ -160,7 +130,7 @@ class SignalBroker {
     #addSubscription(signalName, subscription) {
         let subscribers = this.#subscriptions.get(signalName);
         subscribers.push(subscription);
-        console.log('added subscription <' + JSON.stringify(subscription) + '>')
+        console.log('added subscription <' + JSON.stringify(subscription) + '>');
     }
 
     /**
@@ -174,7 +144,7 @@ class SignalBroker {
         let subscriptions = this.#subscriptions.get(signalName);
 
         for (let subscription of subscriptions) {
-            subscription.action(signal)
+            subscription.action(signal);
         }
     }
 
@@ -200,7 +170,25 @@ class SignalBroker {
 
 }
 
-const SIGNALS = new SignalBroker();
-const UNSPECIFIED = {
+/**
+ *
+ * @param {string} signalName
+ * @param {SignalSubscriber} signalSubscriber
+ * @param {SignalTrigger} signalTrigger
+ * @returns {SignalDescriptor}
+ */
+function signalDescriptor(signalName, signalSubscriber, signalTrigger) {
+    if (signalName === undefined || signalName === null) {
+        throw new Error('signalName is required');
+    }
+    return Object.freeze({
+        name: signalName,
+        subscriber: signalSubscriber,
+        trigger: signalTrigger,
+    });
+}
+
+export const SIGNALS = new SignalBroker();
+export const UNSPECIFIED = {
     id: "unspecified"
 };

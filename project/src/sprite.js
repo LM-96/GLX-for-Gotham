@@ -1,7 +1,0 @@
-
-class Sprite {
-
-    constructor(name) {
-    }
-
-}
