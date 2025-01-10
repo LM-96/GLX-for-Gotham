@@ -1,11 +1,17 @@
 /**
- * @typedef {Readonly<{data: any, source: any}>} FireRequest
- * @typedef {Readonly<{name: string, subscriber: SignalSubscriber, trigger: SignalTrigger}>} SignalDescriptor
+ * @template T
+ * @typedef {Readonly<{data: T, source: any}>} FireRequest
  */
 
 /**
+ * @template T
+ * @typedef {Readonly<{name: string, subscriber: SignalSubscriber, trigger: SignalTrigger<T>}>} SignalDescriptor
+ */
+
+/**
+ * @template T
  * @callback SignalTrigger
- * @param {FireRequest} fireRequest
+ * @param {FireRequest<T>} fireRequest
  */
 
 /**
