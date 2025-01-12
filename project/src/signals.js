@@ -1,104 +1,50 @@
+// @ts-check
 /**
- * @template T
- * @typedef {object} MutableFireRequest
- * @property {T} data
+ * @author Luca Marchegiani
  */
+
+/* TYPES (JSDoc) **************************************************************************************************** */
+
 /**
- * @template T
- * @typedef {object} MutableSignalDescriptor
- * @property {string} name
- * @property {SignalSubscriber<T>} subscriber
- * @property {SignalTrigger<T>} trigger
- */
-/**
- * @template T
- * @callback SignalConsumer
- * @param {Signal<T>} signal
- */
-/**
- * @template T
- * @typedef {Readonly<MutableSignalDescriptor<T>>} SignalDescriptor
- */
-/**
- * @template T
- * @callback SignalTrigger
- * @param {FireRequest<T>} fireRequest
- */
-/**
- * @template T
- * @callback SignalSubscriber
- * @param {SignalConsumer<T>} signalConsumer
+ * @template D
+ * @typedef {import('./signals').FireRequest<D>} FireRequest
  */
 
 /**
- * @template T
- * @typedef {Readonly<MutableFireRequest<T>>} FireRequest
+ * @template D
+ * @typedef {import('./signals').Signal<D>} Signal
  */
 
 /**
- * @template T
+ * @template D
+ * @typedef {import('./signals').SignalConsumer<D>} SignalConsumer
  */
-class Signal {
-
-    /**
-     *
-     * @param {number} id
-     * @param {string} name
-     * @param {T} data
-     * @param {Date} time
-     */
-    constructor(id, name, data, time) {
-        this.id = id;
-        this.name = name;
-        this.data = data;
-        this.time = time;
-        Object.freeze(this);
-    }
-
-
-}
 
 /**
- * @template T
+ * @template D
+ * @typedef {import('./signals').SignalDescriptor<D>} SignalDescriptor
  */
-class SignalSubscription {
 
-    /**
-     *
-     * @param {number} id
-     * @param {string} signalName
-     * @param {SignalConsumer<T>} action
-     */
-    constructor(id, signalName,  action) {
-        this.id = id;
-        this.signalName = signalName;
-        this.action = action;
-        Object.freeze(this);
-    }
+/**
+ * @template D
+ * @typedef {import('./signals').SignalSubscriber<D>} SignalSubscriber
+ */
 
-    /**
-     *
-     * @param {any} other
-     * @returns {boolean}
-     */
-    equals(other) {
-        return other.id === this.id && other.signalName === this.signalName;
-    }
-}
+/**
+ * @template D
+ * @typedef {import('./signals').SignalTrigger<D>} SignalTrigger
+ */
 
-class SubscriptionToken {
+/**
+ * @typedef {import('./signals').SubscriptionToken} SubscriptionToken
+ */
 
-    /**
-     *
-     * @param {number} id
-     * @param {string} signalName
-     */
-    constructor(id, signalName) {
-        this.id = id;
-        this.signalName = signalName;
-        Object.freeze(this);
-    }
-}
+
+/**
+ *
+ */
+
+/* CLASSES ********************************************************************************************************** */
 
 class SignalBroker {
     /** @type {Map<string, SignalSubscription<any>[]>} */
@@ -109,32 +55,32 @@ class SignalBroker {
 
     /**
      *
-     * @template T
+     * @template D
      * @param {string} signalName
-     * @returns {SignalDescriptor<T>}
+     * @returns {SignalDescriptor<D>}
      */
     register(signalName) {
         this.#subscriptions.set(signalName, []);
 
-        /** @type {SignalTrigger<T>} */ let signalTrigger =  fireRequest => this.#fire(signalName, fireRequest);
-        /** @type {SignalSubscriber<T>} */ let signalSubscriber = signalConsumer => this.subscribe(signalName, signalConsumer);
+        /** @type {SignalTrigger<any>} */ let signalTrigger = fireRequest => this.#fire(signalName, fireRequest);
+        /** @type {SignalSubscriber<any>} */ let signalSubscriber = signalConsumer => this.subscribe(signalName, signalConsumer);
 
         return signalDescriptor(signalName, signalSubscriber, signalTrigger,);
     }
 
     /**
      *
-     * @template T
+     * @template D
      * @param {string} signalName
-     * @param {SignalConsumer<T>} action
+     * @param {SignalConsumer<D>} action
      * @returns {SubscriptionToken}
      */
     subscribe(signalName, action) {
         let signalSubscription = new SignalSubscription(this.#currentId, signalName, action);
-        this.#currentId ++;
+        this.#currentId++;
         this.#addSubscription(signalName, signalSubscription);
 
-        return new SubscriptionToken(signalSubscription.id, signalName);
+        return subscriptionToken(signalSubscription.id, signalName);
     }
 
     /**
@@ -165,24 +111,24 @@ class SignalBroker {
      * @param {FireRequest<T>} fireRequest
      */
     #fire(signalName, fireRequest) {
-        let signal = new Signal(this.#nextId(), signalName, fireRequest.data, new Date());
-        console.log('firing signal <' + JSON.stringify(signal) + '>');
-        let subscriptions = this.#getSubscriptionsOf(signal.name);
+        let firingSignal = signal(this.#nextId(), signalName, fireRequest.data, new Date());
+        console.log('firing signal <' + JSON.stringify(firingSignal) + '>');
+        let subscriptions = this.#getSubscriptionsOf(firingSignal.name);
 
         for (let subscription of subscriptions) {
-            subscription.action(signal);
+            subscription.action(firingSignal);
         }
     }
 
     /**
-     * 
-     * @param {string} signalName 
+     *
+     * @param {string} signalName
      * @returns {SignalSubscription<any>[]}
      */
     #getSubscriptionsOf(signalName) {
         let subscribers = this.#subscriptions.get(signalName);
         if (subscribers === undefined) {
-            throw new Error('unable to find subscriber for signal "' + signalName + '"')
+            throw new Error('unable to find subscriber for signal "' + signalName + '"');
         }
 
         return subscribers;
@@ -211,6 +157,52 @@ class SignalBroker {
 }
 
 /**
+ * @template D
+ */
+class SignalSubscription {
+
+    /**
+     *
+     * @param {number} id
+     * @param {string} signalName
+     * @param {SignalConsumer<D>} action
+     */
+    constructor(id, signalName, action) {
+        this.id = id;
+        this.signalName = signalName;
+        this.action = action;
+        Object.freeze(this);
+    }
+
+    /**
+     *
+     * @param {any} other
+     * @returns {boolean}
+     */
+    equals(other) {
+        return other.id === this.id && other.signalName === this.signalName;
+    }
+}
+
+/**
+ *
+ * @template T
+ * @param {number} id
+ * @param {string} name
+ * @param {T} data
+ * @param {Date} time
+ * @returns {Signal<T>}
+ */
+function signal(id, name, data, time) {
+    return Object.freeze({
+        id: id,
+        name: name,
+        data: data,
+        time: time,
+    });
+}
+
+/**
  *
  * @template T
  * @param {string} signalName
@@ -229,7 +221,21 @@ function signalDescriptor(signalName, signalSubscriber, signalTrigger) {
     });
 }
 
+/* CONSTANTS ******************************************************************************************************** */
+
 export const SIGNALS = new SignalBroker();
-export const UNSPECIFIED = {
-    id: "unspecified"
-};
+
+/* UTILITIES ******************************************************************************************************** */
+
+/**
+ *
+ * @param {number} id
+ * @param {string} name
+ * @returns {SubscriptionToken}
+ */
+function subscriptionToken(id, name) {
+    return Object.freeze({
+        id: id,
+        signalName: name,
+    });
+}

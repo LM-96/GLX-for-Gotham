@@ -1,30 +1,142 @@
+// @ts-check
+/**
+ * @author Luca Marchegiani
+ */
+
+/* TYPES (JSDoc) **************************************************************************************************** */
+/**
+ * @typedef {Transformer<Angle>} AngleTransformer
+ */
 
 /**
  * @template T
  * @template R
- * @callback Mapper
- * @param {T} obj
- * @returns R
- */
-/**
- * @template T
- * @callback Transformer
- * @param {T} obj
- * @returns T
+ * @typedef {import('./geometry').Mapper<T, R>} Mapper
  */
 
 /**
  * @template R
  *  @typedef {Mapper<Matrix, R>} MatrixMapper
  */
+
+/**
+ * @typedef {Transformer<Matrix>} MatrixTransformer
+ */
+
+/**
+ * @template T
+ * @typedef {import('./geometry').Transformer<T>} Transformer
+ */
+
 /**
  * @template R
  * @typedef {Mapper<Point3D, R>} Point3DMapper
  */
 
-/** @typedef {Transformer<Angle>} AngleTransformer */
-/** @typedef {Transformer<Matrix>} MatrixTransformer */
-/** @typedef {Transformer<Point3D>} Point3DTransformer */
+/**
+ * @typedef {Transformer<Point3D>} Point3DTransformer
+ */
+
+/* STATIC CLASSES *************************************************************************************************** */
+
+export class AngleUnits {
+    static RADIANS = "rad";
+    static DEGREES = "deg";
+
+    /**
+     *
+     * @param {any} unit
+     */
+    static checkAngleUnit(unit) {
+        if (unit !== AngleUnits.RADIANS && unit !== AngleUnits.DEGREES) {
+            throw new Error('illegal angle unit <' + unit + '>');
+        }
+    }
+}
+
+class Axes {
+    static X = "x";
+    static Y = "y";
+    static Z = "z";
+
+    /**
+     *
+     * @param {string} axis
+     */
+    static checkAxis(axis) {
+        if (axis !== Axes.X && axis !== Axes.Y && axis !== Axes.Z) {
+            throw new Error('illegal axis <' + axis + '>');
+        }
+    }
+}
+
+class RotationMatrices {
+
+    /**
+     *
+     * @param {Angle} angle
+     * @returns {Matrix}
+     */
+    static RX(angle) {
+        let theta = angle.transform(AngleMath.toRadians()).value;
+        return new Matrix([
+            [1, 0, 0],
+            [0, Math.cos(theta), -1 * Math.sin(theta)],
+            [0, Math.sin(theta), Math.cos(theta)]
+        ]);
+    }
+
+    /**
+     *
+     * @param {Angle} angle
+     * @returns {Matrix}
+     */
+    static RY(angle) {
+        let theta = angle.transform(AngleMath.toRadians()).value;
+        return new Matrix([
+            [Math.cos(theta), 0, Math.sin(theta)],
+            [0, 1, 0],
+            [-1 * Math.sin(theta), 0, Math.cos(theta)]
+        ]);
+    }
+
+    /**
+     *
+     * @param {Angle} angle
+     * @returns {Matrix}
+     */
+    static RZ(angle) {
+        let theta = angle.transform(AngleMath.toRadians()).value;
+        return new Matrix([
+            [Math.cos(theta), -1 * Math.sin(theta), 0],
+            [Math.sin(theta), Math.cos(theta), 0],
+            [0, 0, 1]
+        ]);
+    }
+
+    /**
+     *
+     * @param {string} axis
+     * @param {Angle} angle
+     * @returns {Matrix}
+     */
+    static R(axis, angle) {
+        Axes.checkAxis(axis);
+        switch (axis) {
+            case Axes.X:
+                return RotationMatrices.RX(angle);
+            case Axes.Y:
+                return RotationMatrices.RY(angle);
+            case Axes.Z:
+                return RotationMatrices.RY(angle);
+            default:
+                throw new Error('unrecognized axis "' + axis + '"');
+        }
+    }
+
+}
+
+/* CLASSES ********************************************************************************************************** */
 
 export class Angle {
 
@@ -33,8 +145,8 @@ export class Angle {
      * @param {number} value
      * @param {string} unit
      */
-    constructor(value, unit = AngleUnit.RADIANS) {
-        AngleUnit.checkAngleUnit(unit);
+    constructor(value, unit = AngleUnits.RADIANS) {
+        AngleUnits.checkAngleUnit(unit);
         this.value = value;
         this.unit = unit;
         Object.freeze(this);
@@ -67,187 +179,17 @@ export class Angle {
 
     /**
      *
-     * @param {AngleTransformer[]} transformers
+     * @param {...AngleTransformer} transformers
      * @returns {Angle}
      */
     transform(...transformers) {
-        return transformers.reduce((acc, transformer) => transformer(acc), this);
+        return applyTransformationChain(this, transformers);
     }
-}
-
-export class Axis {
-    static X = "x";
-    static Y = "y";
-    static Z = "z";
-
-    /**
-     *
-     * @param {string} axis
-     */
-    static checkAxis(axis) {
-        if (axis !== Axis.X && axis !== Axis.Y && axis !== Axis.Z) {
-            throw new Error('illegal axis <' + axis + '>');
-        }
-    }
-}
-
-export class AngleUnit {
-    static RADIANS = "rad";
-    static DEGREES = "deg";
-
-    /**
-     * 
-     * @param {any} unit 
-     */
-    static checkAngleUnit(unit) {
-        if (unit !== AngleUnit.RADIANS && unit !== AngleUnit.DEGREES) {
-            throw new Error('illegal angle unit <' + unit + '>');
-        }
-    }
-}
-
-export class Matrix {
-
-    /**
-     *
-     * @param {number[][]} data
-     */
-    constructor(data) {
-        this.data = this.#frozenCloneData(data);
-        this.totalRows = data.length;
-        this.totalColumns = data[0].length;
-
-        for (let i = 1; i < data.length; ++i) {
-            if (data[i].length !== this.totalColumns) {
-                throw new Error(`inconsistent matrix size: row ${i} has ${data[i].length} columns but ${this.totalColumns} were expected`);
-            }
-        }
-
-        Object.freeze(this);
-    }
-
-    /**
-     *
-     * @param {number} row
-     * @param {number} column
-     * @returns {number}
-     */
-    getCell(row, column) {
-        return this.data[row][column];
-    }
-
-    /**
-     *
-     * @param {number} column
-     * @returns {number[]}
-     */
-    getColumn(column) {
-        return this.data.map(row => row[column]);
-    }
-
-    /**
-     *
-     * @param {number} row
-     * @returns {number[]}
-     */
-    getRow(row) {
-        return [...this.data[row]];
-    }
-
-    toString() {
-        return this.data.map(row => `[${row.toString()}]`).join(', ');
-    }
-
-    /**
-     * @template T
-     * @param {MatrixMapper<T>} mapper
-     * @returns {T}
-     */
-    map(mapper) {
-        return mapper(this);
-    }
-
-    /**
-     *
-     * @param {MatrixTransformer[]} transformers
-     * @returns {Matrix}
-     */
-    transform(...transformers) {
-        return transformers.reduce((acc, transformer) => transformer(acc), this);
-    }
-
-    /**
-     *
-     * @param {number[][]} data
-     * @returns {Readonly<Readonly<number[]>[]>}
-     */
-    #frozenCloneData(data) {
-        let clone = data.map(row => Object.freeze([...row]));
-        return Object.freeze(clone);
-    }
-
-}
-
-export class Point3D {
-
-    /**
-     *
-     * @param {number} x
-     * @param {number} y
-     * @param {number} z
-     */
-    constructor(x, y, z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        Object.freeze(this);
-    }
-
-    clone() {
-        return new Point3D(this.x, this.y, this.z);
-    }
-
-    /**
-     *
-     * @param {any} other
-     * @returns {boolean}
-     */
-    equals(other) {
-        if (other instanceof Point3D) {
-            return this.x === other.x && this.y === other.y && this.z === other.z;
-        }
-
-        return false;
-    }
-
-    toString() {
-        return `Point3D(x=${this.x}, y=${this.y}, z=${this.z})`;
-    }
-
-    /**
-     *
-     * @template T
-     * @param {Point3DMapper<T>} mapper
-     * @returns {T}
-     */
-    map(mapper) {
-        return mapper(this);
-    }
-
-    /**
-     *
-     * @param {Point3DTransformer[]} transformers
-     * @returns {Point3D}
-     */
-    transform(...transformers) {
-        return transformers.reduce((acc, transformer) => transformer(acc), this);
-    }
-
 }
 
 export class AngleMath {
-    static #TO_DEGREES = AngleMath.convert(AngleUnit.DEGREES);
-    static #TO_RADIANS = AngleMath.convert(AngleUnit.RADIANS);
+    static #TO_DEGREES = AngleMath.convert(AngleUnits.DEGREES);
+    static #TO_RADIANS = AngleMath.convert(AngleUnits.RADIANS);
 
     /**
      *
@@ -256,12 +198,12 @@ export class AngleMath {
      */
     static convert(unit) {
         return angle => {
-            AngleUnit.checkAngleUnit(unit);
+            AngleUnits.checkAngleUnit(unit);
             if (angle.unit === unit) {
                 return angle;
-            } else if (angle.unit === AngleUnit.RADIANS && unit === AngleUnit.DEGREES) {
+            } else if (angle.unit === AngleUnits.RADIANS && unit === AngleUnits.DEGREES) {
                 return new Angle(AngleMath.#rad2Deg(angle.value), unit);
-            } else if (angle.unit === AngleUnit.DEGREES && unit === AngleUnit.RADIANS) {
+            } else if (angle.unit === AngleUnits.DEGREES && unit === AngleUnits.RADIANS) {
                 return new Angle(AngleMath.#deg2Rad(angle.value), unit);
             }
 
@@ -346,7 +288,7 @@ export class Math3D {
     }
 
     /**
-     * @type {Point3DMapper<number[][]>}
+     * @returns {Point3DMapper<number[][]>}
      */
     static toColumnVector() {
         return Math3D.#TO_COLUMN_VECTOR;
@@ -361,6 +303,88 @@ export class Math3D {
      */
     static translate(dx, dy, dz) {
         return point => new Point3D(point.x + dx, point.y + dy, point.z + dz);
+    }
+
+}
+
+export class Matrix {
+
+    /**
+     *
+     * @param {number[][]} data
+     */
+    constructor(data) {
+        this.data = this.#frozenCloneData(data);
+        this.totalRows = data.length;
+        this.totalColumns = data[0].length;
+
+        for (let i = 1; i < data.length; ++i) {
+            if (data[i].length !== this.totalColumns) {
+                throw new Error(`inconsistent matrix size: row ${i} has ${data[i].length} columns but ${this.totalColumns} were expected`);
+            }
+        }
+
+        Object.freeze(this);
+    }
+
+    /**
+     *
+     * @param {number} row
+     * @param {number} column
+     * @returns {number}
+     */
+    getCell(row, column) {
+        return this.data[row][column];
+    }
+
+    /**
+     *
+     * @param {number} column
+     * @returns {number[]}
+     */
+    getColumn(column) {
+        return this.data.map(row => row[column]);
+    }
+
+    /**
+     *
+     * @param {number} row
+     * @returns {number[]}
+     */
+    getRow(row) {
+        return [...this.data[row]];
+    }
+
+    toString() {
+        return this.data.map(row => `[${row.toString()}]`).join(', ');
+    }
+
+    /**
+     * @template T
+     * @param {MatrixMapper<T>} mapper
+     * @returns {T}
+     */
+    map(mapper) {
+        return mapper(this);
+    }
+
+    /**
+     *
+     * @param {...MatrixTransformer} transformers
+     * @returns {Matrix}
+     */
+    transform(...transformers) {
+        return applyTransformationChain(this, transformers);
+    }
+
+    /**
+     *
+     * @param {number[][]} data
+     * @returns {Readonly<Readonly<number[]>[]>}
+     */
+    #frozenCloneData(data) {
+        let clone = data.map(row => Object.freeze([...row]));
+        return Object.freeze(clone);
     }
 
 }
@@ -421,71 +445,65 @@ class MatrixMath {
 
 }
 
-class RotationMatrices {
+
+export class Point3D {
 
     /**
      *
-     * @param {Angle} angle
-     * @returns {Matrix}
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z
      */
-    static RX(angle) {
-        let theta = angle.transform(AngleMath.toRadians()).value;
-        return new Matrix([
-            [1, 0, 0],
-            [0, Math.cos(theta), -1 * Math.sin(theta)],
-            [0, Math.sin(theta), Math.cos(theta)]
-        ]);
+    constructor(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        Object.freeze(this);
+    }
+
+    clone() {
+        return new Point3D(this.x, this.y, this.z);
     }
 
     /**
      *
-     * @param {Angle} angle
-     * @returns {Matrix}
+     * @param {any} other
+     * @returns {boolean}
      */
-    static RY(angle) {
-        let theta = angle.transform(AngleMath.toRadians()).value;
-        return new Matrix([
-            [Math.cos(theta), 0, Math.sin(theta)],
-            [0, 1, 0],
-            [-1 * Math.sin(theta), 0, Math.cos(theta)]
-        ]);
-    }
-
-    /**
-     *
-     * @param {Angle} angle
-     * @returns {Matrix}
-     */
-    static RZ(angle) {
-        let theta = angle.transform(AngleMath.toRadians()).value;
-        return new Matrix([
-            [Math.cos(theta), -1 * Math.sin(theta), 0],
-            [Math.sin(theta), Math.cos(theta), 0],
-            [0, 0, 1]
-        ]);
-    }
-
-    /**
-     *
-     * @param {string} axis
-     * @param {Angle} angle
-     * @returns {Matrix}
-     */
-    static R(axis, angle) {
-        Axis.checkAxis(axis);
-        switch (axis) {
-            case Axis.X:
-                return RotationMatrices.RX(angle);
-            case Axis.Y:
-                return RotationMatrices.RY(angle);
-            case Axis.Z:
-                return RotationMatrices.RY(angle);
-            default:
-                throw new Error('unrecognized axis "' + axis + '"');
+    equals(other) {
+        if (other instanceof Point3D) {
+            return this.x === other.x && this.y === other.y && this.z === other.z;
         }
+
+        return false;
+    }
+
+    toString() {
+        return `Point3D(x=${this.x}, y=${this.y}, z=${this.z})`;
+    }
+
+    /**
+     *
+     * @template T
+     * @param {Point3DMapper<T>} mapper
+     * @returns {T}
+     */
+    map(mapper) {
+        return mapper(this);
+    }
+
+    /**
+     *
+     * @param {...Point3DTransformer} transformers
+     * @returns {Point3D}
+     */
+    transform(...transformers) {
+        return applyTransformationChain(this, transformers);
     }
 
 }
+
+/* FUNCTIONS ******************************************************************************************************** */
 
 /**
  *
@@ -503,7 +521,7 @@ export function angle(value, unit) {
  * @returns {Angle}
  */
 export function degrees(value) {
-    return angle(value, AngleUnit.DEGREES);
+    return angle(value, AngleUnits.DEGREES);
 }
 
 /**
@@ -532,6 +550,22 @@ export function point3D(x, y, z) {
  * @returns {Angle}
  */
 export function radians(value) {
-    return angle(value, AngleUnit.RADIANS);
+    return angle(value, AngleUnits.RADIANS);
 }
 
+/* UTILITIES ******************************************************************************************************** */
+
+/**
+ * @template T
+ * @param {T} obj
+ * @param {Transformer<T>[]} transformers
+ * @returns {T}
+ */
+function applyTransformationChain(obj, transformers) {
+    let result = obj;
+    for (let transformer of transformers) {
+        result = transformer(result);
+    }
+
+    return result;
+}

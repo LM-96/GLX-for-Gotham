@@ -1,108 +1,63 @@
-import { Angle, Point3D, point3D, radians } from "./geometry";
+import { Angle, Point3D, point3D, radians } from "./geometry.js";
 import { SIGNALS } from "./signals.js";
+
+/* TYPES (JSDoc) **************************************************************************************************** */
 
 /**
  * @template T
- * @typedef {object} MutableChange
- * @property {T} from
- * @property {T} to
- * @readonly
+ * @typedef {import("./assistgl").Duo<T>} Duo
  */
+
 /**
  * @template T
- * @typedef {object} MutablePair
- * @property {T} first
- * @property {T} second
+ * @typedef {import("./assistgl").Change<T>} Change
  */
-/**
- * @typedef {object} MutableSpriteAction
- * @property {number} type
- * @property {PositionChange | RotationChange | ScaleChange} description
- */
+
 /**
  * @template T
- * @typedef {object} MutableTrio
- * @property {T} first
- * @property {T} second
- * @property {T} third
- * @readonly
+ * @typedef {import("./signals").FireRequest<T>} FireRequest
  */
+
 /**
- * @template T
- * @typedef {Readonly<MutableChange<T>>} Change
+ * @typedef {import("./assistgl").LimitChecker} LimitChecker
  */
-/**
- * @template T
- * @typedef {import("./signals.js").FireRequest<T>} FireRequest
- */
-/**
- * @callback LimitChecker
- * @param {Sprite} sprite
- * @returns {boolean}
- */
-/**
- * @template T
- * @typedef {Readonly<MutablePair<T>>} Pair
- */
+
 /**
  * @template T
  * @typedef {import("./signals.js").SignalDescriptor<T>} SignalDescriptor
  */
-/**
- * @template T
- * @typedef {Readonly<MutableTrio<T>>} Trio
- */
-
-/** @typedef {Change<Point3D>} PositionChange */
-/** @typedef {Change<Trio<Angle>>} RotationChange */
-/** @typedef {Change<Trio<number>>} ScaleChange */
-/** @typedef {Readonly<MutableSpriteAction>} SpriteAction */
 
 /**
  * @template T
- * @param {T} from
- * @param {T} to
- * @returns {Change<T>}
+ * @typedef {import("./assistgl").Trio<T>} Trio
  */
-export function change(from, to) {
-    return Object.freeze({
-        from: from,
-        to: to,
-    });
-}
 
 /**
- * @template T
- * @param {T} first
- * @param {T} second
- * @returns {Pair<T>}
+ * @typedef {import("./assistgl").PositionChange} PositionChange
  */
-export function pair(first, second) {
-    return Object.freeze({
-        first: first,
-        second: second
-    });
-}
 
 /**
- * @template T
- * @param {T} first
- * @param {T} second
- * @param {T} third
- * @returns {Trio<T>}
+ * @typedef {import("./assistgl").RotationChange} RotationChange
  */
-export function trio(first, second, third) {
-    return Object.freeze({
-        first: first,
-        second: second,
-        third: third,
-    });
-}
 
-class SpriteChanges {
-    static TRANSITION = 1;
-    static ROTATION = 2;
-    static SCALE = 3;
+/**
+ * @typedef {import("./assistgl").ScaleChange} ScaleChange
+ */
+
+/**
+ * @typedef {import("./assistgl").SpriteAction} SpriteAction
+ */
+
+/**
+ * @typedef {import("./assistgl").SpriteActionType} SpriteActionType
+ */
+
+/* STATIC CLASSES *************************************************************************************************** */
+
+export class SpriteActions {
+    /** @type {SpriteActionType} */ static TRANSITION = 1;
+    /** @type {SpriteActionType} */ static ROTATION = 2;
+    /** @type {SpriteActionType} */ static SCALE = 3;
 }
 
 class FireRequests {
@@ -115,7 +70,7 @@ class FireRequests {
     static ofRotation(from, to) {
         return Object.freeze({
             data: Object.freeze({
-                type: SpriteChanges.SCALE,
+                type: SpriteActions.ROTATION,
                 description: change(from, to),
             })
         });
@@ -130,7 +85,7 @@ class FireRequests {
     static ofScale(from, to) {
         return Object.freeze({
             data: Object.freeze({
-                type: SpriteChanges.SCALE,
+                type: SpriteActions.SCALE,
                 description: change(from, to),
             })
         });
@@ -145,7 +100,7 @@ class FireRequests {
     static ofTransition(from, to) {
         return Object.freeze({
             data: Object.freeze({
-                type: SpriteChanges.TRANSITION,
+                type: SpriteActions.TRANSITION,
                 description: change(from, to)
             }),
         });
@@ -242,7 +197,6 @@ export class Sprite {
     }
 
     /**
-     *
      * @param {Point3D} position
      */
     set position(position) {
@@ -261,5 +215,47 @@ export class Sprite {
         this.#informationSignalDescriptor.trigger(FireRequests.ofRotation(previousRotation, rotation));
     }
 
+}
 
+/* FUNCTIONS ******************************************************************************************************** */
+
+/**
+ * @template T
+ * @param {T} from
+ * @param {T} to
+ * @returns {Change<T>}
+ */
+export function change(from, to) {
+    return Object.freeze({
+        from: from,
+        to: to,
+    });
+}
+
+/**
+ * @template T
+ * @param {T} first
+ * @param {T} second
+ * @returns {Duo<T>}
+ */
+export function duo(first, second) {
+    return Object.freeze({
+        first: first,
+        second: second
+    });
+}
+
+/**
+ * @template T
+ * @param {T} first
+ * @param {T} second
+ * @param {T} third
+ * @returns {Trio<T>}
+ */
+export function trio(first, second, third) {
+    return Object.freeze({
+        first: first,
+        second: second,
+        third: third,
+    });
 }
