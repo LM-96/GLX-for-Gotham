@@ -1,36 +1,75 @@
 import { Angle, Point3D, point3D, radians } from "./geometry";
+import { SIGNALS } from "./signals.js";
 
 /**
  * @template T
- * @typedef { Readonly<{first: T, second: T}> } Pair
+ * @typedef {object} MutableChange
+ * @property {T} from
+ * @property {T} to
+ * @readonly
  */
-
 /**
  * @template T
- * @typedef { Readonly<{first: T, second: T }>} Trio
+ * @typedef {object} MutablePair
+ * @property {T} first
+ * @property {T} second
  */
-
 /**
- * @typedef { Readonly<{type: number, description: PositionChange | RotationChange | ScaleChange}> } SpriteAction
+ * @typedef {object} MutableSpriteAction
+ * @property {number} type
+ * @property {PositionChange | RotationChange | ScaleChange} description
  */
-
 /**
- * @typedef { Readonly<{from: Point3D, to: Point3D}> } PositionChange
+ * @template T
+ * @typedef {object} MutableTrio
+ * @property {T} first
+ * @property {T} second
+ * @property {T} third
+ * @readonly
  */
-
 /**
- * @typedef { Readonly<{from: Trio<Angle>, to: Trio<Angle>}> } RotationChange
+ * @template T
+ * @typedef {Readonly<MutableChange<T>>} Change
  */
-
 /**
- * @typedef { Readonly<{from: Trio<number>, to: Trio<number>}> } ScaleChange
+ * @template T
+ * @typedef {import("./signals.js").FireRequest<T>} FireRequest
  */
-
 /**
  * @callback LimitChecker
  * @param {Sprite} sprite
  * @returns {boolean}
  */
+/**
+ * @template T
+ * @typedef {Readonly<MutablePair<T>>} Pair
+ */
+/**
+ * @template T
+ * @typedef {import("./signals.js").SignalDescriptor<T>} SignalDescriptor
+ */
+/**
+ * @template T
+ * @typedef {Readonly<MutableTrio<T>>} Trio
+ */
+
+/** @typedef {Change<Point3D>} PositionChange */
+/** @typedef {Change<Trio<Angle>>} RotationChange */
+/** @typedef {Change<Trio<number>>} ScaleChange */
+/** @typedef {Readonly<MutableSpriteAction>} SpriteAction */
+
+/**
+ * @template T
+ * @param {T} from
+ * @param {T} to
+ * @returns {Change<T>}
+ */
+export function change(from, to) {
+    return Object.freeze({
+        from: from,
+        to: to,
+    });
+}
 
 /**
  * @template T
@@ -42,45 +81,6 @@ export function pair(first, second) {
     return Object.freeze({
         first: first,
         second: second
-    });
-}
-
-/**
- *
- * @param {Point3D} from
- * @param {Point3D} to
- * @returns {PositionChange}
- */
-export function positionChange(from, to) {
-    return Object.freeze({
-        from: from,
-        to: to,
-    });
-}
-
-/**
- *
- * @param {Trio<Angle>} from
- * @param {Trio<Angle>} to
- * @returns {RotationChange}
- */
-export function rotationChange(from, to) {
-    return Object.freeze({
-        from: from,
-        to: to,
-    });
-}
-
-/**
- *
- * @param {Trio<number>} from
- * @param {Trio<number>} to
- * @returns {ScaleChange}
- */
-export function scaleChange(from, to) {
-    return Object.freeze({
-        from: from,
-        to: to,
     });
 }
 
@@ -99,50 +99,55 @@ export function trio(first, second, third) {
     });
 }
 
-class SpriteActions {
-    TRANSITION = 1;
-    ROTATION = 2;
-    SCALE = 3;
-
-    /**
-     * @param from
-     * @param to
-     * @returns SpriteAction
-     */
-    static transition(from, to) {
-        return Object.freeze({
-
-        });
-    }
+class SpriteChanges {
+    static TRANSITION = 1;
+    static ROTATION = 2;
+    static SCALE = 3;
 }
 
 class FireRequests {
 
     /**
-     *
-     * @param {any} source
-     * @param {Trio<number>} from
-     * @param {Trio<number>} to
+     * @param {Trio<Angle>} from
+     * @param {Trio<Angle>} to
      * @returns {FireRequest<SpriteAction>}
      */
-    static scale(source, from, to) {
+    static ofRotation(from, to) {
         return Object.freeze({
-            data: scaleChange(from, to),
-            source: source
+            data: Object.freeze({
+                type: SpriteChanges.SCALE,
+                description: change(from, to),
+            })
         });
     }
 
     /**
      *
-     * @param {any} source
+     * @param {Trio<number>} from
+     * @param {Trio<number>} to
+     * @returns {FireRequest<SpriteAction>}
+     */
+    static ofScale(from, to) {
+        return Object.freeze({
+            data: Object.freeze({
+                type: SpriteChanges.SCALE,
+                description: change(from, to),
+            })
+        });
+    }
+
+    /**
+     *
      * @param {Point3D} from
      * @param {Point3D} to
-     * @returns {FireRequest<PositionChange>}
+     * @returns {FireRequest<SpriteAction>}
      */
-    static transition(source, from, to) {
+    static ofTransition(from, to) {
         return Object.freeze({
-            data: positionChange(from, to),
-            source: source,
+            data: Object.freeze({
+                type: SpriteChanges.TRANSITION,
+                description: change(from, to)
+            }),
         });
     }
 
@@ -171,18 +176,18 @@ class Scales {
 export class Sprite {
 
     /**  @type {string} */ #name;
-    /**  @type {string} */ #glDomainName;
+    /**  @type {string | undefined} */ #glDomainName;
     /**  @type {Point3D} */ #position;
     /**  @type {Trio<Angle>} */ #rotation;
     /**  @type {Trio<number>} */ #scale;
     /**  @type {LimitChecker} */ #limitChecker;
-    /**  @type {number} */ #hidden;
-    /** @type {SignalDescriptor} */ #informationSignalDescriptor;
+    /**  @type {boolean} */ #hidden;
+    /**  @type {SignalDescriptor<SpriteAction>} */ #informationSignalDescriptor;
 
     /**
      *
      * @param {string} name
-     * @param {string} glDomainName
+     * @param {string | undefined} glDomainName
      * @param {Point3D} position
      * @param {Trio<Angle>} rotation
      * @param {Trio<number>} scale
@@ -204,6 +209,8 @@ export class Sprite {
         this.#scale = scale;
         this.#limitChecker = limitChecker;
         this.#hidden = hidden;
+
+        this.#informationSignalDescriptor = SIGNALS.register("");
     }
 
     get name() {
@@ -239,7 +246,20 @@ export class Sprite {
      * @param {Point3D} position
      */
     set position(position) {
+        let previousPosition = position;
         this.#position = position;
-        this.#informationSignalDescriptor.trigger();
+        this.#informationSignalDescriptor.trigger(FireRequests.ofTransition(previousPosition, position));
     }
+
+    /**
+     *
+     * @param {Trio<Angle>} rotation
+     */
+    set rotation(rotation) {
+        let previousRotation = rotation;
+        this.#rotation = rotation;
+        this.#informationSignalDescriptor.trigger(FireRequests.ofRotation(previousRotation, rotation));
+    }
+
+
 }

@@ -1,34 +1,30 @@
-/**
- * @callback AngleTransformer
- * @param {Angle} angle
- * @returns {Angle}
- */
 
 /**
  * @template T
- * @callback MatrixMapper
- * @param {Matrix} matrix
- * @returns {T}
+ * @template R
+ * @callback Mapper
+ * @param {T} obj
+ * @returns R
  */
-
-/**
- * @callback MatrixTransformer
- * @param {Matrix} matrix
- * @returns {Matrix}
- */
-
 /**
  * @template T
- * @callback Point3DMapper
- * @param {Point3D} point
- * @returns {T}
+ * @callback Transformer
+ * @param {T} obj
+ * @returns T
  */
 
 /**
- * @callback Point3DTransformer
- * @param {Point3D} point
- * @returns {Point3D}
+ * @template R
+ *  @typedef {Mapper<Matrix, R>} MatrixMapper
  */
+/**
+ * @template R
+ * @typedef {Mapper<Point3D, R>} Point3DMapper
+ */
+
+/** @typedef {Transformer<Angle>} AngleTransformer */
+/** @typedef {Transformer<Matrix>} MatrixTransformer */
+/** @typedef {Transformer<Point3D>} Point3DTransformer */
 
 export class Angle {
 
@@ -71,7 +67,7 @@ export class Angle {
 
     /**
      *
-     * @param {AngleTransformer} transformers
+     * @param {AngleTransformer[]} transformers
      * @returns {Angle}
      */
     transform(...transformers) {
@@ -99,6 +95,10 @@ export class AngleUnit {
     static RADIANS = "rad";
     static DEGREES = "deg";
 
+    /**
+     * 
+     * @param {any} unit 
+     */
     static checkAngleUnit(unit) {
         if (unit !== AngleUnit.RADIANS && unit !== AngleUnit.DEGREES) {
             throw new Error('illegal angle unit <' + unit + '>');
@@ -169,7 +169,7 @@ export class Matrix {
 
     /**
      *
-     * @param {MatrixTransformer} transformers
+     * @param {MatrixTransformer[]} transformers
      * @returns {Matrix}
      */
     transform(...transformers) {
@@ -179,12 +179,11 @@ export class Matrix {
     /**
      *
      * @param {number[][]} data
-     * @returns {number[][]}
+     * @returns {Readonly<Readonly<number[]>[]>}
      */
     #frozenCloneData(data) {
         let clone = data.map(row => Object.freeze([...row]));
-        Object.freeze(clone);
-        return clone;
+        return Object.freeze(clone);
     }
 
 }
@@ -237,7 +236,7 @@ export class Point3D {
 
     /**
      *
-     * @param {Point3DTransformer} transformers
+     * @param {Point3DTransformer[]} transformers
      * @returns {Point3D}
      */
     transform(...transformers) {
@@ -257,6 +256,7 @@ export class AngleMath {
      */
     static convert(unit) {
         return angle => {
+            AngleUnit.checkAngleUnit(unit);
             if (angle.unit === unit) {
                 return angle;
             } else if (angle.unit === AngleUnit.RADIANS && unit === AngleUnit.DEGREES) {
@@ -264,6 +264,8 @@ export class AngleMath {
             } else if (angle.unit === AngleUnit.DEGREES && unit === AngleUnit.RADIANS) {
                 return new Angle(AngleMath.#deg2Rad(angle.value), unit);
             }
+
+            throw new Error('unrecognized angle unit "' + unit + '"');
         };
     }
 
@@ -315,7 +317,7 @@ export class Math3D {
      */
     static rotateAround(axis, angle) {
         return point => {
-            let pointColumnVector = point.transform(Math3D.#TO_COLUMN_VECTOR);
+            let pointColumnVector = matrix(point.map(Math3D.#TO_COLUMN_VECTOR));
             let rotationMatrix = RotationMatrices.R(axis, angle);
 
             return rotationMatrix
@@ -399,7 +401,7 @@ class MatrixMath {
 
             const m = matrix.totalRows;
             const n = matrix.totalColumns;
-            const p = other[0].length;
+            const p = other.data[0].length;
 
             const resultData = Array.from({length: m}, () => Array(p).fill(0));
 
@@ -478,6 +480,8 @@ class RotationMatrices {
                 return RotationMatrices.RY(angle);
             case Axis.Z:
                 return RotationMatrices.RY(angle);
+            default:
+                throw new Error('unrecognized axis "' + axis + '"');
         }
     }
 

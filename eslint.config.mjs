@@ -27,6 +27,7 @@ export default [...compat.extends("eslint:recommended", "plugin:jsdoc/recommende
         "jsdoc/require-param-type": "error",
         "jsdoc/require-returns-type": "error",
         "jsdoc/require-param-description": 0,
+        "jsdoc/require-property-description": 0,
         "jsdoc/require-returns-description": 0,
         "semi": ["error", "always"]
     },
