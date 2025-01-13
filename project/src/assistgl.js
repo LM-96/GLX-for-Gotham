@@ -1,3 +1,8 @@
+// @ts-check
+/**
+ * @author Luca Marchegiani
+ */
+
 import { Angle, Point3D, point3D, radians } from "./geometry.js";
 import { SIGNALS } from "./signals.js";
 
@@ -20,6 +25,14 @@ import { SIGNALS } from "./signals.js";
 
 /**
  * @typedef {import("./assistgl").LimitChecker} LimitChecker
+ */
+
+/**
+ * @typedef {import("./assistgl").LogFunction} LogFunction
+ */
+
+/**
+ * @typedef {import('./assistgl').Log} Log
  */
 
 /**
@@ -63,45 +76,42 @@ export class SpriteActions {
 class FireRequests {
 
     /**
-     * @param {Trio<Angle>} from
-     * @param {Trio<Angle>} to
+     * @param {Change<Trio<Angle>>} change
      * @returns {FireRequest<SpriteAction>}
      */
-    static ofRotation(from, to) {
+    static ofRotation(change) {
         return Object.freeze({
             data: Object.freeze({
                 type: SpriteActions.ROTATION,
-                description: change(from, to),
+                description: change,
             })
         });
     }
 
     /**
      *
-     * @param {Trio<number>} from
-     * @param {Trio<number>} to
+     * @param {Change<number>} change
      * @returns {FireRequest<SpriteAction>}
      */
-    static ofScale(from, to) {
+    static ofScale(change) {
         return Object.freeze({
             data: Object.freeze({
                 type: SpriteActions.SCALE,
-                description: change(from, to),
+                description: change,
             })
         });
     }
 
     /**
      *
-     * @param {Point3D} from
-     * @param {Point3D} to
+     * @param {Change<Point3D>} change
      * @returns {FireRequest<SpriteAction>}
      */
-    static ofTransition(from, to) {
+    static ofTransition(change) {
         return Object.freeze({
             data: Object.freeze({
                 type: SpriteActions.TRANSITION,
-                description: change(from, to)
+                description: change
             }),
         });
     }
@@ -120,13 +130,18 @@ class Positions {
 
 class Rotations {
     /** @type {Trio<Angle>} */
-    static UNROTATED = trio(radians(0), radians(0), radians(0));
+    static NOT_ROTATED = trio(radians(0), radians(0), radians(0));
 }
 
 class Scales {
     /** @type {Trio<number>} */
-    static UNSCALED = trio(1, 1, 1);
+    static NOT_SCALED = trio(1, 1, 1);
 }
+
+/* CLASSES ********************************************************************************************************** */
+
+
+
 
 export class Sprite {
 
@@ -152,8 +167,8 @@ export class Sprite {
     constructor(name,
                 glDomainName = undefined,
                 position = Positions.ORIGIN,
-                rotation = Rotations.UNROTATED,
-                scale = Scales.UNSCALED,
+                rotation = Rotations.NOT_ROTATED,
+                scale = Scales.NOT_SCALED,
                 limitChecker = LimitCheckers.UNLIMITED,
                 hidden = false
     ) {
@@ -200,9 +215,14 @@ export class Sprite {
      * @param {Point3D} position
      */
     set position(position) {
-        let previousPosition = position;
+        let positionChange = change(position, this.#position);
+
+        if (!this.limitChecker(this, position)) {
+            throw new Error(`invalid position change [sprite ${this.#name}, target: ${position}]: out of bounds`);
+        }
+
         this.#position = position;
-        this.#informationSignalDescriptor.trigger(FireRequests.ofTransition(previousPosition, position));
+        this.#informationSignalDescriptor.trigger(FireRequests.ofTransition(positionChange));
     }
 
     /**
@@ -210,9 +230,17 @@ export class Sprite {
      * @param {Trio<Angle>} rotation
      */
     set rotation(rotation) {
-        let previousRotation = rotation;
+        let rotationChange = change(rotation, this.#rotation);
+
         this.#rotation = rotation;
-        this.#informationSignalDescriptor.trigger(FireRequests.ofRotation(previousRotation, rotation));
+        this.#informationSignalDescriptor.trigger(FireRequests.ofRotation(rotationChange));
+    }
+
+    set scale(scale) {
+        let scaleChange = change(scale, this.#scale);
+
+        this.#scale = scale;
+        this.#informationSignalDescriptor.trigger(FireRequests.ofScale(scaleChange));
     }
 
 }
@@ -221,14 +249,14 @@ export class Sprite {
 
 /**
  * @template T
- * @param {T} from
  * @param {T} to
+ * @param {T} from
  * @returns {Change<T>}
  */
-export function change(from, to) {
+export function change(to, from) {
     return Object.freeze({
-        from: from,
         to: to,
+        from: from,
     });
 }
 
@@ -259,3 +287,4 @@ export function trio(first, second, third) {
         third: third,
     });
 }
+

@@ -11,7 +11,7 @@ export type Duo<T> = {
     readonly second: T;
 };
 
-export type LimitChecker = (sprite: Sprite) => boolean;
+export type LimitChecker = (sprite: Sprite, targetPosition: Point3D) => boolean;
 
 export type SpriteActionType = 1 | 2 | 3;
 
@@ -28,9 +28,9 @@ export type RotationChange = Change<Trio<Angle>>;
 export type ScaleChange = Change<Trio<number>>;
 
 export declare class FireRequests {
-    static ofRotation(from: Trio<Angle>, to: Trio<Angle>): FireRequest<RotationChange>;
-    static ofScale(from: Trio<number>, to: Trio<number>): FireRequest<ScaleChange>;
-    static ofTransition(from: Point3D, to: Point3D): FireRequest<PositionChange>;
+    static ofRotation(change: Change<Trio<Angle>>): FireRequest<RotationChange>;
+    static ofScale(change: Change<Trio<number>>): FireRequest<ScaleChange>;
+    static ofTransition(change: Change<Point3D>): FireRequest<PositionChange>;
 }
 
 export declare class LimitCheckers {
@@ -42,11 +42,11 @@ export declare class Positions {
 }
 
 export declare class Rotations {
-    static readonly UNROTATED: Trio<Angle>;
+    static readonly NOT_ROTATED: Trio<Angle>;
 }
 
 export declare class Scales {
-    static readonly UNSCALED: Trio<number>;
+    static readonly NOT_SCALED: Trio<number>;
 }
 
 export declare class Sprite {
