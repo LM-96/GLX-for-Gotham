@@ -3,11 +3,17 @@
  * @author Luca Marchegiani
  */
 
+import { Logger } from "./logjsx.js";
+
 /* TYPES (JSDoc) **************************************************************************************************** */
 
 /**
  * @template D
  * @typedef {import('./signals').FireRequest<D>} FireRequest
+ */
+
+/**
+ * @typedef {import('./logjsx').Logger} Logger
  */
 
 /**
@@ -47,11 +53,15 @@
 /* CLASSES ********************************************************************************************************** */
 
 class SignalBroker {
-    /** @type {Map<string, SignalSubscription<any>[]>} */
-    #subscriptions = new Map();
 
     /** @type {number} */
     #currentId = -1;
+
+    /** @type {Logger} */
+    #log= Logger.forName('SignalBroker');
+
+    /** @type {Map<string, SignalSubscription<any>[]>} */
+    #subscriptions = new Map();
 
     /**
      *
@@ -65,6 +75,7 @@ class SignalBroker {
         /** @type {SignalTrigger<any>} */ let signalTrigger = fireRequest => this.#fire(signalName, fireRequest);
         /** @type {SignalSubscriber<any>} */ let signalSubscriber = signalConsumer => this.subscribe(signalName, signalConsumer);
 
+        this.#log.info(`registered signal [signalName: "${signalName}"]`);
         return signalDescriptor(signalName, signalSubscriber, signalTrigger,);
     }
 
@@ -80,6 +91,7 @@ class SignalBroker {
         this.#currentId++;
         this.#addSubscription(signalName, signalSubscription);
 
+        this.#log.info(`signal has been subscribed [signalName: "${signalName}", subscriptionId:${signalSubscription.id}]`);
         return subscriptionToken(signalSubscription.id, signalName);
     }
 
@@ -88,6 +100,7 @@ class SignalBroker {
      * @param {SubscriptionToken} token
      */
     unsubscribe(token) {
+        this.#log.info(`signal has been unsubscribed [signalName: "${token.signalName}", subscriptionId:${token.id}]`);
         this.#removeSubscription(token.signalName, token.id);
     }
 
@@ -101,7 +114,7 @@ class SignalBroker {
         let subscribers = this.#getSubscriptionsOf(signalName);
 
         subscribers.push(subscription);
-        console.log('added subscription <' + JSON.stringify(subscription) + '>');
+        this.#log.info('added subscription [' + JSON.stringify(subscription) + ']');
     }
 
     /**
@@ -112,7 +125,7 @@ class SignalBroker {
      */
     #fire(signalName, fireRequest) {
         let firingSignal = signal(this.#nextId(), signalName, fireRequest.data, new Date());
-        console.log('firing signal <' + JSON.stringify(firingSignal) + '>');
+        this.#log.info('firing signal [' + JSON.stringify(firingSignal) + ']');
         let subscriptions = this.#getSubscriptionsOf(firingSignal.name);
 
         for (let subscription of subscriptions) {

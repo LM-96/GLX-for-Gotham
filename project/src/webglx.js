@@ -10,12 +10,12 @@ import { SIGNALS } from "./signals.js";
 
 /**
  * @template T
- * @typedef {import("./assistgl").Duo<T>} Duo
+ * @typedef {import("./webglx.js").Duo<T>} Duo
  */
 
 /**
  * @template T
- * @typedef {import("./assistgl").Change<T>} Change
+ * @typedef {import("./webglx.js").Change<T>} Change
  */
 
 /**
@@ -24,15 +24,11 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
- * @typedef {import("./assistgl").LimitChecker} LimitChecker
+ * @typedef {import("./webglx.js").LogFunction} LogFunction
  */
 
 /**
- * @typedef {import("./assistgl").LogFunction} LogFunction
- */
-
-/**
- * @typedef {import('./assistgl').Log} Log
+ * @typedef {import('./webglx.js').Log} Log
  */
 
 /**
@@ -42,27 +38,27 @@ import { SIGNALS } from "./signals.js";
 
 /**
  * @template T
- * @typedef {import("./assistgl").Trio<T>} Trio
+ * @typedef {import("./webglx.js").Trio<T>} Trio
  */
 
 /**
- * @typedef {import("./assistgl").PositionChange} PositionChange
+ * @typedef {import("./webglx.js").PositionChange} PositionChange
  */
 
 /**
- * @typedef {import("./assistgl").RotationChange} RotationChange
+ * @typedef {import("./webglx.js").RotationChange} RotationChange
  */
 
 /**
- * @typedef {import("./assistgl").ScaleChange} ScaleChange
+ * @typedef {import("./webglx.js").ScaleChange} ScaleChange
  */
 
 /**
- * @typedef {import("./assistgl").SpriteAction} SpriteAction
+ * @typedef {import("./webglx.js").SpriteAction} SpriteAction
  */
 
 /**
- * @typedef {import("./assistgl").SpriteActionType} SpriteActionType
+ * @typedef {import("./webglx.js").SpriteActionType} SpriteActionType
  */
 
 /* STATIC CLASSES *************************************************************************************************** */
@@ -119,6 +115,20 @@ class FireRequests {
 }
 
 class LimitCheckers {
+
+    /**
+     *
+     * @param {Duo<number>} xBounds
+     * @param {Duo<number>} yBounds
+     * @param {Duo<number>} zBounds
+     * @returns {LimitChecker}
+     */
+    static LINEAR(xBounds, yBounds, zBounds) {
+        return (sprite, targetPosition) => isNumberBetweenInclusiveDuo(targetPosition.x, xBounds)
+                && isNumberBetweenInclusiveDuo(targetPosition.y, yBounds)
+                && isNumberBetweenInclusiveDuo(targetPosition.z, zBounds);
+    }
+
     /** @type {LimitChecker} */
     static UNLIMITED = () => true;
 }
@@ -218,7 +228,7 @@ export class Sprite {
         let positionChange = change(position, this.#position);
 
         if (!this.limitChecker(this, position)) {
-            throw new Error(`invalid position change [sprite ${this.#name}, target: ${position}]: out of bounds`);
+            throw new Error(`invalid position change [sprite: "${this.#name}", target: ${position}]: out of bounds`);
         }
 
         this.#position = position;
@@ -286,5 +296,17 @@ export function trio(first, second, third) {
         second: second,
         third: third,
     });
+}
+
+/* UTILITIES ******************************************************************************************************** */
+
+/**
+ *
+ * @param {number} num
+ * @param {Duo<number>} duo
+ * @returns boolean
+ */
+function isNumberBetweenInclusiveDuo(num, duo) {
+    return num >= duo.first && num <= duo.second;
 }
 

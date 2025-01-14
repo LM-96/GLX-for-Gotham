@@ -14,7 +14,7 @@ descriptor.trigger({
     source: undefined,
 });
 
-disableLogging();
+
 const logger = Logger.forName("test");
 logger.info("INFO", descriptor);
 logger.error("ERROR");

@@ -27,6 +27,11 @@ export type RotationChange = Change<Trio<Angle>>;
 
 export type ScaleChange = Change<Trio<number>>;
 
+export type WebGLShaderReference = {
+    readonly main: string[];
+    readonly color: string[];
+}
+
 export declare class FireRequests {
     static ofRotation(change: Change<Trio<Angle>>): FireRequest<RotationChange>;
     static ofScale(change: Change<Trio<number>>): FireRequest<ScaleChange>;
@@ -34,6 +39,7 @@ export declare class FireRequests {
 }
 
 export declare class LimitCheckers {
+    static LINEAR(xBounds: Duo<number>, yBounds: Duo<number>, zBounds: Duo<number>): LimitChecker;
     static readonly UNLIMITED: LimitChecker;
 }
 
@@ -70,10 +76,14 @@ export declare class SpriteActions {
     static SCALE: SpriteActionType;
 }
 
+export declare class WebGLXApplication {
+
+}
+
 export declare function change<T>(from: T, to: T): Change<T>;
 
 export declare function duo<T>(first, second): Duo<T>;
 
-export function trio<T>(first: T, second: T, third: T): Trio<T>;
+export declare function trio<T>(first: T, second: T, third: T): Trio<T>;
 
-
+export declare function WebGLX(domainName: string, canvasHtmlElementName: string, webGLShaders: WebGLShaderReference): <T extends {new(...args: any[]): {}}>(clazz: T) => void;

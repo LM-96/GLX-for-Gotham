@@ -16,7 +16,7 @@ class LogJSX {
     static #loggers = new Map();
 
     /** @type {boolean} */
-    static #loggingEnabled = false;
+    static #loggingEnabled = true;
 
     /**
      *
