@@ -14,8 +14,8 @@ export type SignalConsumer<D> = (signal: Signal<D>) => void;
 
 export type SignalDescriptor<D> = {
     readonly name: string;
-    readonly subscriber: SignalSubscriber<T>;
-    readonly trigger: SignalTrigger<T>
+    readonly subscriber: SignalSubscriber<D>;
+    readonly trigger: SignalTrigger<D>
 };
 
 export type SignalSubscriber<D> = (consumer: SignalConsumer<D>) => SubscriptionToken;
@@ -31,6 +31,7 @@ export declare class SignalBroker {
     register<D>(signalName: string): SignalDescriptor<D>;
     subscribe<D>(signalName: string, action: SignalConsumer<D>): SubscriptionToken;
     unsubscribe(token: SubscriptionToken);
+
 }
 
 export declare class SignalSubscription<D> {
@@ -41,4 +42,5 @@ export declare class SignalSubscription<D> {
     equals(other: any): boolean;
 }
 
-export const SIGNALS;
+export const SIGNALS: SignalBroker;
+export const SIGSYS: SigSys;

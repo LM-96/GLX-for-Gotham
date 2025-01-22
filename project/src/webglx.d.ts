@@ -1,5 +1,35 @@
 import { Angle, Point3D } from "./geometry";
-import { FireRequest } from "./signals";
+import { FireRequest, SignalDescriptor } from "./signals";
+
+export type CameraSettings = {
+    position: Point3D;
+    up: Trio<number>;
+    target: Point3D;
+    fov: Angle;
+    isLookingAtSprite: boolean;
+    isChasingSprite: boolean;
+    targetSprite: Sprite | null;
+}
+
+export type CameraSignalDescriptors = {
+    positionChanges: SignalDescriptor<PositionChange>;
+    upChanges: SignalDescriptor<Change<Trio<number>>>;
+    targetChanges: SignalDescriptor<PositionChange>;
+    fovChanges: SignalDescriptor<Change<Angle>>;
+    isLookingAtSpriteChanges: SignalDescriptor<Change<boolean>>;
+    isChasingSpriteChanges: SignalDescriptor<Change<boolean>>;
+    targetSpriteChanges: SignalDescriptor<Change<Sprite|null>>;
+}
+
+export type CameraSignalWorkspace = {
+    positionChanges: string;
+    upChanges: string;
+    targetChanges: string;
+    fovChanges: string;
+    isLookingAtSpriteChanges: string;
+    isChasingSpriteChanges: string;
+    targetSpriteChanges: string;
+}
 
 export type Change<T> = {
     readonly from: T;
@@ -21,11 +51,20 @@ export type Trio<T> = {
     readonly third: T;
 };
 
+export type WebGLXAppDescriptor = {
+    applicationName: string;
+
+}
+
 export type PositionChange = Change<Point3D>;
 
 export type RotationChange = Change<Trio<Angle>>;
 
 export type ScaleChange = Change<Trio<number>>;
+
+export type WebGLXApplicationSignalWorkspace = {
+    camera: CameraSignalWorkspace
+}
 
 export type WebGLShaderReference = {
     readonly main: string[];
@@ -57,7 +96,7 @@ export declare class Scales {
 
 export declare class Sprite {
     readonly name: string;
-    readonly glDomainName: string;
+    readonly applicationName: string;
 
     position: Point3D;
     rotation: Trio<Angle>;
@@ -85,5 +124,3 @@ export declare function change<T>(from: T, to: T): Change<T>;
 export declare function duo<T>(first, second): Duo<T>;
 
 export declare function trio<T>(first: T, second: T, third: T): Trio<T>;
-
-export declare function WebGLX(domainName: string, canvasHtmlElementName: string, webGLShaders: WebGLShaderReference): <T extends {new(...args: any[]): {}}>(clazz: T) => void;

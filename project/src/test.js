@@ -1,22 +1,13 @@
-import { SIGNALS } from "./signals.js";
-import { disableLogging, Logger } from "./logjsx.js";
+import { WebGLXApplication } from "./webglx.js";
 
-
-class Signals {
-    static MY_SIGNAL = "my signal";
+class MyApp extends WebGLXApplication {
+    constructor() {
+        super({
+            name: 'MyApp',
+        });
+    }
 }
 
-const descriptor = SIGNALS.register(Signals.MY_SIGNAL);
-SIGNALS.subscribe(Signals.MY_SIGNAL, signal => console.log(signal));
-
-descriptor.trigger({
-    data: undefined,
-    source: undefined,
-});
-
-
-const logger = Logger.forName("test");
-logger.info("INFO", descriptor);
-logger.error("ERROR");
-logger.warn("WARNING");
-logger.debug("DEBUG");
+console.log("test");
+const app = new MyApp();
+console.log(app.applicationName);

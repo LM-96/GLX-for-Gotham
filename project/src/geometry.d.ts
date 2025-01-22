@@ -16,6 +16,12 @@ export type Point3DTransformer = Transformer<Point3D>;
 
 export type Transformer<T> = (obj: T) => T;
 
+export type Vector3D = {
+    dx: number,
+    dy: number,
+    dz: number
+}
+
 export declare class Angle {
     readonly value: number;
     readonly unit: AngleUnit;
@@ -34,18 +40,18 @@ export declare class AngleMath {
 }
 
 export declare class AngleUnits {
-    static RADIANS;
-    static DEGREES;
+    static RADIANS: string;
+    static DEGREES: string;
 
-    static checkAngleUnit(unit: string);
+    static checkAngleUnit(unit: string): void;
 }
 
 export declare class Axes {
-    static X;
-    static Y;
-    static Z;
+    static X: string;
+    static Y: string;
+    static Z: string;
 
-    static checkAxis(axis: string);
+    static checkAxis(axis: string): void;
 }
 
 export declare class Math3D {

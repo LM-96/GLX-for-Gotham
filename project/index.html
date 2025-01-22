@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
@@ -12,6 +12,140 @@
 </head>
 
 <body>
+<!-- SHADERS -------------------------------------->
+<!-- vertex shader -->
+<script  id="color-vertex-shader" type="x-shader/x-vertex">
+    attribute vec4 a_position;
+
+    uniform mat4 u_projection;
+    uniform mat4 u_view;
+    uniform mat4 u_world;
+
+    void main() {
+      gl_Position = u_projection * u_view * u_world * a_position;
+    }
+</script>
+<!-- fragment shader -->
+<script  id="color-fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform vec4 u_color;
+    void main() {
+      gl_FragColor = u_color;
+    }
+</script>
+<script id="vertex-shader" type="x-shader/x-vertex">
+    attribute vec4 a_position;
+      attribute vec3 a_normal;
+      attribute vec2 a_texcoord;
+      attribute vec4 a_color;
+
+      uniform mat4 u_projection;
+      uniform mat4 u_view;
+      uniform mat4 u_world;
+      uniform vec3 u_viewWorldPosition;
+      uniform mat4 u_modelMatrix; //added
+      uniform mat4 u_textureMatrix; //added
+
+      varying vec3 v_normal;
+      varying vec3 v_surfaceToView;
+      varying vec2 v_texcoord;
+      varying vec4 v_color;
+      varying vec4 v_projectedTexcoord; //added
+      varying vec3 view; //added
+
+      void main() {
+        vec4 worldPosition = u_world * a_position;
+        gl_Position = u_projection * worldPosition;
+        v_surfaceToView = u_viewWorldPosition - worldPosition.xyz;
+        v_normal = mat3(u_world) * a_normal;
+        v_texcoord = a_texcoord;
+        v_projectedTexcoord = u_textureMatrix * worldPosition ; //added
+        v_color = a_color;
+      }
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+    precision highp float;
+
+      varying vec3 v_normal;
+      varying vec3 v_surfaceToView;
+      varying vec2 v_texcoord;
+      varying vec4 v_color;
+      varying vec3 view; //added
+      varying vec4 v_projectedTexcoord; //added
+
+      uniform vec3 diffuse;
+      uniform sampler2D diffuseMap;
+      uniform vec3 ambient;
+      uniform vec3 emissive;
+      uniform vec3 specular;
+      uniform float shininess;
+      uniform float opacity;
+      uniform vec3 u_lightDirection; //should be reverse
+      uniform vec3 u_ambientLight;
+      uniform vec3 u_colorLight;
+      uniform vec4 u_colorMult; //added
+      uniform sampler2D u_texture; //added
+      uniform sampler2D u_projectedTexture; //added
+      uniform float u_bias; //added
+      uniform float mesh; //added
+
+      void main () {
+        vec3 normal = normalize(v_normal);
+
+        float light = dot(normal, u_lightDirection);
+        /*if (light<0.2){
+          light = 0.2;
+        }*/
+
+        vec3 projectedTexcoord = v_projectedTexcoord.xyz / v_projectedTexcoord.w;
+        float currentDepth = projectedTexcoord.z + u_bias;
+
+        bool inRange =
+            projectedTexcoord.x >= 0.0 &&
+            projectedTexcoord.x <= 1.0 &&
+            projectedTexcoord.y >= 0.0 &&
+            projectedTexcoord.y <= 1.0;
+
+        float projectedDepth = texture2D(u_projectedTexture, projectedTexcoord.xy).r;
+        float shadowLight = (inRange && projectedDepth <= currentDepth) ? 0.5 : 1.5;
+        vec4 texColor = texture2D(u_texture, v_texcoord) * u_colorMult;
+
+
+        vec3 surfaceToViewDirection = normalize(v_surfaceToView);
+        vec3 halfVector = normalize(u_lightDirection + surfaceToViewDirection);
+
+        float fakeLight = dot(u_lightDirection, normal) * .5 + .5;
+        float specularLight = clamp(dot(normal, halfVector), 0.0, 1.0);
+
+        vec4 diffuseMapColor = texture2D(diffuseMap, v_texcoord);
+        vec3 effectiveDiffuse = diffuse * diffuseMapColor.rgb * v_color.rgb;
+        float effectiveOpacity = opacity * diffuseMapColor.a * v_color.a;
+
+        vec4 color = (mesh == 1.0) ?
+          vec4((emissive + ambient * u_ambientLight + effectiveDiffuse * fakeLight + specular * pow(specularLight, shininess)) * shadowLight , effectiveOpacity)
+          : vec4( texColor.rgb * light * shadowLight, texColor.a);
+
+        gl_FragColor = color;
+      }
+</script>
+
+
+<div id="parent_div">
+
+    <canvas width="1500" height="600" id="my_Canvas" class="canvas"></canvas>
+    <div class="container">
+        <div id="uiContainer" class="menu menuInv">
+            <div id="ui">
+            </div>
+        </div>
+        <span class="menuButton" onclick="toggleMenu()">Menu</span>
+    </div>
+
+</div>
+
+
 <script type="module" src="src/logjsx.js"></script>
 <script type="module" src="src/signals.js"></script>
 <script type="module" src="src/test.js"></script>
