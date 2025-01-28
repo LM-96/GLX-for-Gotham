@@ -6,11 +6,24 @@
 import { Angle, degrees, Math3D, Point3D, point3D, radians } from "./geometry.js";
 import { Logger } from "./logjsx.js";
 import { SIGNALS } from "./signals.js";
+import { change } from "./webglx.js";
 
 /* global loadObjx */
 /* global webglUtils */
 
 /* TYPES (JSDoc) **************************************************************************************************** */
+/**
+ * @typedef {import("./webglx.js").CameraManSignalDescriptors} CameraManSignalDescriptors
+ */
+
+/**
+ * @typedef {import("./webglx.js").CameraManSignalWorkspace} CameraManSignalWorkspace
+ */
+
+/**
+ * @typedef {import("./webglx.js").CameraManWorkMode} CameraManWorkMode
+ */
+
 /**
  * @typedef {import("./webglx.js").CameraSettings} CameraSettings
  */
@@ -36,10 +49,6 @@ import { SIGNALS } from "./signals.js";
 /**
  * @template T
  * @typedef {import("./signals").FireRequest<T>} FireRequest
- */
-
-/**
- * @typedef {import("./webglx.js").WebGLXApplicationSignalWorkspace} WebGLXApplicationSignalWorkspace
  */
 
 /**
@@ -72,11 +81,28 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
- * @typedef {import("./webglx.js").SpriteAction} SpriteAction
+ * @template T
+ * @typedef {import("./signals.js").Signal<T>} Signal
  */
 
 /**
  * @typedef {import("./webglx.js").SpriteActionType} SpriteActionType
+ */
+
+/**
+ * @typedef {import("./webglx.js").SpriteSettings} SpriteSetting
+ */
+
+/**
+ * @typedef {import("./webglx.js").SpriteSignalDescriptors} SpriteSignalDescriptors
+ */
+
+/**
+ * @typedef {import("./webglx.js").SpriteSignalWorkspace} SpriteSignalWorkspace
+ */
+
+/**
+ * @typedef {import("./signals.js").SubscriptionToken} SubscriptionToken
  */
 
 /**
@@ -90,6 +116,14 @@ import { SIGNALS } from "./signals.js";
 
 /* STATIC CLASSES *************************************************************************************************** */
 
+export class CameraManWorkModes {
+    /** @type {CameraManWorkMode} */ static DISMISSED = 'DISMISSED';
+    /** @type {CameraManWorkMode} */ static OVER = 'OVER';
+    /** @type {CameraManWorkMode} */ static FIRST_PERSON = 'FIRST_PERSON';
+    /** @type {CameraManWorkMode} */ static THIRD_PERSON = 'THIRD_PERSON'
+    /** @type {CameraManWorkMode} */ static CUSTOM = 'CUSTOM';
+}
+
 export class SpriteActions {
     /** @type {SpriteActionType} */ static TRANSITION = 1;
     /** @type {SpriteActionType} */ static ROTATION = 2;
@@ -100,42 +134,33 @@ class FireRequests {
 
     /**
      * @param {Change<Trio<Angle>>} change
-     * @returns {FireRequest<SpriteAction>}
+     * @returns {FireRequest<RotationChange>}
      */
-    static ofRotation(change) {
+    static ofRotationChange(change) {
         return Object.freeze({
-            data: Object.freeze({
-                type: SpriteActions.ROTATION,
-                description: change,
-            })
+            data: change
         });
     }
 
     /**
      *
      * @param {Change<Trio<number>>} change
-     * @returns {FireRequest<SpriteAction>}
+     * @returns {FireRequest<ScaleChange>}
      */
-    static ofScale(change) {
+    static ofScaleChange(change) {
         return Object.freeze({
-            data: Object.freeze({
-                type: SpriteActions.SCALE,
-                description: change,
-            })
+            data: change
         });
     }
 
     /**
      *
      * @param {Change<Point3D>} change
-     * @returns {FireRequest<SpriteAction>}
+     * @returns {FireRequest<PositionChange>}
      */
-    static ofTransition(change) {
+    static ofPositionChange(change) {
         return Object.freeze({
-            data: Object.freeze({
-                type: SpriteActions.TRANSITION,
-                description: change
-            }),
+            data: change,
         });
     }
 
@@ -181,86 +206,41 @@ class Scales {
  * @class Camera
  */
 export class Camera {
-    /** @type {CameraSignalWorkspace} */
-    static SIGNAL_WORKSPACES = {
-        positionChanges: 'camera.position',
-        upChanges: 'camera.up',
-        targetChanges: 'camera.target',
-        fovChanges: 'camera.fov',
-        isLookingAtSpriteChanges: 'camera.isLookingAtSprite',
-        isChasingSpriteChanges: 'camera.isChasingSprite',
-        targetSpriteChanges: 'camera.targetSprite'
-    }
 
+    /** @type {Logger} */ #logger;
     /** @type {CameraSettings} */ #settings;
     /** @type {CameraSignalDescriptors} */ #signalDescriptors;
 
     /**
      * 
+     * @param {string} applicationName 
+     * @param {CameraSignalWorkspace} signalWorkspace
      * @param {Partial<CameraSettings>} settings 
      */
-    constructor(settings = {}) {
+    constructor(applicationName, signalWorkspace, settings = {}) {
         this.#settings = {
             position: point3D(1, 1, 1),
             up: trio(0, 0, 1),
-            target: point3D(0, 0, 0),
+            targetPosition: point3D(0, 0, 0),
             fov: degrees(60),
-            isLookingAtSprite: false,
-            isChasingSprite: false,
-            targetSprite: null,
             ...settings
         };
 
         this.#signalDescriptors = {
-            positionChanges: SIGNALS.register(Camera.SIGNAL_WORKSPACES.positionChanges),
-            upChanges: SIGNALS.register(Camera.SIGNAL_WORKSPACES.upChanges),
-            targetChanges: SIGNALS.register(Camera.SIGNAL_WORKSPACES.targetChanges),
-            fovChanges: SIGNALS.register(Camera.SIGNAL_WORKSPACES.fovChanges),
-            isLookingAtSpriteChanges: SIGNALS.register(Camera.SIGNAL_WORKSPACES.isLookingAtSpriteChanges),
-            isChasingSpriteChanges: SIGNALS.register(Camera.SIGNAL_WORKSPACES.isChasingSpriteChanges),
-            targetSpriteChanges: SIGNALS.register(Camera.SIGNAL_WORKSPACES.targetSpriteChanges)
+            positionChanges: SIGNALS.register(signalWorkspace.positionChanges),
+            upChanges: SIGNALS.register(signalWorkspace.upChanges),
+            targetChanges: SIGNALS.register(signalWorkspace.targetChanges),
+            fovChanges: SIGNALS.register(signalWorkspace.fovChanges)
         }
+
+        this.#logger = Logger.forName(`Camera[${applicationName}]`);
     }
 
     /**
-     * 
-     * @param {Sprite|null} sprite 
-     * @returns {Camera}
+     * @returns {Angle}
      */
-    chaseSprite(sprite = null) {
-        let nextTargetSprite = sprite ?? this.targetSprite;
-        let wasChasingSprite = this.isChasingSprite;
-        if (wasChasingSprite) {
-            this.unChaseSprite();
-        }
-
-        if (!this.isLookingAtSprite || nextTargetSprite !== this.targetSprite) {
-            this.lookAtSprite(nextTargetSprite);
-        }
-
-        if (!wasChasingSprite) {
-            this.#settings.isChasingSprite = true;
-            this.#signalDescriptors.isChasingSpriteChanges.trigger({
-                data: change(true, wasChasingSprite)
-            });
-        }
-    
-
-        return this;
-    }
-
-    /**
-     * @returns {boolean}
-     */
-    get isChasingSprite() {
-        return this.#settings.isChasingSprite;
-    }
-
-    /**
-     * @returns {boolean}
-     */
-    get isLookingAtSprite() {
-        return this.#settings.isLookingAtSprite;
+    get fov() {
+        return this.#settings.fov;
     }
 
     /**
@@ -273,41 +253,15 @@ export class Camera {
     /**
      * @returns {Point3D}
      */
-    get target() {
-        return this.#settings.target;
-    }
-
-    /**
-     * 
-     * @param {Sprite|null} sprite 
-     * @returns {Camera}
-     */
-    lookAtSprite(sprite = null) {
-        let nextTargetSprite = sprite ?? this.targetSprite;
-        let wasLookingAtSprite = this.isLookingAtSprite
-        if (wasLookingAtSprite) {
-            this.unLookSprite();
-        }
-
-        if (nextTargetSprite !== this.targetSprite) {
-            this.targetSprite = nextTargetSprite;
-        }
-
-        if (!wasLookingAtSprite) {
-            this.#settings.isLookingAtSprite = true;
-            this.#signalDescriptors.isLookingAtSpriteChanges.trigger({
-                data: change(true, wasLookingAtSprite)
-            });
-        }
-
-        return this;
+    get targetPosition() {
+        return this.#settings.targetPosition;
     }
 
     /**
      * @param {Vector3D} vector3D 
      */
     set distanceFromTarget(vector3D) {
-        this.position = this.target.transform(
+        this.position = this.targetPosition.transform(
             Math3D.translate(vector3D.dx, vector3D.dy, vector3D.dz));
     }
 
@@ -340,17 +294,10 @@ export class Camera {
     }
 
     /**
-     * @param {Sprite | null} nextLookedSprite
+     * @param {Point3D} nextTargetPosition
      */
-    set targetSprite(nextLookedSprite) {
-        let previousLookedSprite = this.#settings.targetSprite;
-        if (nextLookedSprite !== previousLookedSprite) {
-            this.#settings.targetSprite = nextLookedSprite
-
-            this.#signalDescriptors.targetSpriteChanges.trigger({
-                data: change(nextLookedSprite, previousLookedSprite)
-            });
-        }
+    set targetPosition(nextTargetPosition) {
+        this.#settings.targetPosition = nextTargetPosition
     }
 
     /**
@@ -365,23 +312,222 @@ export class Camera {
                 data: change(nextUp, previousUp)
             });
         }
+
+
+    }
+}
+
+/**
+ * @class CameraMan
+ */
+export class CameraMan {
+
+    /** @type {SubscriptionToken|null} */ #chaseSpriteSubscriptionToken = null;
+    /** @type {SubscriptionToken|null} */ #lookAtSpriteSubscriptionToken = null;
+    /** @type {Sprite|null} */ #targetSprite = null;
+    /** @type {import("./webglx.js").CameraManWorkMode} */ #workMode = CameraManWorkModes.DISMISSED;
+
+    /** @type {Camera} */ #camera
+    /** @type {Logger} */ #logger;
+    /** @type {CameraManSignalDescriptors} */ #signalDescriptors;
+
+    /**
+     * 
+     * @param {string} applicationName 
+     * @param {Camera} camera 
+     * @param {CameraManSignalWorkspace} signalWorkspace 
+     */
+    constructor(applicationName, camera, signalWorkspace) {
+        this.#camera = camera;
+        this.#signalDescriptors = {
+            isLookingAtSpriteChanges: SIGNALS.register(signalWorkspace.isLookingAtSpriteChanges),
+            isChasingSpriteChanges: SIGNALS.register(signalWorkspace.isChasingSpriteChanges),
+            targetSpriteChanges: SIGNALS.register(signalWorkspace.targetSpriteChanges),
+            workModeChanges: SIGNALS.register(signalWorkspace.workModeChanges)
+        }
+
+        this.#logger = Logger.forName(`CameraMan[${applicationName}]`);
     }
 
     /**
-     * @returns {Camera}
+     * @returns {boolean}
+     */
+    get isChasingSprite() {
+        return isNotNullOrUndefined(this.chaseSpriteSubscriptionToken);
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    get isLookingAtSprite() {
+        return isNotNullOrUndefined(this.isLookingAtSprite);
+    }
+
+    get targetSprite() {
+        return this.#targetSprite
+    }
+
+    /**
+     * @param {Sprite | null} nextLookedSprite
+     */
+    set targetSprite(nextLookedSprite) {
+        let previousLookedSprite = this.#targetSprite;
+        if (nextLookedSprite !== previousLookedSprite) {
+            this.#targetSprite = nextLookedSprite
+
+            this.#signalDescriptors.targetSpriteChanges.trigger({
+                data: change(nextLookedSprite, previousLookedSprite)
+            });
+        }
+    }
+
+    /**
+     * 
+     * @returns {CameraMan}
+     */
+    chaseTargetSprite() {
+        this.#customWorkMode();
+        if (isNotNullOrUndefined(this.#targetSprite)) {
+            if (this.isChasingSprite) {
+                this.unChaseSprite();
+            }
+
+            if (!this.isLookingAtSprite) {
+                this.lookAtTargetSprite();
+            }
+
+            this.chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
+                this.#chaseSpriteSignalConsumer);
+            this.#signalDescriptors.isChasingSpriteChanges.trigger({
+                data: change(true, false)
+            });
+        } else {
+            this.#logger.warn(`wanted to chase sprite, but no target was set`)
+        }
+
+        return this;
+    }
+
+    dismiss() {
+        if (this.#workMode !== CameraManWorkModes.DISMISSED) {
+            this.#unsubscribeFromChaseSpriteSignal;
+            this.#unsubscribeFromLookAtSpriteSignal;
+        }
+    }
+
+    /**
+     * 
+     * @returns {CameraMan}
+     */
+    lookAtTargetSprite() {
+        this.#customWorkMode;
+        if (isNotNullOrUndefined(this.#targetSprite)) {
+            if (this.isLookingAtSprite) {
+                this.unLookAtSprite();
+            }
+
+            this.lookAtSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
+                this.#lookAtSpriteSignalConsumer);
+            this.#signalDescriptors.isLookingAtSpriteChanges.trigger({
+                data: change(true, false)
+            })
+        } else {
+            this.#logger.warn(`wanted to look at sprite, but the given one is null and no target was set`);
+        }
+
+        return this;
+    }
+
+
+    /**
+     * @returns {CameraMan}
      */
     unChaseSprite() {
+        if (this.isChasingSprite) {
+            this.#unsubscribeFromChaseSpriteSignal();
+            this.#signalDescriptors.isLookingAtSpriteChanges.trigger({
+                data: change(false, true)
+            })
+        }
 
+        return this;
     }
 
     /**
-     * @returns {Camera}
+     * @returns {CameraMan}
      */
-    unLookSprite() {
+    unLookAtSprite() {
+        if (this.isLookingAtSprite) {
+            if (this.isChasingSprite) {
+                this.unChaseSprite();
+            }
 
+            this.#unsubscribeFromLookAtSpriteSignal();
+            this.#signalDescriptors.isLookingAtSpriteChanges.trigger({
+                data: change(false, true)
+            })
+        }
+
+        return this;
     }
 
+    /**
+     * 
+     * @param {Signal<PositionChange>} signal 
+     */
+    #chaseSpriteSignalConsumer(signal) {
+        let vector3D = toVector3D(signal.data);
+        this.#camera.position = this.#camera.position.transform(
+            Math3D.translate(vector3D.dx, vector3D.dy, vector3D.dz));
+    }
 
+    #customWorkMode() {
+        if (this.#workMode !== CameraManWorkModes.DISMISSED && this.#workMode !== CameraManWorkModes.CUSTOM) {
+            this.dismiss();
+        }
+
+        this.#setWorkMode(CameraManWorkModes.CUSTOM);
+    }
+
+    /**
+     * 
+     * @param {Signal<PositionChange>} signal 
+     */
+    #lookAtSpriteSignalConsumer(signal) {
+        this.#camera.targetPosition = signal.data.to
+    }
+
+    /**
+     * 
+     * @param {CameraManWorkMode} workMode 
+     */
+    #setWorkMode(workMode) {
+        if (workMode !== this.#workMode) {
+            let workModeChange = change(workMode, this.#workMode);
+            this.#workMode = workMode;
+            this.#signalDescriptors.workModeChanges.trigger({
+                data: workModeChange
+            })
+        }
+    }
+
+    #unsubscribeFromChaseSpriteSignal() {
+        if (isNotNullOrUndefined(this.chaseSpriteSubscriptionToken)) {
+            SIGNALS.unsubscribe(this.chaseSpriteSubscriptionToken);
+            this.chaseSpriteSubscriptionToken = null;
+        } else {
+            this.#logger.warn('tried to unsubscribe from chase sprite signal, but no subscription was active');
+        }
+    }
+
+    #unsubscribeFromLookAtSpriteSignal() {
+        if (isNotNullOrUndefined(this.lookAtSpriteSubscriptionToken)) {
+            SIGNALS.unsubscribe(this.lookAtSpriteSubscriptionToken);
+            this.lookAtSpriteSubscriptionToken = null;
+        } else {
+            this.#logger.warn('tried to unsubscribe from look at sprite signal, but no subscription was active');
+        }
+    }
 }
 
 /**
@@ -389,42 +535,26 @@ export class Camera {
  */
 export class Sprite {
 
-    /**  @type {string} */ #name;
-    /**  @type {string} */ #applicationName;
-    /**  @type {Point3D} */ #position;
-    /**  @type {Trio<Angle>} */ #rotation;
-    /**  @type {Trio<number>} */ #scale;
-    /**  @type {LimitChecker} */ #limitChecker;
-    /**  @type {boolean} */ #hidden;
-    /**  @type {SignalDescriptor<SpriteAction>} */ #informationSignalDescriptor;
+    /** @type {string} */ #name;
+    /** @type {string} */ #applicationName;
+    /** @type {SpriteSetting} */ #settings;
+    /** @type {SpriteSignalWorkspace} */ #signalWorkspace;
+
+    /**  @type {SpriteSignalDescriptors} */ #signalDescriptors;
 
     /**
      *
      * @param {string} name
      * @param {string} applicationName
-     * @param {Point3D} position
-     * @param {Trio<Angle>} rotation
-     * @param {Trio<number>} scale
-     * @param {LimitChecker} limitChecker
-     * @param {boolean} hidden
+     * @param {SpriteSignalWorkspace} signalWorkspace
+     * @param {Partial<SpriteSetting>} settings
      */
-    constructor(name,
-        applicationName,
-        position = Positions.ORIGIN,
-        rotation = Rotations.NOT_ROTATED,
-        scale = Scales.NOT_SCALED,
-        limitChecker = LimitCheckers.UNLIMITED,
-        hidden = false
-    ) {
+    constructor(name, applicationName, signalWorkspace, settings = {}) {
         this.#name = name;
         this.#applicationName = applicationName;
-        this.#position = position;
-        this.#rotation = rotation;
-        this.#scale = scale;
-        this.#limitChecker = limitChecker;
-        this.#hidden = hidden;
-
-        this.#informationSignalDescriptor = SIGNALS.register("");
+        this.#settings = this.#buildSettings(settings);
+        this.#signalDescriptors = this.#buildSignalDescriptors(signalWorkspace);
+        this.#signalWorkspace = signalWorkspace;
     }
 
     get name() {
@@ -436,38 +566,42 @@ export class Sprite {
     }
 
     get position() {
-        return this.#position;
+        return this.#settings.position;
     }
 
     get rotation() {
-        return this.#rotation;
+        return this.#settings.rotation;
     }
 
     get scale() {
-        return this.#scale;
+        return this.#settings.scale;
     }
 
     get limitChecker() {
-        return this.#limitChecker;
+        return this.#settings.limitChecker;
     }
 
     get hidden() {
-        return this.#hidden;
+        return this.#settings.hidden
+    }
+
+    get signalWorkspace() {
+        return this.#signalWorkspace;
     }
 
     /**
      * @param {Point3D} position
      */
     set position(position) {
-        let positionChange = change(position, this.#position);
+        let positionChange = change(position, this.#settings.position);
 
         // @ts-ignore
         if (!this.limitChecker(this, position)) {
             throw new Error(`invalid position change [sprite: "${this.#name}", target: ${position}]: out of bounds`);
         }
 
-        this.#position = position;
-        this.#informationSignalDescriptor.trigger(FireRequests.ofTransition(positionChange));
+        this.#settings.position = position;
+        this.#signalDescriptors.positionChange.trigger(FireRequests.ofPositionChange(positionChange));
     }
 
     /**
@@ -475,20 +609,52 @@ export class Sprite {
      * @param {Trio<Angle>} rotation
      */
     set rotation(rotation) {
-        let rotationChange = change(rotation, this.#rotation);
+        let rotationChange = change(rotation, this.#settings.rotation);
 
-        this.#rotation = rotation;
-        this.#informationSignalDescriptor.trigger(FireRequests.ofRotation(rotationChange));
+        this.#settings.rotation = rotation;
+        this.#signalDescriptors.rotationChange.trigger(FireRequests.ofRotationChange(rotationChange));
     }
 
     /**
      * @param {Trio<number>} scale
      */
     set scale(scale) {
-        let scaleChange = change(scale, this.#scale);
+        let scaleChange = change(scale, this.#settings.scale);
 
-        this.#scale = scale;
-        this.#informationSignalDescriptor.trigger(FireRequests.ofScale(scaleChange));
+        this.#settings.scale = scale;
+        this.#signalDescriptors.scaleChange.trigger(FireRequests.ofScaleChange(scaleChange));
+    }
+
+    /**
+     * @param {Partial<SpriteSetting>} settings 
+     * @returns {SpriteSetting}
+     */
+    #buildSettings(settings) {
+        if (isNullOrUndefined(settings)) {
+            settings = {}
+        };
+
+        return {
+            position: Positions.ORIGIN,
+            rotation: Rotations.NOT_ROTATED,
+            scale: Scales.NOT_SCALED,
+            limitChecker: LimitCheckers.UNLIMITED,
+            hidden: false,
+            ...settings
+        };
+    }
+
+    /**
+     * 
+     * @param {SpriteSignalWorkspace} signalWorkspace 
+     * @returns {SpriteSignalDescriptors}
+     */
+    #buildSignalDescriptors(signalWorkspace) {
+        return {
+            positionChange: SIGNALS.register(signalWorkspace.positionChange),
+            rotationChange: SIGNALS.register(signalWorkspace.rotationChange),
+            scaleChange: SIGNALS.register(signalWorkspace.scaleChange)
+        }
     }
 
 }
@@ -525,13 +691,15 @@ class SpriteManager {
     /**
      *
      * @param {string} name
+     * @param {SpriteSignalWorkspace} signalWorkspace
+     * @param {Partial<SpriteSetting>} settings
      * @returns {Sprite}
      */
-    createSprite(name) {
+    createSprite(name, signalWorkspace, settings = {}) {
         this.#log.info('create sprite [name: ' + name + ', applicationName: ' + this.#applicationName + ']');
 
         /** @type {Sprite} */
-        let sprite = new Sprite(name);
+        let sprite = new Sprite(name, this.#applicationName, signalWorkspace, settings);
         this.#sprites.set(name, sprite);
 
         return sprite;
@@ -560,16 +728,6 @@ class SpriteManager {
  * @class WebGLXApplication
  */
 export class WebGLXApplication {
-    static SIGNAL_NAMESPACE = 'WebGXLApp';
-
-    /**
-     * 
-     * @param {string} name 
-     * @returns {string}
-     */
-    static parentSignalNamespace(name) {
-        return `${WebGLXApplication.SIGNAL_NAMESPACE}[${name}].${WebGLXApplication.SIGNAL_NAMESPACE}`;
-    }
 
     /** @type {string} */ #applicationName;
     /** @type {Logger} */ #log;
@@ -587,7 +745,7 @@ export class WebGLXApplication {
         this.#log = Logger.forName('WebGLXApp[' + applicationName + ']');
         this.#applicationName = applicationName;
         this.#webGLXEnvironment = webGLXEnvironment;
-        this.#signalWorkspace = this.#buildSignalWorkspace(applicationName);
+        this.#signalWorkspace = new WebGLXApplicationSignalWorkspace(applicationName);
     }
 
     get applicationName() {
@@ -597,24 +755,57 @@ export class WebGLXApplication {
     get signalWorkspace() {
         return this.#signalWorkspace;
     }
+}
+
+class WebGLXApplicationSignalWorkspace {
+
+    /** @type {CameraSignalWorkspace} */
+    static #CAMERA = {
+        positionChanges: 'camera.position',
+        upChanges: 'camera.up',
+        targetChanges: 'camera.target',
+        fovChanges: 'camera.fov',
+        isLookingAtSpriteChanges: 'camera.isLookingAtSprite',
+        isChasingSpriteChanges: 'camera.isChasingSprite',
+        targetSpriteChanges: 'camera.targetSprite'
+    }
+
+    /** @type {string} */ #applicationName;
+
+    /** @type {CameraSignalWorkspace} */ #camera
 
     /**
      * 
      * @param {string} applicationName 
-     * @returns {WebGLXApplicationSignalWorkspace}
      */
-    #buildSignalWorkspace(applicationName) {
-        return {
-            camera: {
-                positionChanges: WebGLXApplication.parentSignalNamespace(Camera.SIGNAL_WORKSPACES.positionChanges),
-                upChanges: WebGLXApplication.parentSignalNamespace(Camera.SIGNAL_WORKSPACES.upChanges),
-                targetChanges: WebGLXApplication.parentSignalNamespace(Camera.SIGNAL_WORKSPACES.targetChanges),
-                fovChanges: WebGLXApplication.parentSignalNamespace(Camera.SIGNAL_WORKSPACES.fovChanges),
-                isLookingAtSpriteChanges: WebGLXApplication.parentSignalNamespace(Camera.SIGNAL_WORKSPACES.isLookingAtSpriteChanges),
-                isChasingSpriteChanges: WebGLXApplication.parentSignalNamespace(Camera.SIGNAL_WORKSPACES.isChasingSpriteChanges),
-                targetSpriteChanges: WebGLXApplication.parentSignalNamespace(Camera.SIGNAL_WORKSPACES.targetSpriteChanges)
-            }
+    constructor(applicationName) {
+        this.#applicationName = applicationName;
+
+        this.#camera = {
+            positionChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.positionChanges),
+            upChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.upChanges),
+            targetChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.targetChanges),
+            fovChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.fovChanges),
+            isChasingSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.isChasingSpriteChanges),
+            isLookingAtSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.isLookingAtSpriteChanges),
+            targetSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.targetSpriteChanges)
         }
+    }
+
+    /**
+     * @returns {CameraSignalWorkspace}
+     */
+    get camera() {
+        return this.#camera;
+    }
+
+    /**
+     * 
+     * @param {string} relativeSignalName 
+     * @returns {string}
+     */
+    #absolutize(relativeSignalName) {
+        return `GLX.${this.#applicationName}.${relativeSignalName}`;
     }
 
 }
@@ -625,6 +816,7 @@ export class WebGLXApplication {
 class WebGLXEnvironment {
     /** @type {HTMLCanvasElement} */ #canvas;
     /** @type {WebGLRenderingContext} */ #gl;
+    /** @type {Logger} */ #logger
     /** @type {Map<string, ProgramInfo>} */ #programInfo;
 
     /**
@@ -689,6 +881,7 @@ class WebGLXEnvironment {
             // @ts-ignore
             this.#programInfo.set(key, webglUtils.createProgramInfo(this.#gl, value));
         });
+
 
         return programInfos;
     }
@@ -784,6 +977,26 @@ function alertedError(msg) {
 }
 
 /**
+ * 
+ * @template T
+ * @param {T|null|undefined} obj 
+ * @returns {obj is T}
+ */
+function isNotNullOrUndefined(obj) {
+    return obj !== null && obj !== undefined
+}
+
+/**
+ * 
+ * @template T
+ * @param {T|null|undefined} obj 
+ * @returns {boolean}
+ */
+function isNullOrUndefined(obj) {
+    return obj === null || obj === undefined;
+}
+
+/**
  *
  * @param {number} num
  * @param {Duo<number>} duo
@@ -793,3 +1006,15 @@ function isNumberBetweenInclusiveDuo(num, duo) {
     return num >= duo.first && num <= duo.second;
 }
 
+/**
+ * 
+ * @param {Change<Point3D>} change 
+ * @returns {Vector3D}
+ */
+function toVector3D(change) {
+    return {
+        dx: change.to.x - change.from.x,
+        dy: change.to.y - change.from.y,
+        dz: change.to.z - change.from.z
+    };
+}

@@ -6,7 +6,7 @@ export type FireRequest<D> = {
 export type Signal<D> = {
     readonly id: number;
     readonly name: string;
-    readonly data?: D;
+    readonly data: D;
     readonly time: Date
 };
 

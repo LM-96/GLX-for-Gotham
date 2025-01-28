@@ -3,46 +3,42 @@
  * @author Luca Marchegiani
  */
 
-import { Logger } from "./logjsx.js";
+import { Logger } from "./logjsx";
 
 /* TYPES (JSDoc) **************************************************************************************************** */
 
 /**
  * @template D
- * @typedef {import('./signals').FireRequest<D>} FireRequest
- */
-
-/**
- * @typedef {import('./logjsx').Logger} Logger
+ * @typedef {import("./signals.js").FireRequest<D>} FireRequest
  */
 
 /**
  * @template D
- * @typedef {import('./signals').Signal<D>} Signal
+ * @typedef {import("./signals").Signal<D>} Signal
  */
 
 /**
  * @template D
- * @typedef {import('./signals').SignalConsumer<D>} SignalConsumer
+ * @typedef {import("./signals").SignalConsumer<D>} SignalConsumer
  */
 
 /**
  * @template D
- * @typedef {import('./signals').SignalDescriptor<D>} SignalDescriptor
+ * @typedef {import("./signals").SignalDescriptor<D>} SignalDescriptor
  */
 
 /**
  * @template D
- * @typedef {import('./signals').SignalSubscriber<D>} SignalSubscriber
+ * @typedef {import("./signals").SignalSubscriber<D>} SignalSubscriber
  */
 
 /**
  * @template D
- * @typedef {import('./signals').SignalTrigger<D>} SignalTrigger
+ * @typedef {import("./signals").SignalTrigger<D>} SignalTrigger
  */
 
 /**
- * @typedef {import('./signals').SubscriptionToken} SubscriptionToken
+ * @typedef {import("./signals").SubscriptionToken} SubscriptionToken
  */
 
 
@@ -54,11 +50,9 @@ import { Logger } from "./logjsx.js";
 
 class SignalBroker {
 
-    /** @type {number} */
-    #currentId = -1;
+    /** @type {number} */ #currentId = -1;
 
-    /** @type {Logger} */
-    #log= Logger.forName('SignalBroker');
+    /** @type {Logger} */ #log = Logger.forName('SignalBroker');
 
     /** @type {Map<string, SignalSubscription<any>[]>} */
     #subscriptions = new Map();

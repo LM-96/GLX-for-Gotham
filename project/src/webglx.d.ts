@@ -1,14 +1,27 @@
-import { Angle, Point3D } from "./geometry";
+import { Angle, Point3D, Vector3D } from "./geometry";
 import { FireRequest, SignalDescriptor } from "./signals";
+
+export type CameraManWorkMode = "DISMISSED" | "OVER" | "FIRST_PERSON" | "THIRD_PERSON" | "CUSTOM";
+
+export type CameraManSignalDescriptors = {
+    isLookingAtSpriteChanges: SignalDescriptor<Change<boolean>>;
+    isChasingSpriteChanges: SignalDescriptor<Change<boolean>>;
+    targetSpriteChanges: SignalDescriptor<Change<Sprite|null>>;
+    workModeChanges: SignalDescriptor<Change<CameraManWorkMode>>;
+}
+
+export type CameraManSignalWorkspace = {
+    isLookingAtSpriteChanges: string;
+    isChasingSpriteChanges: string;
+    targetSpriteChanges: string;
+    workModeChanges: string;
+}
 
 export type CameraSettings = {
     position: Point3D;
     up: Trio<number>;
-    target: Point3D;
+    targetPosition: Point3D;
     fov: Angle;
-    isLookingAtSprite: boolean;
-    isChasingSprite: boolean;
-    targetSprite: Sprite | null;
 }
 
 export type CameraSignalDescriptors = {
@@ -16,9 +29,6 @@ export type CameraSignalDescriptors = {
     upChanges: SignalDescriptor<Change<Trio<number>>>;
     targetChanges: SignalDescriptor<PositionChange>;
     fovChanges: SignalDescriptor<Change<Angle>>;
-    isLookingAtSpriteChanges: SignalDescriptor<Change<boolean>>;
-    isChasingSpriteChanges: SignalDescriptor<Change<boolean>>;
-    targetSpriteChanges: SignalDescriptor<Change<Sprite|null>>;
 }
 
 export type CameraSignalWorkspace = {
@@ -62,13 +72,66 @@ export type RotationChange = Change<Trio<Angle>>;
 
 export type ScaleChange = Change<Trio<number>>;
 
-export type WebGLXApplicationSignalWorkspace = {
-    camera: CameraSignalWorkspace
+export type SpriteSettings = {
+    position: Point3D,
+    rotation: Trio<Angle>,
+    scale: Trio<number>,
+    limitChecker: LimitChecker,
+    hidden: boolean
+}
+
+export type SpriteSignalDescriptors = {
+    positionChange: SignalDescriptor<PositionChange>,
+    rotationChange: SignalDescriptor<RotationChange>,
+    scaleChange: SignalDescriptor<ScaleChange>
+}
+
+export type SpriteSignalWorkspace = {
+    positionChange: string,
+    rotationChange: string,
+    scaleChange: string
 }
 
 export type WebGLShaderReference = {
     readonly main: string[];
     readonly color: string[];
+}
+
+export declare class Camera {
+    readonly isChasingSprite: boolean
+    readonly isLookingAtSprite: boolean
+
+    distanceFromTarget: Vector3D
+    fov: Angle
+    position: Point3D
+    targetPosition: Point3D
+    up: Trio<number>
+}
+
+export declare class CameraMan {
+    readonly currenWorkMode: CameraManWorkMode;
+    readonly isHired: boolean;
+
+    distance: number;
+    hight: number;
+    phase: Angle;
+    targetPosition: Point3D;
+    targetSprite: Sprite | null;
+
+    chaseTargetSprite(): CameraMan
+    dismiss();
+    hire(mode: CameraManWorkMode);
+    lookAtTargetSprite(): CameraMan
+    unChaseSprite(): CameraMan
+    unLookAtSprite(): CameraMan
+}
+
+export class CameraManWorkModes {
+    static DISMISSED: CameraManWorkMode;
+    static OVER: CameraManWorkMode;
+    static FIRST_PERSON: CameraManWorkMode;
+    static THIRD_PERSON: CameraManWorkMode;
+    static CUSTOM: CameraManWorkMode;
 }
 
 export declare class FireRequests {
@@ -102,17 +165,6 @@ export declare class Sprite {
     rotation: Trio<Angle>;
     scale: Trio<number>;
     hidden: boolean;
-}
-
-export declare class SpriteAction {
-    readonly type: SpriteActionType;
-    readonly description: PositionChange | RotationChange | ScaleChange;
-}
-
-export declare class SpriteActions {
-    static TRANSITION: SpriteActionType;
-    static ROTATION: SpriteActionType;
-    static SCALE: SpriteActionType;
 }
 
 export declare class WebGLXApplication {
