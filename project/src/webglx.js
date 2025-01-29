@@ -3,10 +3,9 @@
  * @author Luca Marchegiani
  */
 
-import { Angle, degrees, Math3D, Point3D, point3D, radians } from "./geometry.js";
+import { Angle, AngleMath, degrees, Math3D, Point3D, point3D, radians } from "./geometry.js";
 import { Logger } from "./logjsx.js";
 import { SIGNALS } from "./signals.js";
-import { change } from "./webglx.js";
 
 /* global loadObjx */
 /* global webglUtils */
@@ -69,7 +68,7 @@ import { change } from "./webglx.js";
  */
 
 /**
- * @typedef {import("../lib/webgl-utils.js").ProgramInfo} ProgramInfo
+ * @typedef {import("./webglx.js").ProgramInfo} ProgramInfo
  */
 
 /**
@@ -78,6 +77,10 @@ import { change } from "./webglx.js";
 
 /**
  * @typedef {import("./webglx.js").ScaleChange} ScaleChange
+ */
+
+/**
+ * @typedef {import("./webglx.js").SharedUniforms} SharedUniforms
  */
 
 /**
@@ -323,12 +326,16 @@ export class Camera {
 export class CameraMan {
 
     /** @type {SubscriptionToken|null} */ #chaseSpriteSubscriptionToken = null;
+    /** @type {SubscriptionToken|null} */ #chaseSpriteRotationSubscriptionToken = null;
     /** @type {SubscriptionToken|null} */ #lookAtSpriteSubscriptionToken = null;
     /** @type {Sprite|null} */ #targetSprite = null;
     /** @type {import("./webglx.js").CameraManWorkMode} */ #workMode = CameraManWorkModes.DISMISSED;
 
-    /** @type {Camera} */ #camera
+    /** @type {Camera} */ #camera;
+    /** @type {number} */ #distance = 50;
+    /** @type {number} */ #high = 5;
     /** @type {Logger} */ #logger;
+    /** @type {number} */ #phase = 0;
     /** @type {CameraManSignalDescriptors} */ #signalDescriptors;
 
     /**
@@ -349,11 +356,22 @@ export class CameraMan {
         this.#logger = Logger.forName(`CameraMan[${applicationName}]`);
     }
 
+    get distance() {
+        return this.#distance;
+    }
+
     /**
      * @returns {boolean}
      */
     get isChasingSprite() {
         return isNotNullOrUndefined(this.chaseSpriteSubscriptionToken);
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    get isHired() {
+        return this.#workMode !== CameraManWorkModes.DISMISSED;
     }
 
     /**
@@ -368,6 +386,16 @@ export class CameraMan {
     }
 
     /**
+     * @param {number} value 
+     */
+    set distance(value) {
+        this.#distance = value;
+        if (this.isHired) {
+            this.#autoSet();
+        }
+    }
+
+    /**
      * @param {Sprite | null} nextLookedSprite
      */
     set targetSprite(nextLookedSprite) {
@@ -378,6 +406,10 @@ export class CameraMan {
             this.#signalDescriptors.targetSpriteChanges.trigger({
                 data: change(nextLookedSprite, previousLookedSprite)
             });
+
+            if (this.isHired) {
+                this.#autoSet();
+            }
         }
     }
 
@@ -410,8 +442,52 @@ export class CameraMan {
 
     dismiss() {
         if (this.#workMode !== CameraManWorkModes.DISMISSED) {
-            this.#unsubscribeFromChaseSpriteSignal;
-            this.#unsubscribeFromLookAtSpriteSignal;
+            this.#unsubscribeFromChaseSpriteSignal();
+            this.#unsubscribeFromChaseSpriteRotationSignal();
+            this.#unsubscribeFromLookAtSpriteSignal();
+        }
+
+        this.#setWorkMode(CameraManWorkModes.DISMISSED);
+        return this;
+    }
+
+    /**
+     * 
+     * @param {CameraManWorkMode} workMode 
+     */
+    hire(workMode) {
+        if (isNullOrUndefined(this.#targetSprite)) {
+            throw new Error('target sprite was not set, cannot hire')
+        }
+
+        this.dismiss();
+        if (this.#workMode !== workMode && isNotNullOrUndefined(this.#targetSprite)) {
+            this.#logger.info(`hiring [workMode: ${workMode}]`);
+            switch (workMode) {
+                case CameraManWorkModes.FIRST_PERSON:
+                    this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
+                        this.#workFirstPerson);
+                    this.#chaseSpriteRotationSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.rotationChange,
+                        this.#workFirstPerson);
+                    this.#workFirstPerson();
+                    break;
+                case CameraManWorkModes.OVER:
+                    this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
+                        this.#workOver);
+                    this.#workOver();
+                    break;
+                case CameraManWorkModes.THIRD_PERSON:
+                    this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
+                        this.#workThirdPerson);
+                    this.#chaseSpriteRotationSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.rotationChange,
+                        this.#workThirdPerson);
+                    this.#workThirdPerson();
+                    break;
+                default:
+                    throw new Error(`unable to hire with work mode ${workMode}`);
+            }
+
+            this.#setWorkMode(workMode);
         }
     }
 
@@ -471,6 +547,22 @@ export class CameraMan {
         return this;
     }
 
+    #autoSet() {
+        switch (this.#workMode) {
+            case CameraManWorkModes.FIRST_PERSON:
+                this.#workFirstPerson();
+                break;
+            case CameraManWorkModes.OVER:
+                this.#workOver();
+                break;
+            case CameraManWorkModes.THIRD_PERSON:
+                this.#workThirdPerson();
+                break;
+            default:
+                this.#logger.warn(`unable to autoset with work mode ${this.#workMode}`);
+        }
+    }
+
     /**
      * 
      * @param {Signal<PositionChange>} signal 
@@ -512,20 +604,86 @@ export class CameraMan {
     }
 
     #unsubscribeFromChaseSpriteSignal() {
-        if (isNotNullOrUndefined(this.chaseSpriteSubscriptionToken)) {
-            SIGNALS.unsubscribe(this.chaseSpriteSubscriptionToken);
-            this.chaseSpriteSubscriptionToken = null;
+        if (isNotNullOrUndefined(this.#chaseSpriteSubscriptionToken)) {
+            SIGNALS.unsubscribe(this.#chaseSpriteSubscriptionToken);
+            this.#chaseSpriteSubscriptionToken = null;
+        } else {
+            this.#logger.warn('tried to unsubscribe from chase sprite signal, but no subscription was active');
+        }
+    }
+
+    #unsubscribeFromChaseSpriteRotationSignal() {
+        if (isNotNullOrUndefined(this.#chaseSpriteRotationSubscriptionToken)) {
+            SIGNALS.unsubscribe(this.#chaseSpriteRotationSubscriptionToken);
+            this.#chaseSpriteRotationSubscriptionToken = null;
         } else {
             this.#logger.warn('tried to unsubscribe from chase sprite signal, but no subscription was active');
         }
     }
 
     #unsubscribeFromLookAtSpriteSignal() {
-        if (isNotNullOrUndefined(this.lookAtSpriteSubscriptionToken)) {
-            SIGNALS.unsubscribe(this.lookAtSpriteSubscriptionToken);
-            this.lookAtSpriteSubscriptionToken = null;
+        if (isNotNullOrUndefined(this.#lookAtSpriteSubscriptionToken)) {
+            SIGNALS.unsubscribe(this.#lookAtSpriteSubscriptionToken);
+            this.#lookAtSpriteSubscriptionToken = null;
         } else {
             this.#logger.warn('tried to unsubscribe from look at sprite signal, but no subscription was active');
+        }
+    }
+
+    #workFirstPerson() {
+        if (isNotNullOrUndefined(this.#targetSprite)) {
+            this.#logger.info(`setting up first person [sprite: ${this.#targetSprite.name}]`);
+            let targetPosition = this.#targetSprite.position;
+            let phi = this.#targetSprite.rotation.third.transform(AngleMath.toRadians()).value;
+            this.#camera.position = targetPosition.transform(Math3D.translate(
+                5 * Math.cos(phi + this.#phase),
+                5 * Math.sin(phi + this.#phase),
+                this.#high
+            ));
+            this.#camera.targetPosition = targetPosition.transform(Math3D.translate(
+                10 * Math.cos(phi + this.#phase),
+                10 * Math.sin(phi + this.#phase),
+                this.#high
+            ));
+            this.#camera.up = trio(0, 0, 1);
+        } else {
+            this.#logger.error('unable to setup first person mode: no target was set')
+        }
+    }
+
+    #workOver() {
+        if (isNotNullOrUndefined(this.#targetSprite)) {
+            this.#logger.info(`setting up over [sprite: ${this.#targetSprite.name}]`);
+            let targetPosition = this.#targetSprite.position;
+            this.#camera.position = targetPosition.transform(Math3D.translate(
+                0,
+                0,
+                this.#distance
+            ));
+            this.#camera.targetPosition = targetPosition;
+            this.#camera.up = trio(1, 0, 0);
+        } else {
+            this.#logger.error('unable to setup over mode: no target was set')
+        }
+    }
+
+    #workThirdPerson() {
+        if (isNotNullOrUndefined(this.#targetSprite)) {
+            let targetPosition = this.#targetSprite.position;
+            let phi = this.#targetSprite.rotation.third.transform(AngleMath.toRadians()).value;
+            this.#camera.position = targetPosition.transform(Math3D.translate(
+                - this.#distance * Math.cos(phi + this.#phase),
+                - this.#distance * Math.sin(phi + this.#phase),
+                this.#high
+            ));
+            this.#camera.targetPosition = targetPosition.transform(Math3D.translate(
+                10 * Math.cos(phi + this.#phase),
+                10 * Math.sin(phi + this.#phase),
+                this.#high
+            ));
+            this.#camera.up = trio(0, 0, 1);
+        } else {
+            this.#logger.error('unable to setup third person mode: no target was set')
         }
     }
 }
@@ -664,10 +822,90 @@ export class Sprite {
  */
 class SpriteDrawer {
     /** @type {string} */ #applicationName;
+    /** @type {number} */ #bias;
+    /** @type {any} */ #cubeLinesBufferInfo;
     /** @type {WebGLXEnvironment} */ #glXEnvironment;
+    /** @type {boolean} */ #lightFrustum;
+    /** @type {Logger} */ #logger
+    /** @type {SharedUniforms} */ #sharedUniforms;
     /** @type {SpriteManager} */ #spriteManager;
     /** @type {number} */ zNear = 0.1;
     /** @type {number} */ zFar = 700;
+
+    /**
+     * 
+     * @param {string} applicationName 
+     * @param {WebGLXEnvironment} glEnvironment 
+     * @param {SpriteManager} spriteManager 
+     */
+    constructor(applicationName, glEnvironment, spriteManager) {
+        this.#applicationName = applicationName;
+        this.#bias = -0.006;
+        this.#glXEnvironment = glEnvironment;
+        this.#spriteManager = spriteManager;
+        this.#lightFrustum = false;
+        this.#sharedUniforms = this.#defaultSharedUniforms();
+        this.#cubeLinesBufferInfo = this.#buildCubeLinesBufferInfo();
+
+        this.#logger = Logger.forName(`SpriteDrawer[${applicationName}]`);
+    }
+
+    renderScene() {
+        let gl = this.#glXEnvironment.glContext;
+        gl.enable(gl.CULL_FACE);
+        gl.enable(gl.DEPTH_TEST);
+
+        // TODO
+    }
+
+    #buildCubeLinesBufferInfo() {
+        return WebGLUtils.createBufferInfoFromArrays(
+            this.#glXEnvironment.glContext, {
+            position: [
+                -1, -1, -1,
+                1, -1, -1,
+                -1,  1, -1,
+                1,  1, -1,
+                -1, -1,  1,
+                1, -1,  1,
+                -1,  1,  1,
+                1,  1,  1,
+            ],
+            indices: [
+                0, 1,
+                1, 3,
+                3, 2,
+                2, 0,
+
+                4, 5,
+                5, 7,
+                7, 6,
+                6, 4,
+
+                0, 4,
+                1, 5,
+                3, 7,
+                2, 6,
+            ],
+        });
+    }
+
+    /**
+     * @returns {SharedUniforms}
+     */
+    #defaultSharedUniforms() {
+        return {
+            u_ambientLight: [0.2, 0.2, 0.2],
+                u_colorLight: [1.0, 1.0, 1.0],
+                u_view: M4.identity(),
+                u_projection: M4.identity(),
+                u_lightDirection: [2, 2, 2],
+                u_bias: 0.001,
+                texture_matrix: M4.identity(),
+                u_projectedTexture: null,
+                u_colorMult: [1, 1, 1, 1],
+        };
+    }
 
 }
 
@@ -730,6 +968,8 @@ class SpriteManager {
 export class WebGLXApplication {
 
     /** @type {string} */ #applicationName;
+    /** @type {Camera} */ #camera;
+    /** @type {CameraMan} */ #cameraMan;
     /** @type {Logger} */ #log;
     /** @type {WebGLXEnvironment} */ #webGLXEnvironment;
     /** @type {SpriteDrawer} */ #spriteDrawer;
@@ -746,6 +986,11 @@ export class WebGLXApplication {
         this.#applicationName = applicationName;
         this.#webGLXEnvironment = webGLXEnvironment;
         this.#signalWorkspace = new WebGLXApplicationSignalWorkspace(applicationName);
+
+        this.#camera = new Camera(applicationName, this.#signalWorkspace.camera);
+        this.#cameraMan = new CameraMan(applicationName, this.#camera, this.#signalWorkspace.cameraMan);
+        this.#spriteManager = new SpriteManager(applicationName);
+        this.#spriteDrawer = new SpriteDrawer()
     }
 
     get applicationName() {
@@ -764,15 +1009,21 @@ class WebGLXApplicationSignalWorkspace {
         positionChanges: 'camera.position',
         upChanges: 'camera.up',
         targetChanges: 'camera.target',
-        fovChanges: 'camera.fov',
-        isLookingAtSpriteChanges: 'camera.isLookingAtSprite',
-        isChasingSpriteChanges: 'camera.isChasingSprite',
-        targetSpriteChanges: 'camera.targetSprite'
+        fovChanges: 'camera.fov'
+    }
+
+    /** @type {CameraManSignalWorkspace} */
+    static #CAMERA_MAN = {
+        isLookingAtSpriteChanges: 'cameraman.isLookingAtSprite',
+        isChasingSpriteChanges: 'cameraman.isChasingSprite',
+        targetSpriteChanges: 'cameraman.targetSprite',
+        workModeChanges: 'cameraman.workMode'
     }
 
     /** @type {string} */ #applicationName;
 
     /** @type {CameraSignalWorkspace} */ #camera
+    /** @type {CameraManSignalWorkspace} */ #cameraMan
 
     /**
      * 
@@ -785,10 +1036,14 @@ class WebGLXApplicationSignalWorkspace {
             positionChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.positionChanges),
             upChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.upChanges),
             targetChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.targetChanges),
-            fovChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.fovChanges),
-            isChasingSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.isChasingSpriteChanges),
-            isLookingAtSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.isLookingAtSpriteChanges),
-            targetSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.targetSpriteChanges)
+            fovChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.fovChanges)
+        }
+
+        this.#cameraMan = {
+            isChasingSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.isChasingSpriteChanges),
+            isLookingAtSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.isLookingAtSpriteChanges),
+            targetSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.targetSpriteChanges),
+            workModeChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.workModeChanges)
         }
     }
 
@@ -797,6 +1052,13 @@ class WebGLXApplicationSignalWorkspace {
      */
     get camera() {
         return this.#camera;
+    }
+
+    /**
+     * @returns {CameraManSignalWorkspace}
+     */
+    get cameraMan() {
+        return this.#cameraMan;
     }
 
     /**

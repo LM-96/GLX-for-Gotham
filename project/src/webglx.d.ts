@@ -36,9 +36,6 @@ export type CameraSignalWorkspace = {
     upChanges: string;
     targetChanges: string;
     fovChanges: string;
-    isLookingAtSpriteChanges: string;
-    isChasingSpriteChanges: string;
-    targetSpriteChanges: string;
 }
 
 export type Change<T> = {
@@ -68,9 +65,27 @@ export type WebGLXAppDescriptor = {
 
 export type PositionChange = Change<Point3D>;
 
+export type ProgramInfo = {
+    program: WebGLProgram,
+    attribLocations: any,
+    uniformLocations: any
+}
+
 export type RotationChange = Change<Trio<Angle>>;
 
 export type ScaleChange = Change<Trio<number>>;
+
+export type SharedUniforms = {
+    u_ambientLight: Array<number>,
+    u_colorLight: Array<number>,
+    u_view: number[],
+    u_projection: number[],
+    u_lightDirection: Array<number>,
+    u_bias: number ,
+    texture_matrix: number[],
+    u_projectedTexture: WebGLTexture | null,
+    u_colorMult: number[],
+}
 
 export type SpriteSettings = {
     position: Point3D,
