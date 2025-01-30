@@ -3,7 +3,7 @@
  * @author Luca Marchegiani
  */
 
-import { Logger } from "./logjsx";
+import { Logger } from "./logjsx.js";
 
 /* TYPES (JSDoc) **************************************************************************************************** */
 

@@ -58,7 +58,8 @@ export declare class Math3D {
     static rotateAround(axis: Axis, angle: Angle): Point3DTransformer;
     static scale(mx: number, my: number, mz: number): Point3DTransformer;
     static toColumnMatrix(): Point3DMapper<Matrix>;
-    static toColumnVector(): Point3DMapper<number[]>
+    static toColumnVector(): Point3DMapper<number[][]>;
+    static toImmutableArray(): Point3DMapper<Readonly<number[]>>;
     static translate(dx: number, dy: number, dz: number): Point3DTransformer;
 
 }

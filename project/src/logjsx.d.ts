@@ -15,11 +15,12 @@ export declare function loggingEnabled();
 export declare function enableLogging();
 
 export declare class Logger {
-    static forName(name: string): Log;
+    static forName(name: string): Logger;
 
     debug(...data: any[]): void;
     disable(): Logger;
     enable(): Logger;
+    enabledOn(condition: boolean): Logger;
     error(...data: any[]): void;
     info(...data: any[]): void;
     warn(...data: any[]): void;

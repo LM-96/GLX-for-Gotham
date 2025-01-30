@@ -252,6 +252,12 @@ export class Math3D {
     static #TO_COLUMN_VECTOR = point => [[point.x], [point.y], [point.y]];
 
     /**
+     * 
+     * @type {Point3DMapper<Readonly<number[]>>}
+     */
+    static #TO_IMMUTABLE_ARRAY = point => Object.freeze([point.x, point.y, point.z])
+
+    /**
      *
      * @param {string} axis
      * @param {Angle} angle
@@ -292,6 +298,10 @@ export class Math3D {
      */
     static toColumnVector() {
         return Math3D.#TO_COLUMN_VECTOR;
+    }
+
+    static toImmutableArray() {
+        return Math3D.#TO_IMMUTABLE_ARRAY;
     }
 
     /**

@@ -43,12 +43,58 @@ export type Change<T> = {
     readonly to: T;
 };
 
+export type DrawSceneContext = {
+    projectionMatrix: number[],
+    cameraMatrix: number[],
+    textureMatrix: number[],
+    programInfo: ProgramInfo
+}
+
+export type DrawSpriteContext = {
+    clear?: boolean,
+    sprite: Sprite,
+    glData: any,
+    programInfo: ProgramInfo
+}
+
 export type Duo<T> = {
     readonly first: T;
     readonly second: T;
 };
 
+export type GLXSprite = {
+    readonly sprite: Sprite;
+    readonly glData: any;
+}
+
+export type GLXSpriteCreation = {
+    readonly name: string;
+    readonly glData: any;
+    readonly signalWorkspace: SpriteSignalWorkspace;
+    readonly settings?: Partial<SpriteSettings>;
+}
+
+export type LightMatrices = {
+    readonly projection: number[];
+    readonly world: number[];
+}
+
 export type LimitChecker = (sprite: Sprite, targetPosition: Point3D) => boolean;
+
+export type MeshSpriteLoad = {
+    name: string,
+    path: string,
+    position?: Point3D,
+    rotation?: Trio<Angle>,
+    scale?: Trio<number>,
+    limitChecker?: LimitChecker,
+    hidden?: boolean
+}
+
+export type Pair<F, S> = {
+    readonly first: F,
+    readonly second: S
+};
 
 export type SpriteActionType = 1 | 2 | 3;
 
@@ -60,7 +106,6 @@ export type Trio<T> = {
 
 export type WebGLXAppDescriptor = {
     applicationName: string;
-
 }
 
 export type PositionChange = Change<Point3D>;
@@ -96,15 +141,24 @@ export type SpriteSettings = {
 }
 
 export type SpriteSignalDescriptors = {
-    positionChange: SignalDescriptor<PositionChange>,
-    rotationChange: SignalDescriptor<RotationChange>,
-    scaleChange: SignalDescriptor<ScaleChange>
+    readonly positionChange: SignalDescriptor<PositionChange>,
+    readonly rotationChange: SignalDescriptor<RotationChange>,
+    readonly scaleChange: SignalDescriptor<ScaleChange>
 }
 
 export type SpriteSignalWorkspace = {
-    positionChange: string,
-    rotationChange: string,
-    scaleChange: string
+    readonly positionChange: string,
+    readonly rotationChange: string,
+    readonly scaleChange: string
+};
+
+export type WebGLXApplicationClass = { new (...args: any[]): WebGLXApplication };
+
+export type WebGLXApplicationStart = {
+    canvasElementName: string;
+    webGLShaders: WebGLShaderReference;
+    logEnabled?: boolean;
+    applicationClass: WebGLXApplicationClass;
 }
 
 export type WebGLShaderReference = {
@@ -183,11 +237,22 @@ export declare class Sprite {
 }
 
 export declare class WebGLXApplication {
-
+    glxSprite(load: MeshSpriteLoad): Sprite
+    signalsOf(sprite: Sprite): SpriteSignalWorkspace
 }
 
 export declare function change<T>(from: T, to: T): Change<T>;
 
 export declare function duo<T>(first, second): Duo<T>;
+
+export declare function pair<F, S>(first, second): Pair<F, S>;
+
+export declare function position(x: number, y: number, z: number): Point3D
+
+export declare function rotation(psi: Angle, theta: Angle, phi: Angle);
+
+export declare function scale(mx: number, my: number, mz: number): Trio<number>;
+
+export declare function start<WebGLXApplicationClass>(appStart: WebGLXApplicationStart);
 
 export declare function trio<T>(first: T, second: T, third: T): Trio<T>;

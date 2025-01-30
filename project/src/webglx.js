@@ -41,6 +41,14 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
+ * @typedef {import("./webglx.js").DrawSceneContext} DrawSceneContext
+ */
+
+/**
+ * @typedef {import("./webglx.js").DrawSpriteContext} DrawSpriteContext
+ */
+
+/**
  * @template T
  * @typedef {import("./webglx.js").Duo<T>} Duo
  */
@@ -48,6 +56,18 @@ import { SIGNALS } from "./signals.js";
 /**
  * @template T
  * @typedef {import("./signals").FireRequest<T>} FireRequest
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXSprite} GLXSprite
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXSpriteCreation} GLXSpriteCreation
+ */
+
+/**
+ * @typedef {import("./webglx.js").LightMatrices} LightMatrices
  */
 
 /**
@@ -59,8 +79,18 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
+ * @typedef {import("./webglx.js").MeshSpriteLoad} MeshSpriteLoad
+ */
+
+/**
  * @template T
  * @typedef {import("./signals.js").SignalDescriptor<T>} SignalDescriptor
+ */
+
+/**
+ * @template F
+ * @template S
+ * @typedef {import("./webglx.js").Pair<F,S>} Pair
  */
 
 /**
@@ -117,6 +147,14 @@ import { SIGNALS } from "./signals.js";
  * @typedef {import("./geometry.js").Vector3D} Vector3D
  */
 
+/**
+ * @typedef {import("./webglx.js").WebGLXApplicationStart} WebGLXApplicationStart
+ */
+
+/**
+ * @typedef {import("./webglx.js").WebGLShaderReference} WebGLShaderReference
+ */
+
 /* STATIC CLASSES *************************************************************************************************** */
 
 export class CameraManWorkModes {
@@ -169,7 +207,7 @@ class FireRequests {
 
 }
 
-class LimitCheckers {
+export class LimitCheckers {
 
     /**
      *
@@ -218,9 +256,10 @@ export class Camera {
      * 
      * @param {string} applicationName 
      * @param {CameraSignalWorkspace} signalWorkspace
+     * @param {boolean} logEnabled 
      * @param {Partial<CameraSettings>} settings 
      */
-    constructor(applicationName, signalWorkspace, settings = {}) {
+    constructor(applicationName, signalWorkspace, logEnabled, settings = {}) {
         this.#settings = {
             position: point3D(1, 1, 1),
             up: trio(0, 0, 1),
@@ -236,7 +275,7 @@ export class Camera {
             fovChanges: SIGNALS.register(signalWorkspace.fovChanges)
         }
 
-        this.#logger = Logger.forName(`Camera[${applicationName}]`);
+        this.#logger = Logger.forName(`Camera[${applicationName}]`).enabledOn(logEnabled);
     }
 
     /**
@@ -318,6 +357,14 @@ export class Camera {
 
 
     }
+
+    computeCameraMatrix() {
+        return Object.freeze(M4.lookAt(
+            this.#settings.position.map(Math3D.toImmutableArray()),
+            this.#settings.targetPosition.map(Math3D.toImmutableArray()),
+            toJsVectorTrio(this.#settings.up)
+        ))
+    }
 }
 
 /**
@@ -343,8 +390,9 @@ export class CameraMan {
      * @param {string} applicationName 
      * @param {Camera} camera 
      * @param {CameraManSignalWorkspace} signalWorkspace 
+     * @param {boolean} logEnabled 
      */
-    constructor(applicationName, camera, signalWorkspace) {
+    constructor(applicationName, camera, signalWorkspace, logEnabled) {
         this.#camera = camera;
         this.#signalDescriptors = {
             isLookingAtSpriteChanges: SIGNALS.register(signalWorkspace.isLookingAtSpriteChanges),
@@ -353,7 +401,7 @@ export class CameraMan {
             workModeChanges: SIGNALS.register(signalWorkspace.workModeChanges)
         }
 
-        this.#logger = Logger.forName(`CameraMan[${applicationName}]`);
+        this.#logger = Logger.forName(`CameraMan[${applicationName}]`).enabledOn(logEnabled);
     }
 
     get distance() {
@@ -568,7 +616,7 @@ export class CameraMan {
      * @param {Signal<PositionChange>} signal 
      */
     #chaseSpriteSignalConsumer(signal) {
-        let vector3D = toVector3D(signal.data);
+        let vector3D = toVector3DChange(signal.data);
         this.#camera.position = this.#camera.position.transform(
             Math3D.translate(vector3D.dx, vector3D.dy, vector3D.dz));
     }
@@ -686,6 +734,325 @@ export class CameraMan {
             this.#logger.error('unable to setup third person mode: no target was set')
         }
     }
+}
+
+/**
+ * @class ShadowLightManager
+ */
+export class ShadowLightManager {
+    /** @type {number} */ static #DEPTH_TEXTURE_SIZE = 512;
+    /** @type {Map<WebGLRenderingContext, Pair<WebGLTexture, WebGLFramebuffer>>} */ static #depthTB = new Map();
+
+    /**
+     * @returns {number}
+     */
+    static get DEPTH_TEXTURE_SIZE() {
+        return ShadowLightManager.#DEPTH_TEXTURE_SIZE;
+    }
+
+    /**
+     * @param {WebGLRenderingContext} gl
+     * @returns {Pair<WebGLTexture, WebGLFramebuffer>}
+     */
+    static getTextureWithBufferForLights(gl) {
+        let res = ShadowLightManager.#depthTB.get(gl);
+        if (isNotNullOrUndefined(res)) {
+            return res;
+        } else {
+            let texture = ShadowLightManager.#createTexture(gl);
+            this.#depthTB.set(gl, texture);
+
+            return texture;
+        }
+    }
+
+    /**
+     * 
+     * @param {WebGLRenderingContext} gl 
+     * @returns {WebGLTexture}
+     */
+    static getTextureForLights(gl) {
+        return ShadowLightManager.getTextureWithBufferForLights(gl).second;
+    }
+
+    /**
+     * 
+     * @param {WebGLRenderingContext} gl 
+     * @returns {WebGLFramebuffer}
+     */
+    static getTextureFrameBufferForLights(gl) {
+        return ShadowLightManager.getTextureFrameBufferForLights(gl);
+    }
+
+    /**
+     * @param {WebGLRenderingContext} gl
+     * @returns {Pair<WebGLTexture, WebGLFramebuffer>}
+     */
+    static #createTexture(gl) {
+        let depthTexture = gl.createTexture();
+        let depthTextureSize = ShadowLightManager.#DEPTH_TEXTURE_SIZE;
+        gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,      // target
+            0,                  // mip level
+            gl.DEPTH_COMPONENT, // internal format
+            depthTextureSize,   // width
+            depthTextureSize,   // height
+            0,                  // border
+            gl.DEPTH_COMPONENT, // format
+            gl.UNSIGNED_INT,    // type
+            null);              // data
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        let depthFramebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, depthFramebuffer);
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,       // target
+            gl.DEPTH_ATTACHMENT,  // attachment point
+            gl.TEXTURE_2D,        // texture target
+            depthTexture,         // texture
+            0);                   // mip level
+
+        // create a color texture of the same size as the depth texture
+        // see article why this is needed_
+        let unusedTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, unusedTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            depthTextureSize,
+            depthTextureSize,
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            null,
+        );
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        // attach it to the framebuffer
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,        // target
+            gl.COLOR_ATTACHMENT0,  // attachment point
+            gl.TEXTURE_2D,         // texture target
+            unusedTexture,         // texture
+            0);
+        return pair(depthTexture, depthFramebuffer);
+    }
+
+    /** @type {Trio<number>} */ #lightDirection = trio(0, 0, 0);
+    /** @type {SharedUniforms} */ #sharedUniforms;
+    /** @type {Point3D} */ #lightPosition = point3D(0, 0, 100);
+    /** @type {Point3D} */ #lightTarget = point3D(0, 0, 0);
+    /** @type {Trio<number>} */ #lightUp = trio(0, 1, 0);
+    /** @type {Angle} */ #lightFov = radians(0);
+    /** @type {boolean} */ #spotlight = false;
+    /** @type {number} */ #projWidth = 10;
+    /** @type {number} */ #projHeight = 10;
+    /** @type {boolean} */ #shadowEnabled = false;
+    /** @type {number} */ #near = 1;
+    /** @type {number} */ #far = 700;
+
+    /**
+     * 
+     * @param {SharedUniforms} sharedUniforms 
+     */
+    constructor(sharedUniforms) {
+        this.#sharedUniforms = sharedUniforms;
+    }
+
+    /**
+     * @returns {number}
+     */
+    get far() {
+        return this.#far;
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    get isShadowEnabled() {
+        return this.#shadowEnabled
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    get isSpotlight() {
+        return this.#spotlight;
+    }
+
+    /**
+     * @returns {Angle}
+     */
+    get lightFov() {
+        return this.#lightFov
+    }
+
+    /**
+     * @returns {Trio<number>}
+     */
+    get ligthDirection() {
+        return this.#lightDirection;
+    }
+
+    /**
+     * @returns {Point3D}
+     */
+    get lightPosition() {
+        return this.#lightPosition;
+    }
+
+    /**
+     * @returns {Point3D}
+     */
+    get lightTarget() {
+        return this.#lightTarget;
+    }
+
+    /**
+     * @returns {Trio<number>}
+     */
+    get lightUp() {
+        return this.#lightUp;
+    }
+
+    /**
+     * @returns {number}
+     */
+    get near() {
+        return this.#near;
+    }
+
+    /**
+     * @returns {number}
+     */
+    get projHeight() {
+        return this.#projHeight;
+    }
+
+    /**
+     * @returns {number}
+     */
+    get projWidth() {
+        return this.#projWidth;
+    }
+
+    /**
+     * @param {number} far 
+     */
+    set far(far) {
+        this.#far = far;
+    }
+
+    /**
+     * @param {Angle} fov 
+     */
+    set fov(fov) {
+        this.fov = fov;
+    }
+
+    /**
+     * @param {boolean} shadowEnabled
+     */
+    set isShadowEnabled(shadowEnabled) {
+        this.#shadowEnabled = shadowEnabled
+    }
+
+    /**
+     * @param {boolean} spotlight 
+     */
+    set isSpotlight(spotlight) {
+        this.#spotlight = spotlight;
+    }
+
+    /**
+     * @param {Trio<number>} direction 
+     */
+    set lightDirection(direction) {
+        this.#lightDirection = direction;
+    }
+
+    /**
+     * @param {Point3D} position 
+     */
+    set lightPosition(position) {
+        this.lightPosition = position;
+        this.#updateSharedUniforms();
+    }
+
+    /**
+     * @param {Point3D} target 
+     */
+    set lightTarget(target) {
+        this.#lightTarget = target;
+    }
+
+    /**
+     * @param {Trio<number>} up 
+     */
+    set lightUp(up) {
+        this.#lightUp = up;
+    }
+
+    /**
+     * @param {number} near 
+     */
+    set near(near) {
+        this.#near = near
+    }
+
+    /**
+     * @param {number} height
+     */
+    set projHeight(height) {
+        this.#projHeight = height;
+    }
+
+    /**
+     * @param {number} width 
+     */
+    set projWidth(width) {
+        this.#projWidth = width;
+    }
+
+    /**
+     * 
+     * @returns {number[]}
+     */
+    computeLightWorldMatrix() {
+        return M4.lookAt(
+            [this.#lightPosition.x, this.#lightPosition.y, this.#lightPosition.z],
+            [this.#lightTarget.x, this.#lightTarget.y, this.#lightTarget.z],
+            [this.#lightUp.first, this.#lightUp.second, this.#lightUp.third],
+        );
+    }
+
+    /**
+     * 
+     * @returns {number[]}
+     */
+    computeLightProjectionMatrix() {
+        if (this.#spotlight) {
+            return M4.perspective(this.#lightFov.transform(AngleMath.toRadians()).value,
+                this.#projWidth / this.#projHeight, this.#near, this.#far)
+        } else {
+            return M4.orthographic(-this.#projWidth / 2, this.#projWidth / 2,
+                -this.#projHeight / 2, this.#projHeight / 2, this.#near, this.#far)
+        }
+    }
+
+    #updateSharedUniforms() {
+        this.#sharedUniforms.u_lightDirection = toJsVectorTrio(this.#lightDirection)
+    }
+
 }
 
 /**
@@ -823,10 +1190,12 @@ export class Sprite {
 class SpriteDrawer {
     /** @type {string} */ #applicationName;
     /** @type {number} */ #bias;
+    /** @type {Camera} */ #camera;
     /** @type {any} */ #cubeLinesBufferInfo;
     /** @type {WebGLXEnvironment} */ #glXEnvironment;
     /** @type {boolean} */ #lightFrustum;
     /** @type {Logger} */ #logger
+    /** @type {ShadowLightManager} */ #shadowLightManager;
     /** @type {SharedUniforms} */ #sharedUniforms;
     /** @type {SpriteManager} */ #spriteManager;
     /** @type {number} */ zNear = 0.1;
@@ -835,19 +1204,103 @@ class SpriteDrawer {
     /**
      * 
      * @param {string} applicationName 
-     * @param {WebGLXEnvironment} glEnvironment 
+     * @param {WebGLXEnvironment} glXEnvironment 
+     * @param {Camera} camera 
+     * @param {ShadowLightManager} shadowLightManager 
+     * @param {SharedUniforms} sharedUniforms
      * @param {SpriteManager} spriteManager 
+     * @param {boolean} logEnabled 
      */
-    constructor(applicationName, glEnvironment, spriteManager) {
+    constructor(applicationName, glXEnvironment, camera, shadowLightManager, sharedUniforms, spriteManager, logEnabled) {
         this.#applicationName = applicationName;
         this.#bias = -0.006;
-        this.#glXEnvironment = glEnvironment;
+        this.#camera = camera
+        this.#glXEnvironment = glXEnvironment;
+        this.#shadowLightManager = shadowLightManager;
         this.#spriteManager = spriteManager;
         this.#lightFrustum = false;
-        this.#sharedUniforms = this.#defaultSharedUniforms();
+        this.#sharedUniforms = sharedUniforms;
         this.#cubeLinesBufferInfo = this.#buildCubeLinesBufferInfo();
 
-        this.#logger = Logger.forName(`SpriteDrawer[${applicationName}]`);
+        this.#logger = Logger.forName(`SpriteDrawer[${applicationName}]`).enabledOn(logEnabled);
+    }
+
+    /**
+     * 
+     * @param {DrawSceneContext} drawSceneContext 
+     */
+    drawScene(drawSceneContext) {
+        let gl = this.#glXEnvironment.glContext;
+        let viewMatrix = M4.inverse(drawSceneContext.cameraMatrix)
+        gl.useProgram(drawSceneContext.programInfo.program)
+        WebGLUtils.setUniforms(drawSceneContext.programInfo, {
+            u_view: viewMatrix,
+            u_projection: drawSceneContext.projectionMatrix,
+            u_bias: this.#bias,
+            u_textureMatrix: drawSceneContext.textureMatrix,
+            u_projectedTexture: ShadowLightManager.getTextureForLights(this.#glXEnvironment.glContext),
+            u_lightDirection: this.#shadowLightManager.computeLightWorldMatrix().slice(8, 11),
+        });
+        gl.uniform1f(gl.getUniformLocation(drawSceneContext.programInfo.program, "mesh"), 1.);
+
+        for (let glxSprite of this.#spriteManager.getAllGLXSprites()) {
+            this.drawSprite({
+                programInfo: drawSceneContext.programInfo,
+                sprite: glxSprite.sprite,
+                glData: glxSprite.glData
+            })
+        }
+
+        this.#logger.info('scene drawn');
+    }
+
+    /**
+     * 
+     * @param {DrawSpriteContext} drawSpriteContext 
+     */
+    drawSprite(drawSpriteContext) {
+        let clear = drawSpriteContext.clear ?? false;
+        let gl = this.#glXEnvironment.glContext;
+        if (clear) {
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        }
+        if (!drawSpriteContext.sprite.hidden) {
+            let u_world = drawSpriteContext.glData;
+
+            for (let { bufferInfo, material } of drawSpriteContext.glData.parts) {
+                // calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
+                WebGLUtils.setBuffersAndAttributes(gl, drawSpriteContext.programInfo, bufferInfo);
+                // calls gl.uniform
+                WebGLUtils.setUniforms(drawSpriteContext.programInfo, {
+                    u_colorMult: [1, 1, 1, 1],
+                    u_color: [1, 1, 1, 1],
+                    u_world: u_world,
+                }, material);
+                // calls gl.drawArrays or gl.drawElements
+                WebGLUtils.drawBufferInfo(gl, bufferInfo);
+            }
+
+            // for (let part of this.#data.parts) {
+            //   // calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
+            //   WebGLUtils.setBuffersAndAttributes(gl, programInfo, part.bufferInfo);
+            //   // calls gl.uniform
+            //   WebGLUtils.setUniforms(programInfo, { u_world }, part.material);
+            //   // calls gl.drawArrays or gl.drawElements
+            //   WebGLUtils.drawBufferInfo(gl, part.bufferInfo);
+            // }
+            this.#logger.info(`drawn sprite '${drawSpriteContext.sprite.name}'`)
+        } else {
+            this.#logger.info(`sprite '${drawSpriteContext.sprite.name}' is hidden, draw skipped`)
+        }
+
+    }
+
+    /**
+     * 
+     * @param {any} data 
+     */
+    initSpriteData(data) {
+        data.u_world = M4.identity();
     }
 
     renderScene() {
@@ -855,7 +1308,23 @@ class SpriteDrawer {
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
 
-        // TODO
+        let lightMatrices = this.#computeLightMatrices();
+        this.#renderLights(lightMatrices);
+        this.#clearGlBuffers();
+        let textureMatrix = this.#computeTextureMatrix(lightMatrices);
+        let viewProjectionMatrix = this.#computeViewProjectionMatrix();
+
+        this.drawScene({
+            projectionMatrix: viewProjectionMatrix,
+            cameraMatrix: this.#camera.computeCameraMatrix(),
+            textureMatrix: textureMatrix,
+            programInfo: this.#glXEnvironment.getProgramInfo('main')
+        })
+
+        if (this.#lightFrustum) {
+            this.#renderLightFrustum(lightMatrices);
+        }
+        this.#logger.info("render complete")
     }
 
     #buildCubeLinesBufferInfo() {
@@ -864,12 +1333,12 @@ class SpriteDrawer {
             position: [
                 -1, -1, -1,
                 1, -1, -1,
-                -1,  1, -1,
-                1,  1, -1,
-                -1, -1,  1,
-                1, -1,  1,
-                -1,  1,  1,
-                1,  1,  1,
+                -1, 1, -1,
+                1, 1, -1,
+                -1, -1, 1,
+                1, -1, 1,
+                -1, 1, 1,
+                1, 1, 1,
             ],
             indices: [
                 0, 1,
@@ -890,21 +1359,113 @@ class SpriteDrawer {
         });
     }
 
+    #clearGlBuffers() {
+        let gl = this.#glXEnvironment.glContext;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        this.#logger.info("framebuffer, color buffer and depth buffer clean");
+    }
+
     /**
-     * @returns {SharedUniforms}
+     * @returns {LightMatrices}
      */
-    #defaultSharedUniforms() {
-        return {
-            u_ambientLight: [0.2, 0.2, 0.2],
-                u_colorLight: [1.0, 1.0, 1.0],
-                u_view: M4.identity(),
-                u_projection: M4.identity(),
-                u_lightDirection: [2, 2, 2],
-                u_bias: 0.001,
-                texture_matrix: M4.identity(),
-                u_projectedTexture: null,
-                u_colorMult: [1, 1, 1, 1],
+    #computeLightMatrices() {
+        let gl = this.#glXEnvironment.glContext;
+        let lightWorldMatrix = this.#shadowLightManager.computeLightWorldMatrix();
+        let lightProjectionMatrix = this.#shadowLightManager.computeLightProjectionMatrix();
+
+        return Object.freeze({
+            projection: lightProjectionMatrix,
+            world: lightWorldMatrix
+        });
+    }
+
+    /**
+     * 
+     * @param {LightMatrices} lightMatrices 
+     * @returns {number[]}
+     */
+    #computeTextureMatrix(lightMatrices) {
+        let textureMatrix = M4.identity();
+        textureMatrix = M4.translate(textureMatrix, 0.5, 0.5, 0.5);
+        textureMatrix = M4.scale(textureMatrix, 0.5, 0.5, 0.5);
+        textureMatrix = M4.multiply(textureMatrix, lightMatrices.projection);
+        textureMatrix = M4.multiply(
+            textureMatrix,
+            M4.inverse(lightMatrices.world));
+        this.#logger.info("texture matrix calculated");
+
+        return textureMatrix;
+    }
+
+    /**
+     * 
+     * @returns {number[]}
+     */
+    #computeViewProjectionMatrix() {
+        this.#updateProjectionMatrix()
+        this.#updateViewMatrix()
+        let viewProjectionMatrix = M4.multiply(this.#sharedUniforms.u_projection,
+            this.#sharedUniforms.u_view)
+        this.#logger.info("view projection matrix calculated");
+
+        return viewProjectionMatrix;
+    }
+
+    /**
+     * 
+     * @param {LightMatrices} lightMatrices 
+     */
+    #renderLightFrustum(lightMatrices) {
+        let gl = this.#glXEnvironment.glContext;
+        let viewMatrix = M4.inverse(this.#camera.computeCameraMatrix())
+        gl.useProgram(this.#glXEnvironment.getProgramInfo('color').program)
+        WebGLUtils.setBuffersAndAttributes(gl,
+            this.#glXEnvironment.getProgramInfo('color'),
+            this.#cubeLinesBufferInfo);
+
+        const mat = M4.multiply(lightMatrices.world, M4.inverse(lightMatrices.projection));
+        WebGLUtils.setUniforms(this.#glXEnvironment.getProgramInfo('color'), {
+            u_color: [1, 1, 1, 1],
+            u_view: viewMatrix,
+            u_projection: this.#sharedUniforms.u_projection,
+            u_world: mat,
+        });
+        WebGLUtils.drawBufferInfo(gl, this.#cubeLinesBufferInfo, gl.LINES);
+        this.#logger.info("light frustum rendered")
+    }
+
+    /**
+     * @param {LightMatrices} lightMatrices 
+     */
+    #renderLights(lightMatrices) {
+        let gl = this.#glXEnvironment.glContext;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, ShadowLightManager.getTextureFrameBufferForLights(gl));
+        gl.viewport(0, 0, ShadowLightManager.DEPTH_TEXTURE_SIZE, ShadowLightManager.DEPTH_TEXTURE_SIZE);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        if (this.#shadowLightManager.isShadowEnabled) {
+            this.drawScene({
+                projectionMatrix: lightMatrices.projection,
+                cameraMatrix: lightMatrices.world,
+                textureMatrix: lightMatrices.world,
+                programInfo: this.#glXEnvironment.getProgramInfo('color')
+            })
+            this.#logger.info("shadows rendered");
         };
+    }
+
+
+    #updateViewMatrix() {
+        this.#sharedUniforms.u_view = M4.inverse(this.#camera.computeCameraMatrix());
+    }
+
+    #updateProjectionMatrix() {
+        this.#sharedUniforms.u_projection = M4.perspective(
+            this.#camera.fov.transform(AngleMath.toRadians()).value,
+            this.#glXEnvironment.aspectRatio, this.zNear, this.zFar)
     }
 
 }
@@ -915,49 +1476,52 @@ class SpriteDrawer {
 class SpriteManager {
     /** @type {string} */ #applicationName;
     /** @type {Logger} */ #log;
-    /** @type {Map<string, Sprite>} */ #sprites;
+    /** @type {Map<string, GLXSprite>} */ #spritesByName;
 
     /**
      *
      * @param {string} applicationName
+     * @param {boolean} logEnabled 
      */
-    constructor(applicationName) {
+    constructor(applicationName, logEnabled) {
         this.#applicationName = applicationName;
-        this.#log = Logger.forName('SpriteManager[' + applicationName + ']');
+        this.#log = Logger.forName('SpriteManager[' + applicationName + ']').enabledOn(logEnabled);
+        this.#spritesByName = new Map();
     }
 
     /**
      *
-     * @param {string} name
-     * @param {SpriteSignalWorkspace} signalWorkspace
-     * @param {Partial<SpriteSetting>} settings
+     * @param {GLXSpriteCreation} spriteCreation 
      * @returns {Sprite}
      */
-    createSprite(name, signalWorkspace, settings = {}) {
-        this.#log.info('create sprite [name: ' + name + ', applicationName: ' + this.#applicationName + ']');
+    createSprite(spriteCreation) {
+        this.#log.info('create sprite [name: ' + spriteCreation.name + ', applicationName: ' + this.#applicationName + ']');
 
         /** @type {Sprite} */
-        let sprite = new Sprite(name, this.#applicationName, signalWorkspace, settings);
-        this.#sprites.set(name, sprite);
+        let sprite = new Sprite(spriteCreation.name, this.#applicationName, spriteCreation.signalWorkspace, spriteCreation.settings ?? {});
+        this.#spritesByName.set(spriteCreation.name, Object.freeze({
+            sprite: sprite,
+            glData: spriteCreation.glData
+        }));
 
         return sprite;
     }
 
     /**
      *
-     * @returns {Sprite[]}
+     * @returns {GLXSprite[]}
      */
-    getAllSprites() {
-        return new Array(...this.#sprites.values());
+    getAllGLXSprites() {
+        return new Array(...this.#spritesByName.values());
     }
 
     /**
      *
      * @param {string} name
-     * @returns {Sprite|undefined}
+     * @returns {GLXSprite|undefined}
      */
-    getSprite(name) {
-        return this.#sprites.get(name);
+    getGLXSprite(name) {
+        return this.#spritesByName.get(name);
     }
 
 }
@@ -970,8 +1534,9 @@ export class WebGLXApplication {
     /** @type {string} */ #applicationName;
     /** @type {Camera} */ #camera;
     /** @type {CameraMan} */ #cameraMan;
-    /** @type {Logger} */ #log;
+    /** @type {Logger} */ #logger;
     /** @type {WebGLXEnvironment} */ #webGLXEnvironment;
+    /** @type {ShadowLightManager} */ #shadowLightManager;
     /** @type {SpriteDrawer} */ #spriteDrawer;
     /** @type {SpriteManager} */ #spriteManager;
     /** @type {WebGLXApplicationSignalWorkspace} */ #signalWorkspace;
@@ -980,17 +1545,21 @@ export class WebGLXApplication {
      * 
      * @param {string} applicationName 
      * @param {WebGLXEnvironment} webGLXEnvironment 
+     * @param {boolean} logEnabled 
      */
-    constructor(applicationName, webGLXEnvironment) {
-        this.#log = Logger.forName('WebGLXApp[' + applicationName + ']');
+    constructor(applicationName, webGLXEnvironment, logEnabled) {
+        this.#logger = Logger.forName('WebGLXApp[' + applicationName + ']').enabledOn(logEnabled);
         this.#applicationName = applicationName;
         this.#webGLXEnvironment = webGLXEnvironment;
         this.#signalWorkspace = new WebGLXApplicationSignalWorkspace(applicationName);
 
-        this.#camera = new Camera(applicationName, this.#signalWorkspace.camera);
-        this.#cameraMan = new CameraMan(applicationName, this.#camera, this.#signalWorkspace.cameraMan);
-        this.#spriteManager = new SpriteManager(applicationName);
-        this.#spriteDrawer = new SpriteDrawer()
+        this.#camera = new Camera(applicationName, this.#signalWorkspace.camera, logEnabled);
+        this.#cameraMan = new CameraMan(applicationName, this.#camera, this.#signalWorkspace.cameraMan, logEnabled);
+        this.#spriteManager = new SpriteManager(applicationName, logEnabled);
+        let sharedUniforms = this.#defaultSharedUniforms();
+        this.#shadowLightManager = new ShadowLightManager(sharedUniforms)
+        this.#spriteDrawer = new SpriteDrawer(applicationName, webGLXEnvironment, this.#camera,
+            this.#shadowLightManager, sharedUniforms, this.#spriteManager, logEnabled);
     }
 
     get applicationName() {
@@ -999,6 +1568,40 @@ export class WebGLXApplication {
 
     get signalWorkspace() {
         return this.#signalWorkspace;
+    }
+
+    /**
+     * 
+     * @param {MeshSpriteLoad} load 
+     */
+    glxSprite(load) {
+        let data = loadObjX(this.#webGLXEnvironment.glContext, load.name, load.path);
+        this.#spriteDrawer.initSpriteData(data);
+        this.#spriteManager.createSprite({
+            name: load.name,
+            glData: data,
+            signalWorkspace: this.#signalWorkspace.sprite(load.name),
+            settings: { ...load }
+        })
+
+        this.#logger.info('loading mesh: ', load)
+    }
+
+    /**
+     * @returns {SharedUniforms}
+     */
+    #defaultSharedUniforms() {
+        return {
+            u_ambientLight: [0.2, 0.2, 0.2],
+            u_colorLight: [1.0, 1.0, 1.0],
+            u_view: M4.identity(),
+            u_projection: M4.identity(),
+            u_lightDirection: [2, 2, 2],
+            u_bias: 0.001,
+            texture_matrix: M4.identity(),
+            u_projectedTexture: null,
+            u_colorMult: [1, 1, 1, 1]
+        }
     }
 }
 
@@ -1024,6 +1627,7 @@ class WebGLXApplicationSignalWorkspace {
 
     /** @type {CameraSignalWorkspace} */ #camera
     /** @type {CameraManSignalWorkspace} */ #cameraMan
+    /** @type {Map<string, SpriteSignalWorkspace} */ #sprites
 
     /**
      * 
@@ -1045,6 +1649,8 @@ class WebGLXApplicationSignalWorkspace {
             targetSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.targetSpriteChanges),
             workModeChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.workModeChanges)
         }
+
+        this.#sprites = new Map();
     }
 
     /**
@@ -1059,6 +1665,27 @@ class WebGLXApplicationSignalWorkspace {
      */
     get cameraMan() {
         return this.#cameraMan;
+    }
+
+
+    /**
+     * 
+     * @param {string} name 
+     * @returns {SpriteSignalWorkspace}
+     */
+    sprite(name) {
+        let signalWorkspace = this.#sprites.get(name);
+        if (isNotNullOrUndefined(signalWorkspace)) {
+            return signalWorkspace;
+        }
+
+        signalWorkspace = {
+            positionChange: this.#absolutize(`sprite.${name}.position`),
+            rotationChange: this.#absolutize(`sprite.${name}.rotation`),
+            scaleChange: this.#absolutize(`sprite.${name}.scale`)
+        }
+        this.#sprites.set(name, signalWorkspace);
+        return signalWorkspace;
     }
 
     /**
@@ -1078,7 +1705,6 @@ class WebGLXApplicationSignalWorkspace {
 class WebGLXEnvironment {
     /** @type {HTMLCanvasElement} */ #canvas;
     /** @type {WebGLRenderingContext} */ #gl;
-    /** @type {Logger} */ #logger
     /** @type {Map<string, ProgramInfo>} */ #programInfo;
 
     /**
@@ -1097,7 +1723,7 @@ class WebGLXEnvironment {
      *
      * @returns {number}
      */
-    get aspectRation() {
+    get aspectRatio() {
         return this.#canvas.clientWidth / this.#canvas.clientHeight;
     }
 
@@ -1123,11 +1749,19 @@ class WebGLXEnvironment {
      * @returns {ProgramInfo}
      */
     getProgramInfo(programName) {
-        if (programName === null) {
-            return this.#programInfo.values().next().value;
+        let programInfo = null;
+
+        if (isNotNullOrUndefined(programName)) {
+            programInfo = this.#programInfo.get(programName);
+        } else {
+            programInfo = this.#programInfo.values().next().value;
         }
 
-        return this.#programInfo.get(programName);
+        if (isNotNullOrUndefined(programInfo)) {
+            return programInfo;
+        } else {
+            throw new Error(`program '${programName}' not found`);
+        }
     }
 
     /**
@@ -1141,7 +1775,7 @@ class WebGLXEnvironment {
 
         webGLShaders.forEach((value, key) => {
             // @ts-ignore
-            this.#programInfo.set(key, webglUtils.createProgramInfo(this.#gl, value));
+            programInfos.set(key, webglUtils.createProgramInfo(this.#gl, value));
         });
 
 
@@ -1212,6 +1846,68 @@ export function duo(first, second) {
 }
 
 /**
+ * @template F
+ * @template S
+ * @param {F} first 
+ * @param {S} second 
+ * @returns {Pair<F,S>}
+ */
+export function pair(first, second) {
+    return Object.freeze({
+        first: first,
+        second: second
+    });
+}
+
+/**
+ * 
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} z 
+ * @returns {Point3D}
+ */
+export function position(x, y, z) {
+    return point3D(x, y, z);
+}
+
+/**
+ * 
+ * @param {Angle} psi 
+ * @param {Angle} theta 
+ * @param {Angle} phi 
+ * @returns {Trio<Angle>}
+ */
+export function rotation(psi, theta, phi) {
+    return trio(psi, theta, phi);
+}
+
+/**
+ * 
+ * @param {number} mx 
+ * @param {number} my 
+ * @param {number} mz 
+ * @returns {Trio<number>}
+ */
+export function scale(mx, my, mz) {
+    return trio(mx, my, mz);
+}
+
+/**
+ * @param {WebGLXApplicationStart} appStart
+ */
+export function start(appStart) {
+    let appName = appStart.applicationClass.prototype.constructor.name;
+    let logger = Logger.forName(`GLXStart[${appName}]`).enabledOn(appStart.logEnabled ?? true);
+    logger.info('starting...')
+
+    let shaders = mapShaders(appStart.webGLShaders);
+    logger.info('shaders: ', shaders);
+
+    let glxEnv = createWebglEnvironment(appStart.canvasElementName, mapShaders(appStart.webGLShaders));
+    let app = new appStart.applicationClass(appName, glxEnv, appStart.logEnabled ?? true);
+}
+
+/**
  * @template T
  * @param {T} first
  * @param {T} second
@@ -1236,6 +1932,21 @@ export function trio(first, second, third) {
 function alertedError(msg) {
     alert(msg);
     return new Error(msg);
+}
+
+/**
+ * 
+ * @param {string} canvasHtmlName 
+ * @param {Map<string, string[]} webGLShaders 
+ * @returns {WebGLXEnvironment}
+ */
+function createWebglEnvironment(canvasHtmlName, webGLShaders) {
+    let canvas = document.getElementById(canvasHtmlName);
+    if(canvas == null) {
+        alert("Unable to find the canvas with id: " + canvas);
+        throw new Error("Unable to find the canvas with id: " + canvas);
+    }
+    return new WebGLXEnvironment(canvas, webGLShaders);
 }
 
 /**
@@ -1270,13 +1981,40 @@ function isNumberBetweenInclusiveDuo(num, duo) {
 
 /**
  * 
+ * @param {WebGLShaderReference} shaders 
+ * @returns {Map<string, string[]>}
+ */
+function mapShaders(shaders) {
+    let res = new Map();
+    Object.entries(shaders).forEach(([key, value]) => {
+        res.set(key, value)
+    })
+    return res
+}
+
+/**
+ * 
  * @param {Change<Point3D>} change 
  * @returns {Vector3D}
  */
-function toVector3D(change) {
+function toVector3DChange(change) {
     return {
         dx: change.to.x - change.from.x,
         dy: change.to.y - change.from.y,
         dz: change.to.z - change.from.z
     };
+}
+
+/**
+ * 
+ * @template T
+ * @param {Trio<T>} trio 
+ * @returns {T[]}
+ */
+function toJsVectorTrio(trio) {
+    return [
+        trio.first,
+        trio.second,
+        trio.third
+    ];
 }

@@ -104,6 +104,23 @@ export class Logger {
         return this;
     }
 
+    /**
+     * 
+     * @param {boolean} condition 
+     * @returns {Logger}
+     */
+    enabledOn(condition) {
+        if (condition && !this.#enabled) {
+            this.enable();
+        }
+
+        if (!condition && this.#enabled) {
+            this.disable();
+        }
+
+        return this;
+    }
+
     disable() {
         this.#setImpl(NoOpLoggerImpl);
         
