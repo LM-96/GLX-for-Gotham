@@ -50,7 +50,7 @@ import { Logger } from "./logjsx.js";
 
 class SignalBroker {
 
-    /** @type {number} */ #currentId = -1;
+    /** @type {number} */ #currentId = 0;
 
     /** @type {Logger} */ #log = Logger.forName('SignalBroker');
 
@@ -108,7 +108,7 @@ class SignalBroker {
         let subscribers = this.#getSubscriptionsOf(signalName);
 
         subscribers.push(subscription);
-        this.#log.info('added subscription [' + JSON.stringify(subscription) + ']');
+        this.#log.info('added subscription ', subscription);
     }
 
     /**
@@ -118,8 +118,8 @@ class SignalBroker {
      * @param {FireRequest<T>} fireRequest
      */
     #fire(signalName, fireRequest) {
-        let firingSignal = signal(this.#nextId(), signalName, fireRequest.data, new Date());
-        this.#log.info('firing signal [' + JSON.stringify(firingSignal) + ']');
+        let firingSignal = signal(this.#nextId(), signalName, Object.freeze(fireRequest.data), new Date());
+        this.#log.info('firing signal ', firingSignal);
         let subscriptions = this.#getSubscriptionsOf(firingSignal.name);
 
         for (let subscription of subscriptions) {

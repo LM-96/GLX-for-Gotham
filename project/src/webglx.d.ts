@@ -1,5 +1,6 @@
 import { Angle, Point3D, Vector3D } from "./geometry";
-import { FireRequest, SignalDescriptor } from "./signals";
+import { Logger } from "./logjsx";
+import { FireRequest, SignalConsumer, SignalDescriptor } from "./signals";
 
 export type CameraManWorkMode = "DISMISSED" | "OVER" | "FIRST_PERSON" | "THIRD_PERSON" | "CUSTOM";
 
@@ -11,10 +12,10 @@ export type CameraManSignalDescriptors = {
 }
 
 export type CameraManSignalWorkspace = {
-    isLookingAtSpriteChanges: string;
-    isChasingSpriteChanges: string;
-    targetSpriteChanges: string;
-    workModeChanges: string;
+    readonly isLookingAtSpriteChanges: string;
+    readonly isChasingSpriteChanges: string;
+    readonly targetSpriteChanges: string;
+    readonly workModeChanges: string;
 }
 
 export type CameraSettings = {
@@ -32,10 +33,10 @@ export type CameraSignalDescriptors = {
 }
 
 export type CameraSignalWorkspace = {
-    positionChanges: string;
-    upChanges: string;
-    targetChanges: string;
-    fovChanges: string;
+    readonly positionChanges: string;
+    readonly upChanges: string;
+    readonly targetChanges: string;
+    readonly fovChanges: string;
 }
 
 export type Change<T> = {
@@ -120,6 +121,20 @@ export type RotationChange = Change<Trio<Angle>>;
 
 export type ScaleChange = Change<Trio<number>>;
 
+export type ShadowLightSettings = {
+    far: number;
+    lightDirection: Trio<number>;
+    lightPosition: Point3D;
+    lightTarget: Point3D;
+    lightUp: Trio<number>;
+    lightFov: Angle;
+    isSpotlight: boolean;
+    projectionHeight: number;
+    projectionWidth: number;
+    isShadowEnabled: boolean;
+    near: number;
+}
+
 export type SharedUniforms = {
     u_ambientLight: Array<number>,
     u_colorLight: Array<number>,
@@ -154,11 +169,15 @@ export type SpriteSignalWorkspace = {
 
 export type WebGLXApplicationClass = { new (...args: any[]): WebGLXApplication };
 
+export type WebGLXApplicationInfo = 'CONSTRUCTED' | 'ADDED_SPRITE';
+
 export type WebGLXApplicationStart = {
+    applicationClass: WebGLXApplicationClass;
     canvasElementName: string;
     webGLShaders: WebGLShaderReference;
+    cameraSettings?: Partial<CameraSettings>;
     logEnabled?: boolean;
-    applicationClass: WebGLXApplicationClass;
+    shadowLightSetting?: Partial<ShadowLightSettings>;
 }
 
 export type WebGLShaderReference = {
@@ -237,8 +256,27 @@ export declare class Sprite {
 }
 
 export declare class WebGLXApplication {
-    glxSprite(load: MeshSpriteLoad): Sprite
-    signalsOf(sprite: Sprite): SpriteSignalWorkspace
+    readonly cameraMan: CameraMan;
+    readonly logger: Logger;
+    readonly signals: WebGLXApplicationSignalWorkspace;
+
+    abstract main();
+
+    glxSprite(load: MeshSpriteLoad): Sprite;
+    onSignal(signalName: string, consume: SignalConsumer);
+}
+
+export declare class WebGLXApplicationInfos {
+    static ADDED_SPRITE: WebGLXApplicationInfo;
+    static CONSTRUCTED: WebGLXApplicationInfo;
+}
+
+export declare class WebGLXApplicationSignalWorkspace {
+    readonly camera: CameraSignalWorkspace;
+    readonly cameraMan: CameraManSignalWorkspace;
+    readonly main: string;
+
+    sprite(sprite: Sprite): string;
 }
 
 export declare function change<T>(from: T, to: T): Change<T>;

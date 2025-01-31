@@ -110,13 +110,16 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
+ * @typedef {import("./webglx.js").ShadowLightSettings} ShadowLightSettings
+ */
+
+/**
  * @typedef {import("./webglx.js").SharedUniforms} SharedUniforms
  */
 
 /**
  * @template T
  * @typedef {import("./signals.js").Signal<T>} Signal
- */
 
 /**
  * @typedef {import("./webglx.js").SpriteActionType} SpriteActionType
@@ -145,6 +148,10 @@ import { SIGNALS } from "./signals.js";
 
 /**
  * @typedef {import("./geometry.js").Vector3D} Vector3D
+ */
+
+/**
+ * @typedef {import("./webglx.js").WebGLXApplicationInfo} WebGLXApplicationInfo
  */
 
 /**
@@ -241,6 +248,11 @@ class Scales {
     static NOT_SCALED = trio(1, 1, 1);
 }
 
+class WebGLXApplicationInfos {
+    /** @type {WebGLXApplicationInfo} */ static ADDED_SPRITE = 'ADDED_SPRITE';
+    /** @type {WebGLXApplicationInfo} */static CONSTRUCTED = 'CONSTRUCTED';
+}
+
 /* CLASSES ********************************************************************************************************** */
 
 /**
@@ -276,6 +288,7 @@ export class Camera {
         }
 
         this.#logger = Logger.forName(`Camera[${applicationName}]`).enabledOn(logEnabled);
+        this.#logger.info(`camera initialized with settings: `, this.#settings);
     }
 
     /**
@@ -359,11 +372,11 @@ export class Camera {
     }
 
     computeCameraMatrix() {
-        return Object.freeze(M4.lookAt(
+        return M4.lookAt(
             this.#settings.position.map(Math3D.toImmutableArray()),
             this.#settings.targetPosition.map(Math3D.toImmutableArray()),
             toJsVectorTrio(this.#settings.up)
-        ))
+        );
     }
 }
 
@@ -402,6 +415,7 @@ export class CameraMan {
         }
 
         this.#logger = Logger.forName(`CameraMan[${applicationName}]`).enabledOn(logEnabled);
+        this.#logger.info('camera man started');
     }
 
     get distance() {
@@ -458,6 +472,8 @@ export class CameraMan {
             if (this.isHired) {
                 this.#autoSet();
             }
+
+            this.#logger.info(`set target sprite ${nextLookedSprite?.name}`);
         }
     }
 
@@ -477,7 +493,7 @@ export class CameraMan {
             }
 
             this.chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
-                this.#chaseSpriteSignalConsumer);
+                this.#chaseSpriteSignalConsumer.bind(this));
             this.#signalDescriptors.isChasingSpriteChanges.trigger({
                 data: change(true, false)
             });
@@ -514,21 +530,21 @@ export class CameraMan {
             switch (workMode) {
                 case CameraManWorkModes.FIRST_PERSON:
                     this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
-                        this.#workFirstPerson);
+                        this.#workFirstPerson.bind(this));
                     this.#chaseSpriteRotationSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.rotationChange,
-                        this.#workFirstPerson);
+                        this.#workFirstPerson.bind(this));
                     this.#workFirstPerson();
                     break;
                 case CameraManWorkModes.OVER:
                     this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
-                        this.#workOver);
+                        this.#workOver.bind(this));
                     this.#workOver();
                     break;
                 case CameraManWorkModes.THIRD_PERSON:
                     this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
-                        this.#workThirdPerson);
+                        this.#workThirdPerson.bind(this));
                     this.#chaseSpriteRotationSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.rotationChange,
-                        this.#workThirdPerson);
+                        this.#workThirdPerson.bind(this));
                     this.#workThirdPerson();
                     break;
                 default:
@@ -551,7 +567,7 @@ export class CameraMan {
             }
 
             this.lookAtSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
-                this.#lookAtSpriteSignalConsumer);
+                this.#lookAtSpriteSignalConsumer.bind(this));
             this.#signalDescriptors.isLookingAtSpriteChanges.trigger({
                 data: change(true, false)
             })
@@ -772,7 +788,7 @@ export class ShadowLightManager {
      * @returns {WebGLTexture}
      */
     static getTextureForLights(gl) {
-        return ShadowLightManager.getTextureWithBufferForLights(gl).second;
+        return ShadowLightManager.getTextureWithBufferForLights(gl).first;
     }
 
     /**
@@ -781,7 +797,7 @@ export class ShadowLightManager {
      * @returns {WebGLFramebuffer}
      */
     static getTextureFrameBufferForLights(gl) {
-        return ShadowLightManager.getTextureFrameBufferForLights(gl);
+        return ShadowLightManager.getTextureWithBufferForLights(gl).second;
     }
 
     /**
@@ -847,109 +863,120 @@ export class ShadowLightManager {
         return pair(depthTexture, depthFramebuffer);
     }
 
-    /** @type {Trio<number>} */ #lightDirection = trio(0, 0, 0);
+    /** @type {Logger} */ #logger;
     /** @type {SharedUniforms} */ #sharedUniforms;
-    /** @type {Point3D} */ #lightPosition = point3D(0, 0, 100);
-    /** @type {Point3D} */ #lightTarget = point3D(0, 0, 0);
-    /** @type {Trio<number>} */ #lightUp = trio(0, 1, 0);
-    /** @type {Angle} */ #lightFov = radians(0);
-    /** @type {boolean} */ #spotlight = false;
-    /** @type {number} */ #projWidth = 10;
-    /** @type {number} */ #projHeight = 10;
-    /** @type {boolean} */ #shadowEnabled = false;
-    /** @type {number} */ #near = 1;
-    /** @type {number} */ #far = 700;
+    /** @type {ShadowLightSettings} */ #settings;
 
     /**
      * 
+     * @param {string} applicationName 
      * @param {SharedUniforms} sharedUniforms 
+     * @param {boolean} logEnabled
+     * @param {Partial<ShadowLightSettings>} [settings={}] 
      */
-    constructor(sharedUniforms) {
+    constructor(applicationName, sharedUniforms, logEnabled, settings = {}) {
         this.#sharedUniforms = sharedUniforms;
+        this.#settings = {
+            lightDirection: trio(0, 0, 0),
+            lightPosition: point3D(0, 0, 100),
+            lightTarget: point3D(0, 0, 0),
+            lightUp: trio(0, 1, 0),
+            lightFov: radians(0),
+            isSpotlight: false,
+            projectionWidth: 10,
+            projectionHeight: 10,
+            isShadowEnabled: false,
+            near: 1,
+            far: 700,
+            ...settings
+        };
+
+        this.#logger = Logger.forName(`ShadowLightManager[${applicationName}]`).enabledOn(logEnabled);
+        this.#logger.info('shadow light manager initialized with settings: ', this.#settings);
     }
 
     /**
      * @returns {number}
      */
     get far() {
-        return this.#far;
+        return this.#settings.far;
     }
 
     /**
      * @returns {boolean}
      */
     get isShadowEnabled() {
-        return this.#shadowEnabled
+        return this.#settings.isShadowEnabled;
     }
 
     /**
      * @returns {boolean}
      */
     get isSpotlight() {
-        return this.#spotlight;
+        return this.#settings.isSpotlight;
     }
 
     /**
      * @returns {Angle}
      */
     get lightFov() {
-        return this.#lightFov
+        return this.#settings.lightFov;
     }
 
     /**
      * @returns {Trio<number>}
      */
     get ligthDirection() {
-        return this.#lightDirection;
+        return this.#settings.lightDirection;
     }
 
     /**
      * @returns {Point3D}
      */
     get lightPosition() {
-        return this.#lightPosition;
+        return this.#settings.lightPosition;
     }
 
     /**
      * @returns {Point3D}
      */
     get lightTarget() {
-        return this.#lightTarget;
+        return this.#settings.lightTarget;
     }
 
     /**
      * @returns {Trio<number>}
      */
     get lightUp() {
-        return this.#lightUp;
+        return this.#settings.lightUp;
     }
 
     /**
      * @returns {number}
      */
     get near() {
-        return this.#near;
+        return this.#settings.near;
     }
 
     /**
      * @returns {number}
      */
-    get projHeight() {
-        return this.#projHeight;
+    get projectionHeight() {
+        return this.#settings.projectionHeight;
     }
 
     /**
      * @returns {number}
      */
-    get projWidth() {
-        return this.#projWidth;
+    get projectionWidth() {
+        return this.#settings.projectionWidth;
     }
 
     /**
      * @param {number} far 
      */
     set far(far) {
-        this.#far = far;
+        this.#settings.far = far;
     }
 
     /**
@@ -963,21 +990,21 @@ export class ShadowLightManager {
      * @param {boolean} shadowEnabled
      */
     set isShadowEnabled(shadowEnabled) {
-        this.#shadowEnabled = shadowEnabled
+        this.#settings.isShadowEnabled = shadowEnabled
     }
 
     /**
      * @param {boolean} spotlight 
      */
     set isSpotlight(spotlight) {
-        this.#spotlight = spotlight;
+        this.#settings.isSpotlight = spotlight;
     }
 
     /**
      * @param {Trio<number>} direction 
      */
     set lightDirection(direction) {
-        this.#lightDirection = direction;
+        this.#settings.lightDirection = direction;
     }
 
     /**
@@ -992,35 +1019,35 @@ export class ShadowLightManager {
      * @param {Point3D} target 
      */
     set lightTarget(target) {
-        this.#lightTarget = target;
+        this.#settings.lightTarget = target;
     }
 
     /**
      * @param {Trio<number>} up 
      */
     set lightUp(up) {
-        this.#lightUp = up;
+        this.#settings.lightUp = up;
     }
 
     /**
      * @param {number} near 
      */
     set near(near) {
-        this.#near = near
+        this.#settings.near = near
     }
 
     /**
      * @param {number} height
      */
-    set projHeight(height) {
-        this.#projHeight = height;
+    set projectionHeight(height) {
+        this.#settings.projectionHeight = height;
     }
 
     /**
      * @param {number} width 
      */
-    set projWidth(width) {
-        this.#projWidth = width;
+    set projectionWidth(width) {
+        this.#settings.projectionWidth = width;
     }
 
     /**
@@ -1029,9 +1056,9 @@ export class ShadowLightManager {
      */
     computeLightWorldMatrix() {
         return M4.lookAt(
-            [this.#lightPosition.x, this.#lightPosition.y, this.#lightPosition.z],
-            [this.#lightTarget.x, this.#lightTarget.y, this.#lightTarget.z],
-            [this.#lightUp.first, this.#lightUp.second, this.#lightUp.third],
+            [this.lightPosition.x, this.lightPosition.y, this.lightPosition.z],
+            [this.lightTarget.x, this.lightTarget.y, this.lightTarget.z],
+            [this.lightUp.first, this.lightUp.second, this.lightUp.third],
         );
     }
 
@@ -1040,17 +1067,17 @@ export class ShadowLightManager {
      * @returns {number[]}
      */
     computeLightProjectionMatrix() {
-        if (this.#spotlight) {
-            return M4.perspective(this.#lightFov.transform(AngleMath.toRadians()).value,
-                this.#projWidth / this.#projHeight, this.#near, this.#far)
+        if (this.isSpotlight) {
+            return M4.perspective(this.lightFov.transform(AngleMath.toRadians()).value,
+                this.projectionWidth / this.projectionHeight, this.near, this.far)
         } else {
-            return M4.orthographic(-this.#projWidth / 2, this.#projWidth / 2,
-                -this.#projHeight / 2, this.#projHeight / 2, this.#near, this.#far)
+            return M4.orthographic(-this.projectionWidth / 2, this.projectionWidth / 2,
+                -this.projectionHeight / 2, this.projectionHeight / 2, this.near, this.far)
         }
     }
 
     #updateSharedUniforms() {
-        this.#sharedUniforms.u_lightDirection = toJsVectorTrio(this.#lightDirection)
+        this.#sharedUniforms.u_lightDirection = toJsVectorTrio(this.lightDirection)
     }
 
 }
@@ -1189,6 +1216,7 @@ export class Sprite {
  */
 class SpriteDrawer {
     /** @type {string} */ #applicationName;
+    /** @type {WebGLXApplicationSignalWorkspace} */ #applicationSignalWorkspace;
     /** @type {number} */ #bias;
     /** @type {Camera} */ #camera;
     /** @type {any} */ #cubeLinesBufferInfo;
@@ -1198,6 +1226,7 @@ class SpriteDrawer {
     /** @type {ShadowLightManager} */ #shadowLightManager;
     /** @type {SharedUniforms} */ #sharedUniforms;
     /** @type {SpriteManager} */ #spriteManager;
+    /** @type {Map<string, SubscriptionToken[]>} */ #spriteSubscriptions;
     /** @type {number} */ zNear = 0.1;
     /** @type {number} */ zFar = 700;
 
@@ -1209,10 +1238,14 @@ class SpriteDrawer {
      * @param {ShadowLightManager} shadowLightManager 
      * @param {SharedUniforms} sharedUniforms
      * @param {SpriteManager} spriteManager 
+     * @param {WebGLXApplicationSignalWorkspace} applicationSignalWorkspace 
      * @param {boolean} logEnabled 
      */
-    constructor(applicationName, glXEnvironment, camera, shadowLightManager, sharedUniforms, spriteManager, logEnabled) {
+    constructor(applicationName, glXEnvironment, camera, shadowLightManager,
+        sharedUniforms, spriteManager, applicationSignalWorkspace, logEnabled
+    ) {
         this.#applicationName = applicationName;
+        this.#applicationSignalWorkspace = applicationSignalWorkspace;
         this.#bias = -0.006;
         this.#camera = camera
         this.#glXEnvironment = glXEnvironment;
@@ -1221,7 +1254,9 @@ class SpriteDrawer {
         this.#lightFrustum = false;
         this.#sharedUniforms = sharedUniforms;
         this.#cubeLinesBufferInfo = this.#buildCubeLinesBufferInfo();
+        this.#spriteSubscriptions = new Map();
 
+        this.#setupAutoRender();
         this.#logger = Logger.forName(`SpriteDrawer[${applicationName}]`).enabledOn(logEnabled);
     }
 
@@ -1265,7 +1300,7 @@ class SpriteDrawer {
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         }
         if (!drawSpriteContext.sprite.hidden) {
-            let u_world = drawSpriteContext.glData;
+            let u_world = drawSpriteContext.glData.u_world;
 
             for (let { bufferInfo, material } of drawSpriteContext.glData.parts) {
                 // calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
@@ -1304,6 +1339,7 @@ class SpriteDrawer {
     }
 
     renderScene() {
+        this.#logger.info('rendering scene...');
         let gl = this.#glXEnvironment.glContext;
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
@@ -1324,7 +1360,7 @@ class SpriteDrawer {
         if (this.#lightFrustum) {
             this.#renderLightFrustum(lightMatrices);
         }
-        this.#logger.info("render complete")
+        this.#logger.info('render complete');
     }
 
     #buildCubeLinesBufferInfo() {
@@ -1416,6 +1452,35 @@ class SpriteDrawer {
 
     /**
      * 
+     * @param {Signal<WebGLXApplicationInfos>} signal 
+     */
+    #onApplicationMainSignal(signal) {
+        switch (signal.data) {
+            case WebGLXApplicationInfos.CONSTRUCTED:
+                this.renderScene();
+                break;
+            case WebGLXApplicationInfos.ADDED_SPRITE:
+                for (let gxSprite of this.#spriteManager.getAllGLXSprites()) {
+                    let spriteName = gxSprite.sprite.name;
+                    if (!this.#spriteSubscriptions.has(spriteName)) {
+                        /** @type {SubscriptionToken[]} */ let subscriptions = [];
+                        let spriteSignalWorkspace = this.#applicationSignalWorkspace.spriteName(spriteName);
+                        subscriptions.push(SIGNALS.subscribe(
+                            spriteSignalWorkspace.positionChange, this.renderScene.bind(this)));
+                        subscriptions.push(SIGNALS.subscribe(
+                            spriteSignalWorkspace.rotationChange, this.renderScene.bind(this)));
+                        subscriptions.push(SIGNALS.subscribe(
+                            spriteSignalWorkspace.scaleChange, this.renderScene.bind(this)));
+                        this.#spriteSubscriptions.set(spriteName, subscriptions);
+                        this.#logger.info(`auto rendering on any change of sprite '${spriteName}'`);
+                    }
+                }
+
+        }
+    }
+
+    /**
+     * 
      * @param {LightMatrices} lightMatrices 
      */
     #renderLightFrustum(lightMatrices) {
@@ -1457,6 +1522,15 @@ class SpriteDrawer {
         };
     }
 
+    #setupAutoRender() {
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.main, this.#onApplicationMainSignal.bind(this));
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.fovChanges, this.renderScene.bind(this));
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.positionChanges, this.renderScene.bind(this));
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.targetChanges, this.renderScene.bind(this));
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.upChanges, this.renderScene.bind(this));
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.targetSpriteChanges, this.renderScene.bind(this));
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.workModeChanges, this.renderScene.bind(this));
+    }
 
     #updateViewMatrix() {
         this.#sharedUniforms.u_view = M4.inverse(this.#camera.computeCameraMatrix());
@@ -1536,6 +1610,7 @@ export class WebGLXApplication {
     /** @type {CameraMan} */ #cameraMan;
     /** @type {Logger} */ #logger;
     /** @type {WebGLXEnvironment} */ #webGLXEnvironment;
+    /** @type {SignalDescriptor<WebGLXApplicationInfo>} */ #mainSignalDescriptor;
     /** @type {ShadowLightManager} */ #shadowLightManager;
     /** @type {SpriteDrawer} */ #spriteDrawer;
     /** @type {SpriteManager} */ #spriteManager;
@@ -1545,27 +1620,52 @@ export class WebGLXApplication {
      * 
      * @param {string} applicationName 
      * @param {WebGLXEnvironment} webGLXEnvironment 
-     * @param {boolean} logEnabled 
+     * @param {WebGLXApplicationStart} appStart
      */
-    constructor(applicationName, webGLXEnvironment, logEnabled) {
+    constructor(applicationName, webGLXEnvironment, appStart) {
+        let logEnabled = appStart.logEnabled ?? true;
         this.#logger = Logger.forName('WebGLXApp[' + applicationName + ']').enabledOn(logEnabled);
         this.#applicationName = applicationName;
         this.#webGLXEnvironment = webGLXEnvironment;
-        this.#signalWorkspace = new WebGLXApplicationSignalWorkspace(applicationName);
 
-        this.#camera = new Camera(applicationName, this.#signalWorkspace.camera, logEnabled);
+        this.#signalWorkspace = new WebGLXApplicationSignalWorkspace(applicationName);
+        this.#mainSignalDescriptor = SIGNALS.register(this.#signalWorkspace.main);
+
+        this.#camera = new Camera(applicationName, this.#signalWorkspace.camera, logEnabled, appStart.cameraSettings);
         this.#cameraMan = new CameraMan(applicationName, this.#camera, this.#signalWorkspace.cameraMan, logEnabled);
         this.#spriteManager = new SpriteManager(applicationName, logEnabled);
         let sharedUniforms = this.#defaultSharedUniforms();
-        this.#shadowLightManager = new ShadowLightManager(sharedUniforms)
+        this.#shadowLightManager = new ShadowLightManager(applicationName, sharedUniforms, logEnabled, appStart.shadowLightSetting);
         this.#spriteDrawer = new SpriteDrawer(applicationName, webGLXEnvironment, this.#camera,
-            this.#shadowLightManager, sharedUniforms, this.#spriteManager, logEnabled);
+            this.#shadowLightManager, sharedUniforms, this.#spriteManager, this.#signalWorkspace, logEnabled);
+
+        this.#mainSignalDescriptor.trigger({ data: WebGLXApplicationInfos.CONSTRUCTED })
     }
 
+    /**
+     * @returns {string}
+     */
     get applicationName() {
         return this.#applicationName;
     }
 
+    /**
+     * @returns {CameraMan}
+     */
+    get cameraMan() {
+        return this.#cameraMan;
+    }
+
+    /**
+     * @returns {Logger}
+     */
+    get logger() {
+        return this.#logger;
+    }
+
+    /**
+     * @returns {WebGLXApplicationSignalWorkspace}
+     */
     get signalWorkspace() {
         return this.#signalWorkspace;
     }
@@ -1577,14 +1677,16 @@ export class WebGLXApplication {
     glxSprite(load) {
         let data = loadObjX(this.#webGLXEnvironment.glContext, load.name, load.path);
         this.#spriteDrawer.initSpriteData(data);
-        this.#spriteManager.createSprite({
+        let sprite = this.#spriteManager.createSprite({
             name: load.name,
             glData: data,
-            signalWorkspace: this.#signalWorkspace.sprite(load.name),
+            signalWorkspace: this.#signalWorkspace.spriteName(load.name),
             settings: { ...load }
         })
 
-        this.#logger.info('loading mesh: ', load)
+        this.#logger.info('loaded mesh: ', load);
+        this.#mainSignalDescriptor.trigger({ data: WebGLXApplicationInfos.ADDED_SPRITE });
+        return sprite;
     }
 
     /**
@@ -1602,6 +1704,10 @@ export class WebGLXApplication {
             u_projectedTexture: null,
             u_colorMult: [1, 1, 1, 1]
         }
+    }
+
+    #initSignals() {
+
     }
 }
 
@@ -1623,11 +1729,15 @@ class WebGLXApplicationSignalWorkspace {
         workModeChanges: 'cameraman.workMode'
     }
 
+    /** @type {String} */
+    static #MAIN = "main";
+
     /** @type {string} */ #applicationName;
 
     /** @type {CameraSignalWorkspace} */ #camera
     /** @type {CameraManSignalWorkspace} */ #cameraMan
-    /** @type {Map<string, SpriteSignalWorkspace} */ #sprites
+    /** @type {string}*/ #main;
+    /** @type {Map<string, SpriteSignalWorkspace>} */ #sprites
 
     /**
      * 
@@ -1636,20 +1746,21 @@ class WebGLXApplicationSignalWorkspace {
     constructor(applicationName) {
         this.#applicationName = applicationName;
 
-        this.#camera = {
+        this.#camera = Object.freeze({
             positionChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.positionChanges),
             upChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.upChanges),
             targetChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.targetChanges),
             fovChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.fovChanges)
-        }
+        })
 
-        this.#cameraMan = {
+        this.#cameraMan = Object.freeze({
             isChasingSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.isChasingSpriteChanges),
             isLookingAtSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.isLookingAtSpriteChanges),
             targetSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.targetSpriteChanges),
             workModeChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.workModeChanges)
-        }
+        })
 
+        this.#main = this.#absolutize(WebGLXApplicationSignalWorkspace.#MAIN);
         this.#sprites = new Map();
     }
 
@@ -1667,13 +1778,27 @@ class WebGLXApplicationSignalWorkspace {
         return this.#cameraMan;
     }
 
+    /**
+     * @returns {string}
+     */
+    get main() {
+        return this.#main;
+    }
+
+    /**
+     * 
+     * @param {Sprite} sprite 
+     */
+    sprite(sprite) {
+        return this.spriteName(sprite.name);
+    }
 
     /**
      * 
      * @param {string} name 
      * @returns {SpriteSignalWorkspace}
      */
-    sprite(name) {
+    spriteName(name) {
         let signalWorkspace = this.#sprites.get(name);
         if (isNotNullOrUndefined(signalWorkspace)) {
             return signalWorkspace;
@@ -1904,7 +2029,15 @@ export function start(appStart) {
     logger.info('shaders: ', shaders);
 
     let glxEnv = createWebglEnvironment(appStart.canvasElementName, mapShaders(appStart.webGLShaders));
-    let app = new appStart.applicationClass(appName, glxEnv, appStart.logEnabled ?? true);
+    logger.info('webGLX environment created: ', glxEnv);
+
+    let app = new appStart.applicationClass(appName, glxEnv, appStart);
+    logger.info('application instantiated');
+
+    if (isNotNullOrUndefined(app.main)) {
+        logger.info('running application main');
+        app.main();
+    }
 }
 
 /**
@@ -1942,7 +2075,7 @@ function alertedError(msg) {
  */
 function createWebglEnvironment(canvasHtmlName, webGLShaders) {
     let canvas = document.getElementById(canvasHtmlName);
-    if(canvas == null) {
+    if (canvas == null) {
         alert("Unable to find the canvas with id: " + canvas);
         throw new Error("Unable to find the canvas with id: " + canvas);
     }
