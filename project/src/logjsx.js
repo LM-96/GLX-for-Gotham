@@ -153,14 +153,6 @@ export function disableLogging() {
 }
 
 /**
- * 
- * @returns {boolean}
- */
-export function loggingEnabled() {
-    return LogJSX.loggingEnabled;
-}
-
-/**
  *
  */
 export function enableLogging() {
@@ -168,4 +160,26 @@ export function enableLogging() {
     for (let logger of LogJSX.loggers.values()) {
         logger.enable();
     }
+}
+
+/**
+ * 
+ * @param {boolean} condition 
+ */
+export function enableLoggingOn(condition) {
+    if (condition && !loggingEnabled()) {
+        enableLogging();
+    }
+
+    if (!condition && loggingEnabled()) {
+        disableLogging();
+    }
+}
+
+/**
+ * 
+ * @returns {boolean}
+ */
+export function loggingEnabled() {
+    return LogJSX.loggingEnabled;
 }

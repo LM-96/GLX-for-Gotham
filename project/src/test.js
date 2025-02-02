@@ -1,6 +1,6 @@
-import { WebGLXApplication } from "./webglx.js";
+import { GLXApplication } from "./webglx.js";
 
-class MyApp extends WebGLXApplication {
+class MyApp extends GLXApplication {
     constructor() {
         super({
             name: 'MyApp',

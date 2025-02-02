@@ -10,9 +10,11 @@ export type LoggerImpl = {
 
 export declare function disableLogging();
 
-export declare function loggingEnabled();
-
 export declare function enableLogging();
+
+export declare function enableLoggingOn(condition: boolean);
+
+export declare function loggingEnabled();
 
 export declare class Logger {
     static forName(name: string): Logger;

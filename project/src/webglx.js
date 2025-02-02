@@ -3,37 +3,14 @@
  * @author Luca Marchegiani
  */
 
-import { Angle, AngleMath, degrees, Math3D, Point3D, point3D, radians } from "./geometry.js";
-import { Logger } from "./logjsx.js";
+import { Angle, AngleMath, Axes, degrees, Math3D, Point3D, point3D, radians } from "./geometry.js";
+import { disableLogging, enableLogging, enableLoggingOn, Logger, loggingEnabled } from "./logjsx.js";
 import { SIGNALS } from "./signals.js";
 
 /* global loadObjx */
 /* global webglUtils */
 
 /* TYPES (JSDoc) **************************************************************************************************** */
-/**
- * @typedef {import("./webglx.js").CameraManSignalDescriptors} CameraManSignalDescriptors
- */
-
-/**
- * @typedef {import("./webglx.js").CameraManSignalWorkspace} CameraManSignalWorkspace
- */
-
-/**
- * @typedef {import("./webglx.js").CameraManWorkMode} CameraManWorkMode
- */
-
-/**
- * @typedef {import("./webglx.js").CameraSettings} CameraSettings
- */
-
-/**
- * @typedef {import("./webglx.js").CameraSignalDescriptors} CameraSignalDescriptors
- */
-
-/**
- * @typedef {import("./webglx.js").CameraSignalWorkspace} CameraSignalWorkspace
- */
 
 /**
  * @template T
@@ -57,6 +34,46 @@ import { SIGNALS } from "./signals.js";
  * @template T
  * @typedef {import("./signals").FireRequest<T>} FireRequest
  */
+/**
+ * @typedef {import("./webglx.js").GLXCameraConstructorParams} GLXCameraConstructorParams
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXCameraManConstructorParams} GLXCameraManConstructorParams
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXCameraManSettings} GLXCameraManSettings
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXCameraManSignalDescriptors} GLXCameraManSignalDescriptors
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXCameraManSignalWorkspace} GLXCameraManSignalWorkspace
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXCameraManWorkMode} GLXCameraManWorkMode
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXCameraSettings} GLXCameraSettings
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXDrawerParams} GLXDrawerParams
+ */
+
+
+/**
+ * @typedef {import("./webglx.js").GLXCameraSignalDescriptors} GLXCameraSignalDescriptors
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXCameraSignalWorkspace} CameraSignalWorkspace
+ */
 
 /**
  * @typedef {import("./webglx.js").GLXSprite} GLXSprite
@@ -64,6 +81,27 @@ import { SIGNALS } from "./signals.js";
 
 /**
  * @typedef {import("./webglx.js").GLXSpriteCreation} GLXSpriteCreation
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXControlType} GLXControlType
+ */
+
+/**
+ * @template T
+ * @typedef {import("./webglx.js").GLXControl<T>} GLXControl
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXControlInfo} GLXControlInfo
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXShadowLightManagerConstructorParams} GLXShadowLightManagerConstructorParams
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXSpriteManagerConstructorParams} GLXSpriteManagerConstructorParams
  */
 
 /**
@@ -110,7 +148,7 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
- * @typedef {import("./webglx.js").ShadowLightSettings} ShadowLightSettings
+ * @typedef {import("./webglx.js").GLXShadowLightSettings} ShadowLightSettings
  */
 
 /**
@@ -120,9 +158,19 @@ import { SIGNALS } from "./signals.js";
 /**
  * @template T
  * @typedef {import("./signals.js").Signal<T>} Signal
+ */
+
+/**
+ * @template T
+ * @typedef {import("./signals.js").SignalConsumer<T>} SignalConsumer
+ */
 
 /**
  * @typedef {import("./webglx.js").SpriteActionType} SpriteActionType
+ */
+
+/**
+ * @typedef {import("./webglx.js").SpriteConstructorParams} SpriteConstructorParams
  */
 
 /**
@@ -149,33 +197,34 @@ import { SIGNALS } from "./signals.js";
 /**
  * @typedef {import("./geometry.js").Vector3D} Vector3D
  */
-
 /**
- * @typedef {import("./webglx.js").WebGLXApplicationInfo} WebGLXApplicationInfo
+ * @typedef {import("./webglx.js").GLXApplicationInfo} WebGLXApplicationInfo
  */
 
 /**
- * @typedef {import("./webglx.js").WebGLXApplicationStart} WebGLXApplicationStart
+ * @typedef {import("./webglx.js").GLXApplicationParams} GLXApplicationParams
  */
 
 /**
- * @typedef {import("./webglx.js").WebGLShaderReference} WebGLShaderReference
+ * @typedef {import("./webglx.js").GLXApplicationStart} WebGLXApplicationStart
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXControlsParams} WebGLXControlsParams
+ */
+
+/**
+ * @typedef {import("./webglx.js").WebGLShaderRef} WebGLShaderReference
  */
 
 /* STATIC CLASSES *************************************************************************************************** */
 
-export class CameraManWorkModes {
-    /** @type {CameraManWorkMode} */ static DISMISSED = 'DISMISSED';
-    /** @type {CameraManWorkMode} */ static OVER = 'OVER';
-    /** @type {CameraManWorkMode} */ static FIRST_PERSON = 'FIRST_PERSON';
-    /** @type {CameraManWorkMode} */ static THIRD_PERSON = 'THIRD_PERSON'
-    /** @type {CameraManWorkMode} */ static CUSTOM = 'CUSTOM';
-}
-
-export class SpriteActions {
-    /** @type {SpriteActionType} */ static TRANSITION = 1;
-    /** @type {SpriteActionType} */ static ROTATION = 2;
-    /** @type {SpriteActionType} */ static SCALE = 3;
+export class GLXCameraManWorkModes {
+    /** @type {GLXCameraManWorkMode} */ static DISMISSED = 'DISMISSED';
+    /** @type {GLXCameraManWorkMode} */ static OVER = 'OVER';
+    /** @type {GLXCameraManWorkMode} */ static FIRST_PERSON = 'FIRST_PERSON';
+    /** @type {GLXCameraManWorkMode} */ static THIRD_PERSON = 'THIRD_PERSON'
+    /** @type {GLXCameraManWorkMode} */ static CUSTOM = 'CUSTOM';
 }
 
 class FireRequests {
@@ -214,6 +263,53 @@ class FireRequests {
 
 }
 
+export class GLXControlTypes {
+    /** @type {GLXControlType} */ static LOG = 'log';
+    /** @type {GLXControlType} */ static CAM_MAN_WORK_MODE = 'cam_man_work_mode';
+    /** @type {GLXControlType} */ static TARGET = 'target';
+    /** @type {GLXControlType} */ static CHASE = 'chase';
+    /** @type {GLXControlType} */ static LOOK_AT = 'look_at';
+    /** @type {GLXControlType} */ static CAM_MAN_HIGH = 'cam_man_high';
+    /** @type {GLXControlType} */ static CAM_MAN_DISTANCE = 'cam_man_distance';
+    /** @type {GLXControlType} */ static CAM_X = 'cam_x';
+    /** @type {GLXControlType} */ static CAM_Y = 'cam_y';
+    /** @type {GLXControlType} */ static CAM_Z = 'cam_z';
+    /** @type {GLXControlType} */ static CAM_UP_X = 'cam_up_x';
+    /** @type {GLXControlType} */ static CAM_UP_Y = 'cam_up_y';
+    /** @type {GLXControlType} */ static CAM_UP_Z = 'cam_up_z';
+    /** @type {GLXControlType} */ static Z_NEAR = 'z_near';
+    /** @type {GLXControlType} */ static Z_FAR = 'z_far';
+    /** @type {GLXControlType} */ static FOV = 'fov';
+    /** @type {GLXControlType} */ static TARGET_X = 'target_x';
+    /** @type {GLXControlType} */ static TARGET_Y = 'target_y';
+    /** @type {GLXControlType} */ static TARGET_Z = 'target_z';
+    /** @type {GLXControlType} */ static SHADOWS = 'shadows';
+    /** @type {GLXControlType} */ static FRUSTUM = 'frustum';
+    /** @type {GLXControlType} */ static LIGHT_X = 'light_x';
+    /** @type {GLXControlType} */ static LIGHT_Y = 'light_y';
+    /** @type {GLXControlType} */ static LIGHT_Z = 'light_z';
+    /** @type {GLXControlType} */ static LIGHT_TARGET_X = 'light_target_x';
+    /** @type {GLXControlType} */ static LIGHT_TARGET_Y = 'light_target_y';
+    /** @type {GLXControlType} */ static LIGHT_TARGET_Z = 'light_target_z';
+    /** @type {GLXControlType} */ static LIGHT_FOV = 'light_fov';
+    /** @type {GLXControlType} */ static LIGHT_NEAR = 'light_near';
+    /** @type {GLXControlType} */ static LIGHT_FAR = 'light_far';
+    /** @type {GLXControlType} */ static SPOTLIGHT = 'spotlight';
+    /** @type {GLXControlType} */ static LIGHT_WIDTH = 'light_width';
+    /** @type {GLXControlType} */ static LIGHT_HEIGHT = 'light_height';
+    /** @type {GLXControlType} */ static CURR_SPRITE = 'curr_sprite';
+    /** @type {GLXControlType} */ static SPRITE_X = 'sprite_x';
+    /** @type {GLXControlType} */ static SPRITE_Y = 'sprite_y';
+    /** @type {GLXControlType} */ static SPRITE_Z = 'sprite_z';
+    /** @type {GLXControlType} */ static SPRITE_SCALE_X = 'sprite_scale_x';
+    /** @type {GLXControlType} */ static SPRITE_SCALE_Y = 'sprite_scale_y';
+    /** @type {GLXControlType} */ static SPRITE_SCALE_Z = 'sprite_scale_z';
+    /** @type {GLXControlType} */ static SPRITE_PSI = 'sprite_psi';
+    /** @type {GLXControlType} */ static SPRITE_THETA = 'sprite_theta';
+    /** @type {GLXControlType} */ static SPRITE_PHI = 'sprite_phi';
+    /** @type {GLXControlType} */ static DRAW = 'draw';
+}
+
 export class LimitCheckers {
 
     /**
@@ -248,8 +344,15 @@ class Scales {
     static NOT_SCALED = trio(1, 1, 1);
 }
 
-class WebGLXApplicationInfos {
+export class SpriteActions {
+    /** @type {SpriteActionType} */ static TRANSITION = 1;
+    /** @type {SpriteActionType} */ static ROTATION = 2;
+    /** @type {SpriteActionType} */ static SCALE = 3;
+}
+
+class GLXApplicationInfos {
     /** @type {WebGLXApplicationInfo} */ static ADDED_SPRITE = 'ADDED_SPRITE';
+    /** @type {WebGLXApplicationInfo} */ static BOOTED = 'BOOTED';
     /** @type {WebGLXApplicationInfo} */static CONSTRUCTED = 'CONSTRUCTED';
 }
 
@@ -258,36 +361,20 @@ class WebGLXApplicationInfos {
 /**
  * @class Camera
  */
-export class Camera {
+export class GLXCamera {
 
     /** @type {Logger} */ #logger;
-    /** @type {CameraSettings} */ #settings;
-    /** @type {CameraSignalDescriptors} */ #signalDescriptors;
+    /** @type {GLXCameraSettings} */ #settings;
+    /** @type {GLXCameraSignalDescriptors} */ #signalDescriptors;
 
     /**
      * 
-     * @param {string} applicationName 
-     * @param {CameraSignalWorkspace} signalWorkspace
-     * @param {boolean} logEnabled 
-     * @param {Partial<CameraSettings>} settings 
+     * @param {GLXCameraConstructorParams} params
      */
-    constructor(applicationName, signalWorkspace, logEnabled, settings = {}) {
-        this.#settings = {
-            position: point3D(1, 1, 1),
-            up: trio(0, 0, 1),
-            targetPosition: point3D(0, 0, 0),
-            fov: degrees(60),
-            ...settings
-        };
-
-        this.#signalDescriptors = {
-            positionChanges: SIGNALS.register(signalWorkspace.positionChanges),
-            upChanges: SIGNALS.register(signalWorkspace.upChanges),
-            targetChanges: SIGNALS.register(signalWorkspace.targetChanges),
-            fovChanges: SIGNALS.register(signalWorkspace.fovChanges)
-        }
-
-        this.#logger = Logger.forName(`Camera[${applicationName}]`).enabledOn(logEnabled);
+    constructor(params) {
+        this.#settings = this.#buildSettings(params.settings ?? {});
+        this.#signalDescriptors = this.#buildSignalDescriptors(params.signalWorkspace);
+        this.#logger = Logger.forName(`Camera[${params.applicationName}]`).enabledOn(params.logEnabled);
         this.#logger.info(`camera initialized with settings: `, this.#settings);
     }
 
@@ -310,6 +397,27 @@ export class Camera {
      */
     get targetPosition() {
         return this.#settings.targetPosition;
+    }
+
+    /**
+     * @returns {Trio<number>}
+     */
+    get up() {
+        return this.#settings.up;
+    }
+
+    /**
+     * @returns {number}
+     */
+    get zFar() {
+        return this.#settings.zFar;
+    }
+
+    /**
+     * @returns {number}
+     */
+    get zNear() {
+        return this.#settings.zNear;
     }
 
     /**
@@ -371,89 +479,187 @@ export class Camera {
 
     }
 
-    computeCameraMatrix() {
-        return M4.lookAt(
-            this.#settings.position.map(Math3D.toImmutableArray()),
-            this.#settings.targetPosition.map(Math3D.toImmutableArray()),
-            toJsVectorTrio(this.#settings.up)
-        );
+    /**
+     * @param {number} nextZFar 
+     */
+    set zFar(nextZFar) {
+        let previous = this.zFar;
+        if (nextZFar !== previous) {
+            this.#settings.zFar = nextZFar;
+            this.#signalDescriptors.zFarChanges.trigger({
+                data: change(nextZFar, previous)
+            });
+        }
+    }
+
+    /**
+     * @param {number} nextZNear 
+     */
+    set zNear(nextZNear) {
+        let previous = this.zNear;
+        if (nextZNear !== previous) {
+            this.#settings.zNear = nextZNear;
+            this.#signalDescriptors.zNearChanges.trigger({
+                data: change(nextZNear, previous)
+            });
+        }
+    }
+
+    /**
+     * 
+     * @param {CameraSignalWorkspace} signalWorkspace 
+     * @returns {GLXCameraSignalDescriptors}
+     */
+    #buildSignalDescriptors(signalWorkspace) {
+        return {
+            positionChanges: SIGNALS.register(signalWorkspace.positionChanges),
+            upChanges: SIGNALS.register(signalWorkspace.upChanges),
+            targetChanges: SIGNALS.register(signalWorkspace.targetChanges),
+            fovChanges: SIGNALS.register(signalWorkspace.fovChanges),
+            zNearChanges: SIGNALS.register(signalWorkspace.zNearChanges),
+            zFarChanges: SIGNALS.register(signalWorkspace.zFarChanges)
+        }
+    }
+
+    /**
+     * 
+     * @param {Partial<GLXCameraSettings>} settings 
+     * @returns {GLXCameraSettings}
+     */
+    #buildSettings(settings) {
+        return {
+            position: point3D(1, 1, 1),
+            up: trio(0, 0, 1),
+            targetPosition: point3D(0, 0, 0),
+            fov: degrees(60),
+            zNear: 0.1,
+            zFar: 700,
+            ...settings
+        }
     }
 }
 
 /**
- * @class CameraMan
+ * @class GLXCameraMan
  */
-export class CameraMan {
+export class GLXCameraMan {
 
     /** @type {SubscriptionToken|null} */ #chaseSpriteSubscriptionToken = null;
     /** @type {SubscriptionToken|null} */ #chaseSpriteRotationSubscriptionToken = null;
     /** @type {SubscriptionToken|null} */ #lookAtSpriteSubscriptionToken = null;
-    /** @type {Sprite|null} */ #targetSprite = null;
-    /** @type {import("./webglx.js").CameraManWorkMode} */ #workMode = CameraManWorkModes.DISMISSED;
 
-    /** @type {Camera} */ #camera;
-    /** @type {number} */ #distance = 50;
-    /** @type {number} */ #high = 5;
+    /** @type {GLXCamera} */ #camera;
     /** @type {Logger} */ #logger;
     /** @type {number} */ #phase = 0;
-    /** @type {CameraManSignalDescriptors} */ #signalDescriptors;
+    /** @type {GLXCameraManSignalDescriptors} */ #signalDescriptors;
+
+    /** @type {GLXCameraManSettings} */ #settings;
 
     /**
      * 
-     * @param {string} applicationName 
-     * @param {Camera} camera 
-     * @param {CameraManSignalWorkspace} signalWorkspace 
-     * @param {boolean} logEnabled 
+     * @param {GLXCameraManConstructorParams} params
      */
-    constructor(applicationName, camera, signalWorkspace, logEnabled) {
-        this.#camera = camera;
-        this.#signalDescriptors = {
-            isLookingAtSpriteChanges: SIGNALS.register(signalWorkspace.isLookingAtSpriteChanges),
-            isChasingSpriteChanges: SIGNALS.register(signalWorkspace.isChasingSpriteChanges),
-            targetSpriteChanges: SIGNALS.register(signalWorkspace.targetSpriteChanges),
-            workModeChanges: SIGNALS.register(signalWorkspace.workModeChanges)
+    constructor(params) {
+        // @ts-ignore
+        this.#camera = params.camera;
+        this.#signalDescriptors = this.#buildSignalDescriptor(params.signalWorkspace);
+
+        this.#settings = {
+            distance: 50,
+            high: 5,
+            isChasingSprite: false,
+            isLookingAtSprite: false,
+            phase: 0,
+            targetSprite: null,
+            workMode: GLXCameraManWorkModes.DISMISSED,
+            ...params.settings
         }
 
-        this.#logger = Logger.forName(`CameraMan[${applicationName}]`).enabledOn(logEnabled);
+        this.#logger = Logger.forName(`CameraMan[${params.applicationName}]`)
+            .enabledOn(params.logEnabled);
         this.#logger.info('camera man started');
     }
 
+    /**
+     * @returns {number}
+     */
     get distance() {
-        return this.#distance;
+        return this.#settings.distance;
+    }
+
+    /**
+     * @returns {number}
+     */
+    get high() {
+        return this.#settings.high;
     }
 
     /**
      * @returns {boolean}
      */
     get isChasingSprite() {
-        return isNotNullOrUndefined(this.chaseSpriteSubscriptionToken);
+        return isNotNullOrUndefined(this.#chaseSpriteSubscriptionToken);
     }
 
     /**
      * @returns {boolean}
      */
     get isHired() {
-        return this.#workMode !== CameraManWorkModes.DISMISSED;
+        return this.#settings.workMode !== GLXCameraManWorkModes.DISMISSED;
     }
 
     /**
      * @returns {boolean}
      */
     get isLookingAtSprite() {
-        return isNotNullOrUndefined(this.isLookingAtSprite);
-    }
-
-    get targetSprite() {
-        return this.#targetSprite
+        return isNotNullOrUndefined(this.#lookAtSpriteSubscriptionToken);
     }
 
     /**
-     * @param {number} value 
+     * @returns {Sprite|null}
      */
-    set distance(value) {
-        this.#distance = value;
-        if (this.isHired) {
-            this.#autoSet();
+    get targetSprite() {
+        // @ts-ignore
+        return this.#settings.targetSprite
+    }
+
+    /**
+     * @returns {GLXCameraManWorkMode}
+     */
+    get workMode() {
+        return this.#settings.workMode;
+    }
+
+    /**
+     * @param {number} nextDistance 
+     */
+    set distance(nextDistance) {
+        let previous = this.#settings.distance;
+        if (nextDistance !== previous) {
+            this.#settings.distance = nextDistance;
+            this.#signalDescriptors.distanceChanges.trigger({
+                data: change(nextDistance, previous)
+            });
+
+            if (this.isHired) {
+                this.#autoSet();
+            }
+        }
+    }
+
+    /**
+     * @param {number} nextHigh 
+     */
+    set high(nextHigh) {
+        let previous = this.#settings.high;
+        if (nextHigh !== previous) {
+            this.#settings.high = nextHigh;
+            this.#signalDescriptors.highChanges.trigger({
+                data: change(nextHigh, previous)
+            })
+            if (this.isHired) {
+                this.#autoSet();
+            }
         }
     }
 
@@ -461,9 +667,9 @@ export class CameraMan {
      * @param {Sprite | null} nextLookedSprite
      */
     set targetSprite(nextLookedSprite) {
-        let previousLookedSprite = this.#targetSprite;
+        let previousLookedSprite = this.#settings.targetSprite;
         if (nextLookedSprite !== previousLookedSprite) {
-            this.#targetSprite = nextLookedSprite
+            this.#settings.targetSprite = nextLookedSprite
 
             this.#signalDescriptors.targetSpriteChanges.trigger({
                 data: change(nextLookedSprite, previousLookedSprite)
@@ -479,11 +685,11 @@ export class CameraMan {
 
     /**
      * 
-     * @returns {CameraMan}
+     * @returns {GLXCameraMan}
      */
     chaseTargetSprite() {
         this.#customWorkMode();
-        if (isNotNullOrUndefined(this.#targetSprite)) {
+        if (isNotNullOrUndefined(this.#settings.targetSprite)) {
             if (this.isChasingSprite) {
                 this.unChaseSprite();
             }
@@ -492,7 +698,7 @@ export class CameraMan {
                 this.lookAtTargetSprite();
             }
 
-            this.chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
+            this.chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#settings.targetSprite.signalWorkspace.positionChange,
                 this.#chaseSpriteSignalConsumer.bind(this));
             this.#signalDescriptors.isChasingSpriteChanges.trigger({
                 data: change(true, false)
@@ -505,50 +711,51 @@ export class CameraMan {
     }
 
     dismiss() {
-        if (this.#workMode !== CameraManWorkModes.DISMISSED) {
-            this.#unsubscribeFromChaseSpriteSignal();
+        if (this.#settings.workMode !== GLXCameraManWorkModes.DISMISSED) {
+            this.unChaseSprite();
+            this.unLookAtSprite();
             this.#unsubscribeFromChaseSpriteRotationSignal();
-            this.#unsubscribeFromLookAtSpriteSignal();
         }
 
-        this.#setWorkMode(CameraManWorkModes.DISMISSED);
+        this.#setWorkMode(GLXCameraManWorkModes.DISMISSED);
         return this;
     }
 
     /**
      * 
-     * @param {CameraManWorkMode} workMode 
+     * @param {GLXCameraManWorkMode} workMode 
      */
     hire(workMode) {
-        if (isNullOrUndefined(this.#targetSprite)) {
+        if (isNullOrUndefined(this.#settings.targetSprite)) {
             throw new Error('target sprite was not set, cannot hire')
         }
 
         this.dismiss();
-        if (this.#workMode !== workMode && isNotNullOrUndefined(this.#targetSprite)) {
+        if (this.#settings.workMode !== workMode && isNotNullOrUndefined(this.#settings.targetSprite)) {
             this.#logger.info(`hiring [workMode: ${workMode}]`);
             switch (workMode) {
-                case CameraManWorkModes.FIRST_PERSON:
-                    this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
+                case GLXCameraManWorkModes.FIRST_PERSON:
+                    this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#settings.targetSprite.signalWorkspace.positionChange,
                         this.#workFirstPerson.bind(this));
-                    this.#chaseSpriteRotationSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.rotationChange,
+                    this.#chaseSpriteRotationSubscriptionToken = SIGNALS.subscribe(this.#settings.targetSprite.signalWorkspace.rotationChange,
                         this.#workFirstPerson.bind(this));
                     this.#workFirstPerson();
                     break;
-                case CameraManWorkModes.OVER:
-                    this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
+                case GLXCameraManWorkModes.OVER:
+                    this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#settings.targetSprite.signalWorkspace.positionChange,
                         this.#workOver.bind(this));
                     this.#workOver();
                     break;
-                case CameraManWorkModes.THIRD_PERSON:
-                    this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
+                case GLXCameraManWorkModes.THIRD_PERSON:
+                    this.#chaseSpriteSubscriptionToken = SIGNALS.subscribe(this.#settings.targetSprite.signalWorkspace.positionChange,
                         this.#workThirdPerson.bind(this));
-                    this.#chaseSpriteRotationSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.rotationChange,
+                    this.#chaseSpriteRotationSubscriptionToken = SIGNALS.subscribe(this.#settings.targetSprite.signalWorkspace.rotationChange,
                         this.#workThirdPerson.bind(this));
                     this.#workThirdPerson();
                     break;
                 default:
-                    throw new Error(`unable to hire with work mode ${workMode}`);
+                    this.#logger.warn(`unable to hire with mode '${workMode}': dismissing`);
+                    workMode = GLXCameraManWorkModes.DISMISSED
             }
 
             this.#setWorkMode(workMode);
@@ -557,16 +764,16 @@ export class CameraMan {
 
     /**
      * 
-     * @returns {CameraMan}
+     * @returns {GLXCameraMan}
      */
     lookAtTargetSprite() {
         this.#customWorkMode;
-        if (isNotNullOrUndefined(this.#targetSprite)) {
+        if (isNotNullOrUndefined(this.#settings.targetSprite)) {
             if (this.isLookingAtSprite) {
                 this.unLookAtSprite();
             }
 
-            this.lookAtSpriteSubscriptionToken = SIGNALS.subscribe(this.#targetSprite.signalWorkspace.positionChange,
+            this.lookAtSpriteSubscriptionToken = SIGNALS.subscribe(this.#settings.targetSprite.signalWorkspace.positionChange,
                 this.#lookAtSpriteSignalConsumer.bind(this));
             this.#signalDescriptors.isLookingAtSpriteChanges.trigger({
                 data: change(true, false)
@@ -580,12 +787,12 @@ export class CameraMan {
 
 
     /**
-     * @returns {CameraMan}
+     * @returns {GLXCameraMan}
      */
     unChaseSprite() {
         if (this.isChasingSprite) {
             this.#unsubscribeFromChaseSpriteSignal();
-            this.#signalDescriptors.isLookingAtSpriteChanges.trigger({
+            this.#signalDescriptors.isChasingSpriteChanges.trigger({
                 data: change(false, true)
             })
         }
@@ -594,7 +801,7 @@ export class CameraMan {
     }
 
     /**
-     * @returns {CameraMan}
+     * @returns {GLXCameraMan}
      */
     unLookAtSprite() {
         if (this.isLookingAtSprite) {
@@ -612,18 +819,35 @@ export class CameraMan {
     }
 
     #autoSet() {
-        switch (this.#workMode) {
-            case CameraManWorkModes.FIRST_PERSON:
+        switch (this.#settings.workMode) {
+            case GLXCameraManWorkModes.FIRST_PERSON:
                 this.#workFirstPerson();
                 break;
-            case CameraManWorkModes.OVER:
+            case GLXCameraManWorkModes.OVER:
                 this.#workOver();
                 break;
-            case CameraManWorkModes.THIRD_PERSON:
+            case GLXCameraManWorkModes.THIRD_PERSON:
                 this.#workThirdPerson();
                 break;
             default:
-                this.#logger.warn(`unable to autoset with work mode ${this.#workMode}`);
+                this.#logger.warn(`unable to autoset with work mode ${this.#settings.workMode}`);
+        }
+    }
+
+    /**
+     * 
+     * @param {GLXCameraManSignalWorkspace} signalWorkspace 
+     * @returns {GLXCameraManSignalDescriptors}
+     */
+    #buildSignalDescriptor(signalWorkspace) {
+        return {
+            distanceChanges: SIGNALS.register(signalWorkspace.distanceChanges),
+            highChanges: SIGNALS.register(signalWorkspace.highChanges),
+            isLookingAtSpriteChanges: SIGNALS.register(signalWorkspace.isLookingAtSpriteChanges),
+            isChasingSpriteChanges: SIGNALS.register(signalWorkspace.isChasingSpriteChanges),
+            phaseChanges: SIGNALS.register(signalWorkspace.phaseChanges),
+            targetSpriteChanges: SIGNALS.register(signalWorkspace.targetSpriteChanges),
+            workModeChanges: SIGNALS.register(signalWorkspace.workModeChanges)
         }
     }
 
@@ -638,11 +862,11 @@ export class CameraMan {
     }
 
     #customWorkMode() {
-        if (this.#workMode !== CameraManWorkModes.DISMISSED && this.#workMode !== CameraManWorkModes.CUSTOM) {
+        if (this.#settings.workMode !== GLXCameraManWorkModes.DISMISSED && this.#settings.workMode !== GLXCameraManWorkModes.CUSTOM) {
             this.dismiss();
         }
 
-        this.#setWorkMode(CameraManWorkModes.CUSTOM);
+        this.#setWorkMode(GLXCameraManWorkModes.CUSTOM);
     }
 
     /**
@@ -655,12 +879,12 @@ export class CameraMan {
 
     /**
      * 
-     * @param {CameraManWorkMode} workMode 
+     * @param {GLXCameraManWorkMode} workMode 
      */
     #setWorkMode(workMode) {
-        if (workMode !== this.#workMode) {
-            let workModeChange = change(workMode, this.#workMode);
-            this.#workMode = workMode;
+        if (workMode !== this.#settings.workMode) {
+            let workModeChange = change(workMode, this.#settings.workMode);
+            this.#settings.workMode = workMode;
             this.#signalDescriptors.workModeChanges.trigger({
                 data: workModeChange
             })
@@ -695,19 +919,19 @@ export class CameraMan {
     }
 
     #workFirstPerson() {
-        if (isNotNullOrUndefined(this.#targetSprite)) {
-            this.#logger.info(`setting up first person [sprite: ${this.#targetSprite.name}]`);
-            let targetPosition = this.#targetSprite.position;
-            let phi = this.#targetSprite.rotation.third.transform(AngleMath.toRadians()).value;
+        if (isNotNullOrUndefined(this.#settings.targetSprite)) {
+            this.#logger.info(`setting up first person [sprite: ${this.#settings.targetSprite.name}]`);
+            let targetPosition = this.#settings.targetSprite.position;
+            let phi = this.#settings.targetSprite.rotation.third.transform(AngleMath.asRadians()).value;
             this.#camera.position = targetPosition.transform(Math3D.translate(
                 5 * Math.cos(phi + this.#phase),
                 5 * Math.sin(phi + this.#phase),
-                this.#high
+                this.#settings.high
             ));
             this.#camera.targetPosition = targetPosition.transform(Math3D.translate(
                 10 * Math.cos(phi + this.#phase),
                 10 * Math.sin(phi + this.#phase),
-                this.#high
+                this.#settings.high
             ));
             this.#camera.up = trio(0, 0, 1);
         } else {
@@ -716,13 +940,13 @@ export class CameraMan {
     }
 
     #workOver() {
-        if (isNotNullOrUndefined(this.#targetSprite)) {
-            this.#logger.info(`setting up over [sprite: ${this.#targetSprite.name}]`);
-            let targetPosition = this.#targetSprite.position;
+        if (isNotNullOrUndefined(this.#settings.targetSprite)) {
+            this.#logger.info(`setting up over [sprite: ${this.#settings.targetSprite.name}]`);
+            let targetPosition = this.#settings.targetSprite.position;
             this.#camera.position = targetPosition.transform(Math3D.translate(
                 0,
                 0,
-                this.#distance
+                this.#settings.distance
             ));
             this.#camera.targetPosition = targetPosition;
             this.#camera.up = trio(1, 0, 0);
@@ -732,18 +956,18 @@ export class CameraMan {
     }
 
     #workThirdPerson() {
-        if (isNotNullOrUndefined(this.#targetSprite)) {
-            let targetPosition = this.#targetSprite.position;
-            let phi = this.#targetSprite.rotation.third.transform(AngleMath.toRadians()).value;
+        if (isNotNullOrUndefined(this.#settings.targetSprite)) {
+            let targetPosition = this.#settings.targetSprite.position;
+            let phi = this.#settings.targetSprite.rotation.third.transform(AngleMath.asRadians()).value;
             this.#camera.position = targetPosition.transform(Math3D.translate(
-                - this.#distance * Math.cos(phi + this.#phase),
-                - this.#distance * Math.sin(phi + this.#phase),
-                this.#high
+                - this.#settings.distance * Math.cos(phi + this.#phase),
+                - this.#settings.distance * Math.sin(phi + this.#phase),
+                this.#settings.high
             ));
             this.#camera.targetPosition = targetPosition.transform(Math3D.translate(
                 10 * Math.cos(phi + this.#phase),
                 10 * Math.sin(phi + this.#phase),
-                this.#high
+                this.#settings.high
             ));
             this.#camera.up = trio(0, 0, 1);
         } else {
@@ -753,129 +977,18 @@ export class CameraMan {
 }
 
 /**
- * @class ShadowLightManager
+ * @class GLXShadowLightManager
  */
-export class ShadowLightManager {
-    /** @type {number} */ static #DEPTH_TEXTURE_SIZE = 512;
-    /** @type {Map<WebGLRenderingContext, Pair<WebGLTexture, WebGLFramebuffer>>} */ static #depthTB = new Map();
-
-    /**
-     * @returns {number}
-     */
-    static get DEPTH_TEXTURE_SIZE() {
-        return ShadowLightManager.#DEPTH_TEXTURE_SIZE;
-    }
-
-    /**
-     * @param {WebGLRenderingContext} gl
-     * @returns {Pair<WebGLTexture, WebGLFramebuffer>}
-     */
-    static getTextureWithBufferForLights(gl) {
-        let res = ShadowLightManager.#depthTB.get(gl);
-        if (isNotNullOrUndefined(res)) {
-            return res;
-        } else {
-            let texture = ShadowLightManager.#createTexture(gl);
-            this.#depthTB.set(gl, texture);
-
-            return texture;
-        }
-    }
-
-    /**
-     * 
-     * @param {WebGLRenderingContext} gl 
-     * @returns {WebGLTexture}
-     */
-    static getTextureForLights(gl) {
-        return ShadowLightManager.getTextureWithBufferForLights(gl).first;
-    }
-
-    /**
-     * 
-     * @param {WebGLRenderingContext} gl 
-     * @returns {WebGLFramebuffer}
-     */
-    static getTextureFrameBufferForLights(gl) {
-        return ShadowLightManager.getTextureWithBufferForLights(gl).second;
-    }
-
-    /**
-     * @param {WebGLRenderingContext} gl
-     * @returns {Pair<WebGLTexture, WebGLFramebuffer>}
-     */
-    static #createTexture(gl) {
-        let depthTexture = gl.createTexture();
-        let depthTextureSize = ShadowLightManager.#DEPTH_TEXTURE_SIZE;
-        gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-        gl.texImage2D(
-            gl.TEXTURE_2D,      // target
-            0,                  // mip level
-            gl.DEPTH_COMPONENT, // internal format
-            depthTextureSize,   // width
-            depthTextureSize,   // height
-            0,                  // border
-            gl.DEPTH_COMPONENT, // format
-            gl.UNSIGNED_INT,    // type
-            null);              // data
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        let depthFramebuffer = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, depthFramebuffer);
-        gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,       // target
-            gl.DEPTH_ATTACHMENT,  // attachment point
-            gl.TEXTURE_2D,        // texture target
-            depthTexture,         // texture
-            0);                   // mip level
-
-        // create a color texture of the same size as the depth texture
-        // see article why this is needed_
-        let unusedTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, unusedTexture);
-        gl.texImage2D(
-            gl.TEXTURE_2D,
-            0,
-            gl.RGBA,
-            depthTextureSize,
-            depthTextureSize,
-            0,
-            gl.RGBA,
-            gl.UNSIGNED_BYTE,
-            null,
-        );
-
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        // attach it to the framebuffer
-        gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,        // target
-            gl.COLOR_ATTACHMENT0,  // attachment point
-            gl.TEXTURE_2D,         // texture target
-            unusedTexture,         // texture
-            0);
-        return pair(depthTexture, depthFramebuffer);
-    }
+export class GLXShadowLightManager {
 
     /** @type {Logger} */ #logger;
-    /** @type {SharedUniforms} */ #sharedUniforms;
     /** @type {ShadowLightSettings} */ #settings;
 
     /**
      * 
-     * @param {string} applicationName 
-     * @param {SharedUniforms} sharedUniforms 
-     * @param {boolean} logEnabled
-     * @param {Partial<ShadowLightSettings>} [settings={}] 
+     * @param {GLXShadowLightManagerConstructorParams} params
      */
-    constructor(applicationName, sharedUniforms, logEnabled, settings = {}) {
-        this.#sharedUniforms = sharedUniforms;
+    constructor(params) {
         this.#settings = {
             lightDirection: trio(0, 0, 0),
             lightPosition: point3D(0, 0, 100),
@@ -888,17 +1001,18 @@ export class ShadowLightManager {
             isShadowEnabled: false,
             near: 1,
             far: 700,
-            ...settings
+            ...params.settings
         };
 
-        this.#logger = Logger.forName(`ShadowLightManager[${applicationName}]`).enabledOn(logEnabled);
+        this.#logger = Logger.forName(`ShadowLightManager[${params.applicationName}]`)
+            .enabledOn(params.logEnabled);
         this.#logger.info('shadow light manager initialized with settings: ', this.#settings);
     }
 
     /**
      * @returns {number}
      */
-    get far() {
+    get lightFar() {
         return this.#settings.far;
     }
 
@@ -954,7 +1068,7 @@ export class ShadowLightManager {
     /**
      * @returns {number}
      */
-    get near() {
+    get lightNear() {
         return this.#settings.near;
     }
 
@@ -975,15 +1089,15 @@ export class ShadowLightManager {
     /**
      * @param {number} far 
      */
-    set far(far) {
+    set lightFar(far) {
         this.#settings.far = far;
     }
 
     /**
      * @param {Angle} fov 
      */
-    set fov(fov) {
-        this.fov = fov;
+    set lightFov(fov) {
+        this.lightFov = fov;
     }
 
     /**
@@ -1012,7 +1126,6 @@ export class ShadowLightManager {
      */
     set lightPosition(position) {
         this.lightPosition = position;
-        this.#updateSharedUniforms();
     }
 
     /**
@@ -1032,7 +1145,7 @@ export class ShadowLightManager {
     /**
      * @param {number} near 
      */
-    set near(near) {
+    set lightNear(near) {
         this.#settings.near = near
     }
 
@@ -1050,36 +1163,6 @@ export class ShadowLightManager {
         this.#settings.projectionWidth = width;
     }
 
-    /**
-     * 
-     * @returns {number[]}
-     */
-    computeLightWorldMatrix() {
-        return M4.lookAt(
-            [this.lightPosition.x, this.lightPosition.y, this.lightPosition.z],
-            [this.lightTarget.x, this.lightTarget.y, this.lightTarget.z],
-            [this.lightUp.first, this.lightUp.second, this.lightUp.third],
-        );
-    }
-
-    /**
-     * 
-     * @returns {number[]}
-     */
-    computeLightProjectionMatrix() {
-        if (this.isSpotlight) {
-            return M4.perspective(this.lightFov.transform(AngleMath.toRadians()).value,
-                this.projectionWidth / this.projectionHeight, this.near, this.far)
-        } else {
-            return M4.orthographic(-this.projectionWidth / 2, this.projectionWidth / 2,
-                -this.projectionHeight / 2, this.projectionHeight / 2, this.near, this.far)
-        }
-    }
-
-    #updateSharedUniforms() {
-        this.#sharedUniforms.u_lightDirection = toJsVectorTrio(this.lightDirection)
-    }
-
 }
 
 /**
@@ -1091,22 +1174,18 @@ export class Sprite {
     /** @type {string} */ #applicationName;
     /** @type {SpriteSetting} */ #settings;
     /** @type {SpriteSignalWorkspace} */ #signalWorkspace;
-
     /**  @type {SpriteSignalDescriptors} */ #signalDescriptors;
 
     /**
      *
-     * @param {string} name
-     * @param {string} applicationName
-     * @param {SpriteSignalWorkspace} signalWorkspace
-     * @param {Partial<SpriteSetting>} settings
+     * @param {SpriteConstructorParams} params
      */
-    constructor(name, applicationName, signalWorkspace, settings = {}) {
-        this.#name = name;
-        this.#applicationName = applicationName;
-        this.#settings = this.#buildSettings(settings);
-        this.#signalDescriptors = this.#buildSignalDescriptors(signalWorkspace);
-        this.#signalWorkspace = signalWorkspace;
+    constructor(params) {
+        this.#name = params.name;
+        this.#applicationName = params.applicationName;
+        this.#settings = this.#buildSettings(params.settings ?? {});
+        this.#signalDescriptors = this.#buildSignalDescriptors(params.signalWorkspace);
+        this.#signalWorkspace = params.signalWorkspace;
     }
 
     get name() {
@@ -1214,50 +1293,163 @@ export class Sprite {
 /**
  * @class SpriteDrawer
  */
-class SpriteDrawer {
-    /** @type {string} */ #applicationName;
-    /** @type {WebGLXApplicationSignalWorkspace} */ #applicationSignalWorkspace;
-    /** @type {number} */ #bias;
-    /** @type {Camera} */ #camera;
-    /** @type {any} */ #cubeLinesBufferInfo;
-    /** @type {WebGLXEnvironment} */ #glXEnvironment;
-    /** @type {boolean} */ #lightFrustum;
-    /** @type {Logger} */ #logger
-    /** @type {ShadowLightManager} */ #shadowLightManager;
-    /** @type {SharedUniforms} */ #sharedUniforms;
-    /** @type {SpriteManager} */ #spriteManager;
-    /** @type {Map<string, SubscriptionToken[]>} */ #spriteSubscriptions;
-    /** @type {number} */ zNear = 0.1;
-    /** @type {number} */ zFar = 700;
+class GLXDrawer {
+
+    /** @type {number} */ static #DEPTH_TEXTURE_SIZE = 512;
+    /** @type {Map<WebGLRenderingContext, Pair<WebGLTexture, WebGLFramebuffer>>} */ static #depthTB = new Map();
+
+    /**
+     * @returns {number}
+     */
+    static get DEPTH_TEXTURE_SIZE() {
+        return GLXDrawer.#DEPTH_TEXTURE_SIZE;
+    }
+
+    /**
+     * @param {WebGLRenderingContext} gl
+     * @returns {Pair<WebGLTexture, WebGLFramebuffer>}
+     */
+    static getTextureWithBufferForLights(gl) {
+        let res = GLXDrawer.#depthTB.get(gl);
+        if (isNotNullOrUndefined(res)) {
+            return res;
+        } else {
+            let texture = GLXDrawer.#createTexture(gl);
+            this.#depthTB.set(gl, texture);
+
+            return texture;
+        }
+    }
 
     /**
      * 
-     * @param {string} applicationName 
-     * @param {WebGLXEnvironment} glXEnvironment 
-     * @param {Camera} camera 
-     * @param {ShadowLightManager} shadowLightManager 
-     * @param {SharedUniforms} sharedUniforms
-     * @param {SpriteManager} spriteManager 
-     * @param {WebGLXApplicationSignalWorkspace} applicationSignalWorkspace 
-     * @param {boolean} logEnabled 
+     * @param {WebGLRenderingContext} gl 
+     * @returns {WebGLTexture}
      */
-    constructor(applicationName, glXEnvironment, camera, shadowLightManager,
-        sharedUniforms, spriteManager, applicationSignalWorkspace, logEnabled
-    ) {
-        this.#applicationName = applicationName;
-        this.#applicationSignalWorkspace = applicationSignalWorkspace;
+    static getTextureForLights(gl) {
+        return GLXDrawer.getTextureWithBufferForLights(gl).first;
+    }
+
+    /**
+     * 
+     * @param {WebGLRenderingContext} gl 
+     * @returns {WebGLFramebuffer}
+     */
+    static getTextureFrameBufferForLights(gl) {
+        return GLXDrawer.getTextureWithBufferForLights(gl).second;
+    }
+
+    /**
+     * @param {WebGLRenderingContext} gl
+     * @returns {Pair<WebGLTexture, WebGLFramebuffer>}
+     */
+    static #createTexture(gl) {
+        let depthTexture = gl.createTexture();
+        let depthTextureSize = GLXDrawer.#DEPTH_TEXTURE_SIZE;
+        gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,      // target
+            0,                  // mip level
+            gl.DEPTH_COMPONENT, // internal format
+            depthTextureSize,   // width
+            depthTextureSize,   // height
+            0,                  // border
+            gl.DEPTH_COMPONENT, // format
+            gl.UNSIGNED_INT,    // type
+            null);              // data
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        let depthFramebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, depthFramebuffer);
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,       // target
+            gl.DEPTH_ATTACHMENT,  // attachment point
+            gl.TEXTURE_2D,        // texture target
+            depthTexture,         // texture
+            0);                   // mip level
+
+        // create a color texture of the same size as the depth texture
+        // see article why this is needed_
+        let unusedTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, unusedTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            depthTextureSize,
+            depthTextureSize,
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            null,
+        );
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        // attach it to the framebuffer
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,        // target
+            gl.COLOR_ATTACHMENT0,  // attachment point
+            gl.TEXTURE_2D,         // texture target
+            unusedTexture,         // texture
+            0);
+        return pair(depthTexture, depthFramebuffer);
+    }
+
+    /** @type {GLXApplicationSignalWorkspace} */ #applicationSignalWorkspace;
+    /** @type {number} */ #bias;
+    /** @type {import("./webglx.js").GLXCamera} */ #camera;
+    /** @type {any} */ #cubeLinesBufferInfo;
+    /** @type {import("./webglx.js").GLXEnvironment} */ #glXEnvironment;
+    /** @type {boolean} */ #lightFrustum;
+    /** @type {Logger} */ #logger
+    /** @type {import("./webglx.js").GLXShadowLightManager} */ #shadowLightManager;
+    /** @type {SharedUniforms} */ #sharedUniforms;
+    /** @type {import("./webglx.js").GLXSpriteManager} */ #spriteManager;
+    /** @type {Map<string, SubscriptionToken[]>} */ #spriteSubscriptions;
+
+    /** @type {boolean} */ #autoRender = false;
+    /**
+     * 
+     * @param {GLXDrawerParams} params 
+     */
+    constructor(params) {
+        this.#applicationSignalWorkspace = params.applicationSignalWorkspace;
         this.#bias = -0.006;
-        this.#camera = camera
-        this.#glXEnvironment = glXEnvironment;
-        this.#shadowLightManager = shadowLightManager;
-        this.#spriteManager = spriteManager;
+        this.#camera = params.camera
+        this.#glXEnvironment = params.glxEnvironment;
+        this.#shadowLightManager = params.shadowLightManager;
+        this.#spriteManager = params.spriteManager;
         this.#lightFrustum = false;
-        this.#sharedUniforms = sharedUniforms;
+        this.#sharedUniforms = params.sharedUniforms;
         this.#cubeLinesBufferInfo = this.#buildCubeLinesBufferInfo();
         this.#spriteSubscriptions = new Map();
 
-        this.#setupAutoRender();
-        this.#logger = Logger.forName(`SpriteDrawer[${applicationName}]`).enabledOn(logEnabled);
+        SIGNALS.subscribe(params.applicationSignalWorkspace.main, (signal) => {
+            if (signal.data == GLXApplicationInfos.BOOTED) {
+                this.#setupAutoRender();
+            }
+        })
+
+        this.#logger = Logger.forName(`SpriteDrawer[${params.applicationName}]`)
+            .enabledOn(params.logEnabled);
+    }
+
+    get lightFrustum() {
+        return this.#lightFrustum;
+    }
+
+    /**
+     * @param {boolean} value 
+     */
+    set lightFrustum(value) {
+        this.#lightFrustum = value;
     }
 
     /**
@@ -1273,8 +1465,8 @@ class SpriteDrawer {
             u_projection: drawSceneContext.projectionMatrix,
             u_bias: this.#bias,
             u_textureMatrix: drawSceneContext.textureMatrix,
-            u_projectedTexture: ShadowLightManager.getTextureForLights(this.#glXEnvironment.glContext),
-            u_lightDirection: this.#shadowLightManager.computeLightWorldMatrix().slice(8, 11),
+            u_projectedTexture: GLXDrawer.getTextureForLights(this.#glXEnvironment.glContext),
+            u_lightDirection: this.#computeLightWorldMatrix().slice(8, 11),
         });
         gl.uniform1f(gl.getUniformLocation(drawSceneContext.programInfo.program, "mesh"), 1.);
 
@@ -1352,7 +1544,7 @@ class SpriteDrawer {
 
         this.drawScene({
             projectionMatrix: viewProjectionMatrix,
-            cameraMatrix: this.#camera.computeCameraMatrix(),
+            cameraMatrix: this.#computeCameraMatrix(),
             textureMatrix: textureMatrix,
             programInfo: this.#glXEnvironment.getProgramInfo('main')
         })
@@ -1404,18 +1596,63 @@ class SpriteDrawer {
         this.#logger.info("framebuffer, color buffer and depth buffer clean");
     }
 
+    #computeCameraMatrix() {
+        return M4.lookAt(
+            this.#camera.position.map(Math3D.toImmutableArray()),
+            this.#camera.targetPosition.map(Math3D.toImmutableArray()),
+            toJsVectorTrio(this.#camera.up)
+        );
+    }
+
     /**
      * @returns {LightMatrices}
      */
     #computeLightMatrices() {
         let gl = this.#glXEnvironment.glContext;
-        let lightWorldMatrix = this.#shadowLightManager.computeLightWorldMatrix();
-        let lightProjectionMatrix = this.#shadowLightManager.computeLightProjectionMatrix();
+        let lightWorldMatrix = this.#computeLightWorldMatrix();
+        let lightProjectionMatrix = this.#computeLightProjectionMatrix();
 
         return Object.freeze({
             projection: lightProjectionMatrix,
             world: lightWorldMatrix
         });
+    }
+
+    /**
+     * 
+     * @returns {number[]}
+     */
+    #computeLightWorldMatrix() {
+        let lightPosition = this.#shadowLightManager.lightPosition;
+        let lightTarget = this.#shadowLightManager.lightTarget;
+        let lightUp = this.#shadowLightManager.lightUp;
+        return M4.lookAt(
+            [lightPosition.x, lightPosition.y, lightPosition.z],
+            [lightTarget.x, lightTarget.y, lightTarget.z],
+            [lightUp.first, lightUp.second, lightUp.third],
+        );
+    }
+
+    /**
+     * 
+     * @returns {number[]}
+     */
+    #computeLightProjectionMatrix() {
+        if (this.#shadowLightManager.isSpotlight) {
+            return M4.perspective(
+                this.#shadowLightManager.lightFov.transform(AngleMath.asRadians()).value,
+                this.#shadowLightManager.projectionWidth / this.#shadowLightManager.projectionHeight,
+                this.#shadowLightManager.near,
+                this.#shadowLightManager.lightFar)
+        } else {
+            let halfProjectionWidth = this.#shadowLightManager.projectionWidth / 2;
+            let halfProjectionHeight = this.#shadowLightManager.projectionHeight / 2;
+            return M4.orthographic(
+                -halfProjectionWidth, halfProjectionWidth,
+                -halfProjectionHeight, halfProjectionHeight,
+                this.#shadowLightManager.near,
+                this.#shadowLightManager.lightFov)
+        }
     }
 
     /**
@@ -1452,40 +1689,20 @@ class SpriteDrawer {
 
     /**
      * 
-     * @param {Signal<WebGLXApplicationInfos>} signal 
+     * @param {Signal<GLXApplicationInfos>} signal 
      */
     #onApplicationMainSignal(signal) {
-        switch (signal.data) {
-            case WebGLXApplicationInfos.CONSTRUCTED:
-                this.renderScene();
-                break;
-            case WebGLXApplicationInfos.ADDED_SPRITE:
-                for (let gxSprite of this.#spriteManager.getAllGLXSprites()) {
-                    let spriteName = gxSprite.sprite.name;
-                    if (!this.#spriteSubscriptions.has(spriteName)) {
-                        /** @type {SubscriptionToken[]} */ let subscriptions = [];
-                        let spriteSignalWorkspace = this.#applicationSignalWorkspace.spriteName(spriteName);
-                        subscriptions.push(SIGNALS.subscribe(
-                            spriteSignalWorkspace.positionChange, this.renderScene.bind(this)));
-                        subscriptions.push(SIGNALS.subscribe(
-                            spriteSignalWorkspace.rotationChange, this.renderScene.bind(this)));
-                        subscriptions.push(SIGNALS.subscribe(
-                            spriteSignalWorkspace.scaleChange, this.renderScene.bind(this)));
-                        this.#spriteSubscriptions.set(spriteName, subscriptions);
-                        this.#logger.info(`auto rendering on any change of sprite '${spriteName}'`);
-                    }
-                }
-
+        if (signal.data === GLXApplicationInfos.ADDED_SPRITE) {
+            this.#setupAutoRenderForSprites();
         }
     }
-
     /**
      * 
      * @param {LightMatrices} lightMatrices 
      */
     #renderLightFrustum(lightMatrices) {
         let gl = this.#glXEnvironment.glContext;
-        let viewMatrix = M4.inverse(this.#camera.computeCameraMatrix())
+        let viewMatrix = M4.inverse(this.#computeCameraMatrix())
         gl.useProgram(this.#glXEnvironment.getProgramInfo('color').program)
         WebGLUtils.setBuffersAndAttributes(gl,
             this.#glXEnvironment.getProgramInfo('color'),
@@ -1507,8 +1724,8 @@ class SpriteDrawer {
      */
     #renderLights(lightMatrices) {
         let gl = this.#glXEnvironment.glContext;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, ShadowLightManager.getTextureFrameBufferForLights(gl));
-        gl.viewport(0, 0, ShadowLightManager.DEPTH_TEXTURE_SIZE, ShadowLightManager.DEPTH_TEXTURE_SIZE);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, GLXDrawer.getTextureFrameBufferForLights(gl));
+        gl.viewport(0, 0, GLXDrawer.DEPTH_TEXTURE_SIZE, GLXDrawer.DEPTH_TEXTURE_SIZE);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         if (this.#shadowLightManager.isShadowEnabled) {
@@ -1523,23 +1740,51 @@ class SpriteDrawer {
     }
 
     #setupAutoRender() {
+        this.#setupAutoRenderForSprites();
         SIGNALS.subscribe(this.#applicationSignalWorkspace.main, this.#onApplicationMainSignal.bind(this));
         SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.fovChanges, this.renderScene.bind(this));
         SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.positionChanges, this.renderScene.bind(this));
         SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.targetChanges, this.renderScene.bind(this));
         SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.upChanges, this.renderScene.bind(this));
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.zFarChanges, this.renderScene.bind(this));
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.zNearChanges, this.renderScene.bind(this));
         SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.targetSpriteChanges, this.renderScene.bind(this));
         SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.workModeChanges, this.renderScene.bind(this));
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.distanceChanges, this.renderScene.bind(this));
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.highChanges, this.renderScene.bind(this));
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.phaseChanges, this.renderScene.bind(this));
+
+        this.#logger.info('auto render setup complete')
+        this.renderScene();
     }
 
+    #setupAutoRenderForSprites() {
+        for (let gxSprite of this.#spriteManager.getAllGLXSprites()) {
+            let spriteName = gxSprite.sprite.name;
+            if (!this.#spriteSubscriptions.has(spriteName)) {
+                /** @type {SubscriptionToken[]} */ let subscriptions = [];
+                let spriteSignalWorkspace = this.#applicationSignalWorkspace.spriteName(spriteName);
+                subscriptions.push(SIGNALS.subscribe(
+                    spriteSignalWorkspace.positionChange, this.renderScene.bind(this)));
+                subscriptions.push(SIGNALS.subscribe(
+                    spriteSignalWorkspace.rotationChange, this.renderScene.bind(this)));
+                subscriptions.push(SIGNALS.subscribe(
+                    spriteSignalWorkspace.scaleChange, this.renderScene.bind(this)));
+                this.#spriteSubscriptions.set(spriteName, subscriptions);
+                this.#logger.info(`auto rendering on any change of sprite '${spriteName}'`);
+            }
+        }
+    }
+
+
     #updateViewMatrix() {
-        this.#sharedUniforms.u_view = M4.inverse(this.#camera.computeCameraMatrix());
+        this.#sharedUniforms.u_view = M4.inverse(this.#computeCameraMatrix());
     }
 
     #updateProjectionMatrix() {
         this.#sharedUniforms.u_projection = M4.perspective(
-            this.#camera.fov.transform(AngleMath.toRadians()).value,
-            this.#glXEnvironment.aspectRatio, this.zNear, this.zFar)
+            this.#camera.fov.transform(AngleMath.asRadians()).value,
+            this.#glXEnvironment.aspectRatio, this.#camera.zNear, this.#camera.zFar);
     }
 
 }
@@ -1547,19 +1792,19 @@ class SpriteDrawer {
 /**
  * @class SpriteManager
  */
-class SpriteManager {
+class GLXSpriteManager {
     /** @type {string} */ #applicationName;
     /** @type {Logger} */ #log;
     /** @type {Map<string, GLXSprite>} */ #spritesByName;
 
     /**
      *
-     * @param {string} applicationName
-     * @param {boolean} logEnabled 
+     * @param {GLXSpriteManagerConstructorParams} params
      */
-    constructor(applicationName, logEnabled) {
-        this.#applicationName = applicationName;
-        this.#log = Logger.forName('SpriteManager[' + applicationName + ']').enabledOn(logEnabled);
+    constructor(params) {
+        this.#applicationName = params.applicationName;
+        this.#log = Logger.forName('SpriteManager[' + params.applicationName + ']')
+            .enabledOn(params.logEnabled);
         this.#spritesByName = new Map();
     }
 
@@ -1572,7 +1817,12 @@ class SpriteManager {
         this.#log.info('create sprite [name: ' + spriteCreation.name + ', applicationName: ' + this.#applicationName + ']');
 
         /** @type {Sprite} */
-        let sprite = new Sprite(spriteCreation.name, this.#applicationName, spriteCreation.signalWorkspace, spriteCreation.settings ?? {});
+        let sprite = new Sprite({
+            name: spriteCreation.name,
+            applicationName: this.#applicationName,
+            signalWorkspace: spriteCreation.signalWorkspace,
+            settings: spriteCreation.settings
+        });
         this.#spritesByName.set(spriteCreation.name, Object.freeze({
             sprite: sprite,
             glData: spriteCreation.glData
@@ -1590,6 +1840,24 @@ class SpriteManager {
     }
 
     /**
+     * 
+     * @returns {Sprite[]}
+     */
+    getAllSprites() {
+        // @ts-ignore
+        return this.getAllGLXSprites().map(glxSprite => glxSprite.sprite);
+    }
+
+    /**
+     * 
+     * @returns {Sprite|undefined}
+     */
+    getFirstSprite() {
+        // @ts-ignore
+        return this.#spritesByName.values().next().value?.sprite;
+    }
+
+    /**
      *
      * @param {string} name
      * @returns {GLXSprite|undefined}
@@ -1598,74 +1866,65 @@ class SpriteManager {
         return this.#spritesByName.get(name);
     }
 
+    /**
+     * 
+     * @param {string} name 
+     * @returns {Sprite|undefined}
+     */
+    getSprite(name) {
+        // @ts-ignore
+        return this.getGLXSprite(name)?.sprite;
+    }
+
 }
 
 /**
  * @class WebGLXApplication
  */
-export class WebGLXApplication {
+export class GLXApplication {
 
     /** @type {string} */ #applicationName;
-    /** @type {Camera} */ #camera;
-    /** @type {CameraMan} */ #cameraMan;
+    /** @type {import("./webglx.js").GLXCamera} */ #camera;
+    /** @type {GLXCameraMan} */ #cameraMan;
     /** @type {Logger} */ #logger;
-    /** @type {WebGLXEnvironment} */ #webGLXEnvironment;
+    /** @type {import("./webglx.js").GLXEnvironment} */ #glxEnvironment;
     /** @type {SignalDescriptor<WebGLXApplicationInfo>} */ #mainSignalDescriptor;
-    /** @type {ShadowLightManager} */ #shadowLightManager;
-    /** @type {SpriteDrawer} */ #spriteDrawer;
-    /** @type {SpriteManager} */ #spriteManager;
-    /** @type {WebGLXApplicationSignalWorkspace} */ #signalWorkspace;
+    /** @type {GLXShadowLightManager} */ #shadowLightManager;
+    /** @type {GLXDrawer} */ #spriteDrawer;
+    /** @type {GLXSpriteManager} */ #spriteManager;
+    /** @type {import("./webglx.js").GLXApplicationSignalWorkspace}*/ #signalWorkspace;
 
     /**
      * 
-     * @param {string} applicationName 
-     * @param {WebGLXEnvironment} webGLXEnvironment 
-     * @param {WebGLXApplicationStart} appStart
+     * @param {GLXApplicationParams} params
      */
-    constructor(applicationName, webGLXEnvironment, appStart) {
-        let logEnabled = appStart.logEnabled ?? true;
-        this.#logger = Logger.forName('WebGLXApp[' + applicationName + ']').enabledOn(logEnabled);
-        this.#applicationName = applicationName;
-        this.#webGLXEnvironment = webGLXEnvironment;
-
-        this.#signalWorkspace = new WebGLXApplicationSignalWorkspace(applicationName);
+    constructor(params) {
+        let logEnabled = params.appStart.logEnabled ?? true;
+        this.#logger = Logger.forName('WebGLXApp[' + params.applicationName + ']').enabledOn(logEnabled);
+        this.#applicationName = params.applicationName;
+        this.#signalWorkspace = params.signalWorkspace;
         this.#mainSignalDescriptor = SIGNALS.register(this.#signalWorkspace.main);
-
-        this.#camera = new Camera(applicationName, this.#signalWorkspace.camera, logEnabled, appStart.cameraSettings);
-        this.#cameraMan = new CameraMan(applicationName, this.#camera, this.#signalWorkspace.cameraMan, logEnabled);
-        this.#spriteManager = new SpriteManager(applicationName, logEnabled);
-        let sharedUniforms = this.#defaultSharedUniforms();
-        this.#shadowLightManager = new ShadowLightManager(applicationName, sharedUniforms, logEnabled, appStart.shadowLightSetting);
-        this.#spriteDrawer = new SpriteDrawer(applicationName, webGLXEnvironment, this.#camera,
-            this.#shadowLightManager, sharedUniforms, this.#spriteManager, this.#signalWorkspace, logEnabled);
-
-        this.#mainSignalDescriptor.trigger({ data: WebGLXApplicationInfos.CONSTRUCTED })
+        this.#camera = this.#buildCamera(params);
+        this.#cameraMan = this.#buildCameraMan(params);
+        this.#spriteManager = this.#buildSpriteManager(params);
+        this.#shadowLightManager = this.#buildShadowLightManager(params);
+        this.#glxEnvironment = params.webGLXEnvironment;
+        this.#spriteDrawer = this.#buildDrawer(params);
+        this.#setupControls(logEnabled);
     }
 
-    /**
-     * @returns {string}
-     */
     get applicationName() {
         return this.#applicationName;
     }
 
-    /**
-     * @returns {CameraMan}
-     */
     get cameraMan() {
         return this.#cameraMan;
     }
 
-    /**
-     * @returns {Logger}
-     */
     get logger() {
         return this.#logger;
     }
 
-    /**
-     * @returns {WebGLXApplicationSignalWorkspace}
-     */
     get signalWorkspace() {
         return this.#signalWorkspace;
     }
@@ -1675,7 +1934,7 @@ export class WebGLXApplication {
      * @param {MeshSpriteLoad} load 
      */
     glxSprite(load) {
-        let data = loadObjX(this.#webGLXEnvironment.glContext, load.name, load.path);
+        let data = loadObjX(this.#glxEnvironment.glContext, load.name, load.path);
         this.#spriteDrawer.initSpriteData(data);
         let sprite = this.#spriteManager.createSprite({
             name: load.name,
@@ -1685,8 +1944,529 @@ export class WebGLXApplication {
         })
 
         this.#logger.info('loaded mesh: ', load);
-        this.#mainSignalDescriptor.trigger({ data: WebGLXApplicationInfos.ADDED_SPRITE });
+        this.#mainSignalDescriptor.trigger({ data: GLXApplicationInfos.ADDED_SPRITE });
         return sprite;
+    }
+
+    /**
+     * 
+     * @param {GLXApplicationParams} params 
+     * @returns {GLXCamera}
+     */
+    #buildCamera(params) {
+        return new GLXCamera({
+            applicationName: params.applicationName,
+            signalWorkspace: this.#signalWorkspace.camera,
+            logEnabled: params.appStart.logEnabled ?? true,
+            settings: params.appStart.cameraSettings
+        })
+    }
+
+    /**
+     * 
+     * @param {GLXApplicationParams} params 
+     * @returns {GLXCameraMan} 
+     */
+    #buildCameraMan(params) {
+        return new GLXCameraMan({
+            applicationName: params.applicationName,
+            camera: this.#camera,
+            signalWorkspace: this.#signalWorkspace.cameraMan,
+            logEnabled: params.appStart.logEnabled ?? true
+        })
+    }
+
+    /**
+     * 
+     * @param {GLXApplicationParams} params 
+     * @returns {GLXDrawer}
+     */
+    #buildDrawer(params) {
+        let sharedUniforms = this.#defaultSharedUniforms();
+        return new GLXDrawer({
+            applicationName: params.applicationName,
+            glxEnvironment: this.#glxEnvironment,
+            camera: this.#camera,
+            shadowLightManager: this.#shadowLightManager,
+            sharedUniforms: sharedUniforms,
+            spriteManager: this.#spriteManager,
+            applicationSignalWorkspace: this.#signalWorkspace,
+            logEnabled: params.appStart.logEnabled ?? true
+        })
+    }
+
+    /**
+     * 
+     * @param {Sprite[]} sprites 
+     * @returns {GLXControl<any>[]}
+     */
+    #buildGuiControls(sprites) {
+        let spriteNames = sprites.map(sprite => sprite.name);
+        let currentSprite = this.#spriteManager.getFirstSprite();
+
+        return [
+            {
+                type: GLXControlTypes.DRAW,
+                value: () => this.#spriteDrawer.renderScene()
+            },
+            {
+                type: GLXControlTypes.LOG,
+                value: loggingEnabled()
+            },
+            {
+                type: GLXControlTypes.CAM_MAN_WORK_MODE,
+                value: this.#cameraMan.workMode,
+                options: CAMERA_MAN_WORK_MODES,
+                listenSignal: this.#signalWorkspace.cameraMan.workModeChanges,
+                listenReducer: (/** @type {Signal<Change<GLXCameraManWorkMode>>} */ signal) => signal.data.to,
+                onValueChange: (/** @type {GLXCameraManWorkMode} */ value) => this.#cameraMan.hire(value)
+            },
+            {
+                type: GLXControlTypes.TARGET,
+                value: this.#cameraMan.targetSprite?.name,
+                options: spriteNames,
+                listenSignal: this.#signalWorkspace.cameraMan.targetSpriteChanges,
+                listenReducer: (/** @type {Signal<Change<Sprite>>} */ signal) => signal.data.to,
+                onValueChange: (/** @type {string} */ value) => {
+                    let sprite = this.#spriteManager.getSprite(value);
+                    if (isNotNullOrUndefined(sprite)) {
+                        this.#cameraMan.targetSprite = sprite;
+                    } else {
+                        alert(`unable to set target sprite: missing sprite named ${value}`);
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.CHASE,
+                value: this.#cameraMan.isChasingSprite,
+                listenSignal: this.#signalWorkspace.cameraMan.isChasingSpriteChanges,
+                listenReducer: (/** @type {Signal<Change<boolean>>} */ signal) => signal.data.to,
+                onValueChange: (/** @type {boolean} */ value) => {
+                    if (value) {
+                        this.#cameraMan.chaseTargetSprite();
+                    } else {
+                        this.#cameraMan.unChaseSprite();
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.LOOK_AT,
+                value: this.#cameraMan.isLookingAtSprite,
+                listenSignal: this.#signalWorkspace.cameraMan.isLookingAtSpriteChanges,
+                listenReducer: (/** @type {Signal<Change<boolean>>} */ signal) => signal.data.to,
+                onValueChange: (/** @type {boolean} */ value) => {
+                    if (value) {
+                        this.#cameraMan.lookAtTargetSprite();
+                    } else {
+                        this.#cameraMan.unLookAtSprite();
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.CAM_MAN_HIGH,
+                value: this.#cameraMan.high,
+                min: 0,
+                max: 100,
+                step: 1,
+                listenSignal: this.#signalWorkspace.cameraMan.highChanges,
+                listenReducer: (/** @type {Signal<Change<number>>} */ signal) => signal.data.to,
+                onValueChange: (/** @type {number} */ value) => this.#cameraMan.high = value
+            },
+            {
+                type: GLXControlTypes.CAM_MAN_DISTANCE,
+                value: this.#cameraMan.distance,
+                min: 0,
+                max: 100,
+                step: 1,
+                listenSignal: this.#signalWorkspace.cameraMan.distanceChanges,
+                listenReducer: (/** @type {Signal<Change<number>} */ signal) => signal.data.to,
+                onValueChange: (/** @type {number} */ value) => this.#cameraMan.distance = value
+            },
+            {
+                type: GLXControlTypes.CAM_X,
+                value: this.#camera.position.x,
+                min: -500,
+                max: 500,
+                step: 5,
+                listenSignal: this.#signalWorkspace.camera.positionChanges,
+                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.x,
+                onValueChange: (/** @type {number} */ value) => this.#camera.position =
+                    this.#camera.position.transform(Math3D.setCoordinate(Axes.X, value))
+            },
+            {
+                type: GLXControlTypes.CAM_Y,
+                value: this.#camera.position.y,
+                min: -500,
+                max: 500,
+                step: 5,
+                listenSignal: this.#signalWorkspace.camera.positionChanges,
+                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.y,
+                onValueChange: (/** @type {number} */ value) => this.#camera.position =
+                    this.#camera.position.transform(Math3D.setCoordinate(Axes.Y, value))
+            },
+            {
+                type: GLXControlTypes.CAM_Z,
+                value: this.#camera.position.z,
+                min: -500,
+                max: 500,
+                step: 5,
+                listenSignal: this.#signalWorkspace.camera.positionChanges,
+                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.z,
+                onValueChange: (/** @type {number} */ value) => this.#camera.position =
+                    this.#camera.position.transform(Math3D.setCoordinate(Axes.Z, value))
+            },
+            {
+                type: GLXControlTypes.CAM_UP_X,
+                value: this.#camera.up.first,
+                min: -1,
+                max: 1,
+                step: 0.001,
+                listenSignal: this.#signalWorkspace.camera.upChanges,
+                listenReducer: (/** @type {Signal<Change<Trio<number>>>} */ signal) => signal.data.to.first,
+                onValueChange: (/** @type {number} */ value) => this.#camera.up =
+                    trio(value, this.#camera.up.second, this.#camera.up.third)
+            },
+            {
+                type: GLXControlTypes.CAM_UP_Y,
+                value: this.#camera.up.second,
+                min: -1,
+                max: 1,
+                step: 0.001,
+                listenSignal: this.#signalWorkspace.camera.upChanges,
+                listenReducer: (/** @type {Signal<Change<Trio<number>>>} */ signal) => signal.data.to.second,
+                onValueChange: (/** @type {number} */ value) => this.#camera.up =
+                    trio(this.#camera.up.first, value, this.#camera.up.third)
+            },
+            {
+                type: GLXControlTypes.CAM_UP_Z,
+                value: this.#camera.up.third,
+                min: -1,
+                max: 1,
+                step: 0.001,
+                listenSignal: this.#signalWorkspace.camera.upChanges,
+                listenReducer: (/** @type {Signal<Change<Trio<number>>>} */ signal) => signal.data.to.third,
+                onValueChange: (/** @type {number} */ value) => this.#camera.up =
+                    trio(this.#camera.up.first, this.#camera.up.second, value)
+            },
+            {
+                type: GLXControlTypes.Z_NEAR,
+                value: this.#camera.zNear,
+                min: 0,
+                max: 10,
+                step: 0.1,
+                listenSignal: this.#signalWorkspace.camera.zNearChanges,
+                listenReducer: (/** @type {Signal<Change<number>>} */ signal) => signal.data.to,
+                onValueChange: (/** @type {number} */ value) => this.#camera.zNear = value
+            },
+            {
+                type: GLXControlTypes.Z_FAR,
+                value: this.#camera.zFar,
+                min: 0,
+                max: 1000,
+                step: 1,
+                listenSignal: this.#signalWorkspace.camera.zFarChanges,
+                listenReducer: (/** @type {Signal<Change<number>>} */ signal) => signal.data.to,
+                onValueChange: (/** @type {number} */ value) => this.#camera.zFar = value
+            },
+            {
+                type: GLXControlTypes.FOV,
+                value: this.#camera.fov.map(AngleMath.degreeValue()),
+                min: 0,
+                max: 180,
+                listenSignal: this.#signalWorkspace.camera.zFarChanges,
+                listenReducer: (/** @type {Signal<Change<Angle>>} */ signal) => signal.data.to.map(AngleMath.degreeValue()),
+                onValueChange: (/** @type {number} */ value) => this.#camera.fov = degrees(value)
+            },
+            {
+                type: GLXControlTypes.TARGET_X,
+                value: this.#camera.targetPosition.x,
+                min: -500,
+                max: 500,
+                step: 1,
+                listenSignal: this.#signalWorkspace.camera.targetChanges,
+                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.x,
+                onValueChange: (/** @type {number} */ value) => this.#camera.targetPosition =
+                    this.#camera.targetPosition.transform(Math3D.setCoordinate(Axes.X, value))
+            },
+            {
+                type: GLXControlTypes.TARGET_Y,
+                value: this.#camera.targetPosition.y,
+                min: -500,
+                max: 500,
+                step: 1,
+                listenSignal: this.#signalWorkspace.camera.targetChanges,
+                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.y,
+                onValueChange: (/** @type {number} */ value) => this.#camera.targetPosition =
+                    this.#camera.targetPosition.transform(Math3D.setCoordinate(Axes.Y, value))
+            },
+            {
+                type: GLXControlTypes.TARGET_Z,
+                value: this.#camera.targetPosition.z,
+                min: -500,
+                max: 500,
+                step: 1,
+                listenSignal: this.#signalWorkspace.camera.targetChanges,
+                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.z,
+                onValueChange: (/** @type {number} */ value) => this.#camera.targetPosition =
+                    this.#camera.targetPosition.transform(Math3D.setCoordinate(Axes.Z, value))
+            },
+            {
+                type: GLXControlTypes.SHADOWS,
+                value: this.#shadowLightManager.isShadowEnabled,
+                onValueChange: (/** @type {boolean} */ value) => this.#shadowLightManager.isShadowEnabled = value
+            },
+            {
+                type: GLXControlTypes.FRUSTUM,
+                value: this.#spriteDrawer.lightFrustum,
+                onValueChange: (/** @type {boolean} */ value) => this.#spriteDrawer.lightFrustum = value
+            },
+            {
+                type: GLXControlTypes.LIGHT_X,
+                value: this.#shadowLightManager.lightPosition.x,
+                min: -500,
+                max: 500,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightPosition =
+                    this.#shadowLightManager.lightPosition.transform(Math3D.setCoordinate(Axes.X, value))
+            },
+            {
+                type: GLXControlTypes.LIGHT_Y,
+                value: this.#shadowLightManager.lightPosition.y,
+                min: -500,
+                max: 500,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightPosition =
+                    this.#shadowLightManager.lightPosition.transform(Math3D.setCoordinate(Axes.Y, value))
+            },
+            {
+                type: GLXControlTypes.LIGHT_Z,
+                value: this.#shadowLightManager.lightPosition.z,
+                min: -500,
+                max: 500,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightPosition =
+                    this.#shadowLightManager.lightPosition.transform(Math3D.setCoordinate(Axes.Z, value))
+            },
+            {
+                type: GLXControlTypes.LIGHT_TARGET_X,
+                value: this.#shadowLightManager.lightTarget.x,
+                min: -500,
+                max: 500,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightTarget =
+                    this.#shadowLightManager.lightTarget.transform(Math3D.setCoordinate(Axes.X, value))
+            },
+            {
+                type: GLXControlTypes.LIGHT_TARGET_Y,
+                value: this.#shadowLightManager.lightTarget.y,
+                min: -500,
+                max: 500,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightTarget =
+                    this.#shadowLightManager.lightTarget.transform(Math3D.setCoordinate(Axes.Y, value))
+            },
+            {
+                type: GLXControlTypes.LIGHT_TARGET_Z,
+                value: this.#shadowLightManager.lightTarget.z,
+                min: -500,
+                max: 500,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightTarget =
+                    this.#shadowLightManager.lightTarget.transform(Math3D.setCoordinate(Axes.Z, value))
+            },
+            {
+                type: GLXControlTypes.LIGHT_FOV,
+                value: this.#shadowLightManager.lightFov.map(AngleMath.degreeValue()),
+                min: 0,
+                max: 360,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightFov =
+                    this.#shadowLightManager.lightFov = degrees(value)
+            },
+            {
+                type: GLXControlTypes.LIGHT_NEAR,
+                value: this.#shadowLightManager.lightNear,
+                min: 0,
+                max: 100,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightNear = value
+            },
+            {
+                type: GLXControlTypes.LIGHT_FAR,
+                value: this.#shadowLightManager.lightFar,
+                min: 0,
+                max: 1000,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightFar = value
+            },
+            {
+                type: GLXControlTypes.SPOTLIGHT,
+                value: this.#shadowLightManager.isSpotlight,
+                onValueChange: (/** @type {boolean} */ value) => this.#shadowLightManager.isSpotlight = value
+            },
+            {
+                type: GLXControlTypes.LIGHT_WIDTH,
+                value: this.#shadowLightManager.projectionWidth,
+                min: 0,
+                max: 100,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.projectionWidth = value
+            },
+            {
+                type: GLXControlTypes.LIGHT_HEIGHT,
+                value: this.#shadowLightManager.projectionHeight,
+                min: 0,
+                max: 100,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.projectionHeight = value
+            },
+            {
+                type: GLXControlTypes.CURR_SPRITE,
+                value: currentSprite?.name,
+                options: spriteNames,
+                onValueChange: (/** @type {string} */ value) => {
+                    let sprite = this.#spriteManager.getSprite(value);
+                    if (isNotNullOrUndefined(sprite)) {
+                        currentSprite = sprite;
+                    } else {
+                        alert(`unable to set current sprite:  missing sprite named ${value}`)
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.SPRITE_X,
+                value: currentSprite?.position.x,
+                min: -200,
+                max: 200,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => {
+                    if (isNotNullOrUndefined(currentSprite)) {
+                        currentSprite.position = currentSprite.position.transform(Math3D.setCoordinate(Axes.X, value));
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.SPRITE_Y,
+                value: currentSprite?.position.y,
+                min: -200,
+                max: 200,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => {
+                    if (isNotNullOrUndefined(currentSprite)) {
+                        currentSprite.position = currentSprite.position.transform(Math3D.setCoordinate(Axes.Y, value));
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.SPRITE_Z,
+                value: currentSprite?.position.z,
+                min: -200,
+                max: 200,
+                step: 1,
+                onValueChange: (/** @type {number} */ value) => {
+                    if (isNotNullOrUndefined(currentSprite)) {
+                        currentSprite.position = currentSprite.position.transform(Math3D.setCoordinate(Axes.Z, value));
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.SPRITE_SCALE_X,
+                value: currentSprite?.scale.first,
+                min: 0,
+                max: 10,
+                step: 0.01,
+                onValueChange: (/** @type {number} */ value) => {
+                    if (isNotNullOrUndefined(currentSprite)) {
+                        currentSprite.scale = trio(value, currentSprite.scale.second, currentSprite.scale.third);
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.SPRITE_SCALE_Y,
+                value: currentSprite?.scale.second,
+                min: 0,
+                max: 10,
+                step: 0.01,
+                onValueChange: (/** @type {number} */ value) => {
+                    if (isNotNullOrUndefined(currentSprite)) {
+                        currentSprite.scale = trio(currentSprite.scale.first, value, currentSprite.scale.third);
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.SPRITE_SCALE_Z,
+                value: currentSprite?.scale.third,
+                min: 0,
+                max: 10,
+                step: 0.01,
+                onValueChange: (/** @type {number} */ value) => {
+                    if (isNotNullOrUndefined(currentSprite)) {
+                        currentSprite.scale = trio(currentSprite.scale.first, currentSprite.scale.second, value);
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.SPRITE_PSI,
+                value: currentSprite?.rotation.first.map(AngleMath.degreeValue()),
+                min: -180,
+                max: 180,
+                step: 0.1,
+                onValueChange: (/** @type {number} */ value) => {
+                    if (isNotNullOrUndefined(currentSprite)) {
+                        currentSprite.rotation = trio(degrees(value), currentSprite.rotation.second, currentSprite.rotation.third);
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.SPRITE_THETA,
+                value: currentSprite?.rotation.second.map(AngleMath.degreeValue()),
+                min: -180,
+                max: 180,
+                step: 0.1,
+                onValueChange: (/** @type {number} */ value) => {
+                    if (isNotNullOrUndefined(currentSprite)) {
+                        currentSprite.rotation = trio(currentSprite.rotation.first, degrees(value), currentSprite.rotation.third);
+                    }
+                }
+            },
+            {
+                type: GLXControlTypes.SPRITE_PHI,
+                value: currentSprite?.rotation.third.map(AngleMath.degreeValue()),
+                min: -180,
+                max: 180,
+                step: 0.1,
+                onValueChange: (/** @type {number} */ value) => {
+                    if (isNotNullOrUndefined(currentSprite)) {
+                        currentSprite.rotation = trio(currentSprite.rotation.first, currentSprite.rotation.second, degrees(value));
+                    }
+                }
+            }
+        ];
+    }
+
+    /**
+     * 
+     * @param {GLXApplicationParams} params 
+     * @returns {GLXShadowLightManager}
+     */
+    #buildShadowLightManager(params) {
+        return new GLXShadowLightManager({
+            applicationName: params.applicationName,
+            logEnabled: params.appStart.logEnabled ?? true,
+            settings: params.appStart.shadowLightSetting
+        });
+    }
+
+    /**
+     * 
+     * @param {GLXApplicationParams} params 
+     * @returns 
+     */
+    #buildSpriteManager(params) {
+        return new GLXSpriteManager({
+            applicationName: params.applicationName,
+            logEnabled: params.appStart.logEnabled ?? true
+        })
     }
 
     /**
@@ -1706,36 +2486,196 @@ export class WebGLXApplication {
         }
     }
 
-    #initSignals() {
+    #linkControls() {
+        SIGNALS.subscribe(this.#signalWorkspace.controls, (/** @type {Signal<GLXControlInfo>} */ signal) => {
+            switch (signal.data.type) {
+                case GLXControlTypes.LOG:
+                    enableLoggingOn(signal.data.value);
+                    break;
+                case GLXControlTypes.TARGET:
+                    let sprite = this.#spriteManager.getSprite(signal.data.value);
+                    if (isNotNullOrUndefined(sprite)) {
+                        this.#cameraMan.targetSprite = sprite;
+                    }
+                    break;
+                case GLXControlTypes.CHASE:
+                    signal.data.value ? this.#cameraMan.chaseTargetSprite() : this.#cameraMan.unChaseSprite();
+                    break;
+                case GLXControlTypes.LOOK_AT:
+                    signal.data.value ? this.#cameraMan.lookAtTargetSprite() : this.#cameraMan.unLookAtSprite();
+                    break;
+                case GLXControlTypes.CAM_X:
+                    this.#camera.position =
+                        this.#camera.position.transform(Math3D.setCoordinate(Axes.X, signal.data.value));
+                    break;
+                case GLXControlTypes.CAM_Y:
+                    this.#camera.position =
+                        this.#camera.position.transform(Math3D.setCoordinate(Axes.Y, signal.data.value));
+                    break;
+                case GLXControlTypes.CAM_Z:
+                    this.#camera.position =
+                        this.#camera.position.transform(Math3D.setCoordinate(Axes.Z, signal.data.value));
+                    break;
+                case GLXControlTypes.CAM_UP_X:
+                    var previousUp = this.#camera.up;
+                    this.#camera.up = trio(signal.data.value, previousUp.second, previousUp.third);
+                    break;
+                case GLXControlTypes.CAM_UP_Y:
+                    var previousUp = this.#camera.up;
+                    this.#camera.up = trio(previousUp.first, signal.data.value, previousUp.third);
+                    break;
+                case GLXControlTypes.CAM_UP_Z:
+                    var previousUp = this.#camera.up;
+                    this.#camera.up = trio(previousUp.first, previousUp.second, signal.data.value);
+                    break;
+                case GLXControlTypes.Z_FAR:
+                    this.#camera.zFar = signal.data.value;
+                    break;
+                case GLXControlTypes.Z_NEAR:
+                    this.#camera.zNear = signal.data.value;
+                    break;
+            }
+        })
+    }
 
+    /**
+     * 
+     * @param {boolean} logEnabled 
+     */
+    #setupControls(logEnabled) {
+        SIGNALS.subscribe(this.#signalWorkspace.main, (/** @type {Signal<WebGLXApplicationInfo>} */ signal) => {
+            if (signal.data == GLXApplicationInfos.BOOTED) {
+                new GLXApplicationControls({
+                    applicatioName: this.#applicationName,
+                    // @ts-ignore
+                    applicationSignalWorkspace: this.#signalWorkspace,
+                    controls: this.#buildGuiControls(this.#spriteManager.getAllSprites()),
+                    logEnabled: logEnabled
+                });
+                //this.#linkControls();
+            }
+        })
     }
 }
 
-class WebGLXApplicationSignalWorkspace {
+class GLXApplicationControls {
+
+    /** @type {GLXApplicationSignalWorkspace} */ #applicationSignalWorkspace;
+    /** @type {GLXControl<any>[]} */ #controls = [];
+    /** @type {Logger} */ #logger;
+    /** @type {any} */ #settings = {};
+    /** @type {SignalDescriptor<GLXControlInfo>} */ #signalDescriptor;
+    /** @type {SubscriptionToken[]} */ #targetSubscriptionTokens;
+
+    /**
+     * 
+     * @param {WebGLXControlsParams} params
+     */
+    constructor(params) {
+        // @ts-ignore
+        this.#applicationSignalWorkspace = params.applicationSignalWorkspace;
+        this.#controls = params.controls;
+        this.#logger = Logger.forName(`WebGLXAppControls[${params.applicatioName}]`).enabledOn(params.logEnabled ?? true);
+
+        this.#signalDescriptor = SIGNALS.register(params.applicationSignalWorkspace.controls);
+        this.#targetSubscriptionTokens = [];
+
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.main, (signal) => {
+            // @ts-ignore
+            this.#controls = this.#controls;
+            this.#settings = this.#controlsToSettings(this.#controls);
+            if (signal.data === GLXApplicationInfos.BOOTED) {
+                this.#setup();
+            }
+        });
+    }
+
+    /**
+     * 
+     * @param {GLXControl<any>[]} controls 
+     * @returns {any}
+     */
+    #controlsToSettings(controls) {
+        /** @type {any} */ let settings = {};
+        for (let control of controls) {
+            settings[control.type] = control.value
+        }
+
+        return settings;
+    }
+
+    #setup() {
+        /** @type {any} */ let gui = new dat.GUI();
+        for (let control of this.#controls) {
+            let controller = gui.add(this.#settings, control.type, control.options);
+            ifNotNullOrUndefined(control.min, min => controller = controller.min(min));
+            ifNotNullOrUndefined(control.max, max => controller = controller.max(max));
+            ifNotNullOrUndefined(control.step, step => controller = controller.step(step));
+            let onChange = (/** @type {any} */ value) => {
+                this.#signalDescriptor.trigger({
+                    data: {
+                        type: control.type,
+                        value: value
+                    }
+                });
+                if (isNotNullOrUndefined(control.onValueChange)) {
+                    control.onValueChange(value);
+                }
+            };
+            controller.onChange(onChange);
+
+            ifNotNullOrUndefined(control.listenSignal, listenSignalName => {
+                SIGNALS.subscribe(listenSignalName, (/** @type {Signal<any>} */ signal) => {
+                    let newValue = isNotNullOrUndefined(control.listenReducer) ? control.listenReducer(signal) : signal.data;
+                    if (newValue !== this.#settings[control.type]) {
+                        this.#settings[control.type] = newValue;
+                        controller.onChange(undefined);
+                        controller.setValue(newValue);
+                        controller.onChange(onChange)
+                    }
+                })
+            });
+        }
+    }
+}
+
+/**
+ * @class WebGLXApplicationSignalWorkspace
+ */
+export class GLXApplicationSignalWorkspace {
 
     /** @type {CameraSignalWorkspace} */
     static #CAMERA = {
         positionChanges: 'camera.position',
         upChanges: 'camera.up',
         targetChanges: 'camera.target',
-        fovChanges: 'camera.fov'
+        fovChanges: 'camera.fov',
+        zFarChanges: 'camera.zfar',
+        zNearChanges: 'camera.znear'
     }
 
-    /** @type {CameraManSignalWorkspace} */
+    /** @type {GLXCameraManSignalWorkspace} */
     static #CAMERA_MAN = {
+        distanceChanges: 'cameraman.distance',
+        highChanges: 'cameraman.high',
         isLookingAtSpriteChanges: 'cameraman.isLookingAtSprite',
         isChasingSpriteChanges: 'cameraman.isChasingSprite',
+        phaseChanges: 'cameraman.phase',
         targetSpriteChanges: 'cameraman.targetSprite',
         workModeChanges: 'cameraman.workMode'
     }
 
-    /** @type {String} */
+    /** @type {string} */
+    static #CONTROLS = "gui_settings";
+
+    /** @type {string} */
     static #MAIN = "main";
 
     /** @type {string} */ #applicationName;
 
     /** @type {CameraSignalWorkspace} */ #camera
-    /** @type {CameraManSignalWorkspace} */ #cameraMan
+    /** @type {GLXCameraManSignalWorkspace} */ #cameraMan
+    /** @type {string} */ #controls;
     /** @type {string}*/ #main;
     /** @type {Map<string, SpriteSignalWorkspace>} */ #sprites
 
@@ -1747,20 +2687,26 @@ class WebGLXApplicationSignalWorkspace {
         this.#applicationName = applicationName;
 
         this.#camera = Object.freeze({
-            positionChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.positionChanges),
-            upChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.upChanges),
-            targetChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.targetChanges),
-            fovChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA.fovChanges)
+            positionChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA.positionChanges),
+            upChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA.upChanges),
+            targetChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA.targetChanges),
+            fovChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA.fovChanges),
+            zNearChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA.zNearChanges),
+            zFarChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA.zFarChanges),
         })
 
         this.#cameraMan = Object.freeze({
-            isChasingSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.isChasingSpriteChanges),
-            isLookingAtSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.isLookingAtSpriteChanges),
-            targetSpriteChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.targetSpriteChanges),
-            workModeChanges: this.#absolutize(WebGLXApplicationSignalWorkspace.#CAMERA_MAN.workModeChanges)
+            distanceChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA_MAN.distanceChanges),
+            highChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA_MAN.highChanges),
+            isChasingSpriteChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA_MAN.isChasingSpriteChanges),
+            isLookingAtSpriteChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA_MAN.isLookingAtSpriteChanges),
+            phaseChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA_MAN.phaseChanges),
+            targetSpriteChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA_MAN.targetSpriteChanges),
+            workModeChanges: this.#absolutize(GLXApplicationSignalWorkspace.#CAMERA_MAN.workModeChanges)
         })
 
-        this.#main = this.#absolutize(WebGLXApplicationSignalWorkspace.#MAIN);
+        this.#controls = this.#absolutize(GLXApplicationSignalWorkspace.#CONTROLS);
+        this.#main = this.#absolutize(GLXApplicationSignalWorkspace.#MAIN);
         this.#sprites = new Map();
     }
 
@@ -1772,10 +2718,17 @@ class WebGLXApplicationSignalWorkspace {
     }
 
     /**
-     * @returns {CameraManSignalWorkspace}
+     * @returns {GLXCameraManSignalWorkspace}
      */
     get cameraMan() {
         return this.#cameraMan;
+    }
+
+    /**
+     * @returns {string}
+     */
+    get controls() {
+        return this.#controls;
     }
 
     /**
@@ -1827,7 +2780,7 @@ class WebGLXApplicationSignalWorkspace {
 /**
  * @class WebGLXEnvironment
  */
-class WebGLXEnvironment {
+class GLXEnvironment {
     /** @type {HTMLCanvasElement} */ #canvas;
     /** @type {WebGLRenderingContext} */ #gl;
     /** @type {Map<string, ProgramInfo>} */ #programInfo;
@@ -2023,21 +2976,29 @@ export function scale(mx, my, mz) {
 export function start(appStart) {
     let appName = appStart.applicationClass.prototype.constructor.name;
     let logger = Logger.forName(`GLXStart[${appName}]`).enabledOn(appStart.logEnabled ?? true);
-    logger.info('starting...')
-
-    let shaders = mapShaders(appStart.webGLShaders);
-    logger.info('shaders: ', shaders);
-
     let glxEnv = createWebglEnvironment(appStart.canvasElementName, mapShaders(appStart.webGLShaders));
-    logger.info('webGLX environment created: ', glxEnv);
+    let signalWorkspace = new GLXApplicationSignalWorkspace(appName);
+    let mainSignalDescriptor = SIGNALS.register(signalWorkspace.main);
 
-    let app = new appStart.applicationClass(appName, glxEnv, appStart);
+    /** @type {GLXApplicationParams} */ let params = {
+        applicationName: appName,
+        // @ts-ignore
+        webGLXEnvironment: glxEnv,
+        appStart: appStart,
+        // @ts-ignore
+        signalWorkspace: signalWorkspace,
+        mainSignalDescriptor: mainSignalDescriptor
+
+    }
+    let app = new appStart.applicationClass(params);
+    mainSignalDescriptor.trigger({ data: GLXApplicationInfos.CONSTRUCTED });
     logger.info('application instantiated');
 
     if (isNotNullOrUndefined(app.main)) {
         logger.info('running application main');
         app.main();
     }
+    mainSignalDescriptor.trigger({ data: GLXApplicationInfos.BOOTED })
 }
 
 /**
@@ -2057,6 +3018,14 @@ export function trio(first, second, third) {
 
 /* UTILITIES ******************************************************************************************************** */
 
+const CAMERA_MAN_WORK_MODES = [
+    GLXCameraManWorkModes.CUSTOM,
+    GLXCameraManWorkModes.FIRST_PERSON,
+    GLXCameraManWorkModes.THIRD_PERSON,
+    GLXCameraManWorkModes.OVER,
+    GLXCameraManWorkModes.DISMISSED
+];
+
 /**
  *
  * @param {string} msg
@@ -2071,7 +3040,7 @@ function alertedError(msg) {
  * 
  * @param {string} canvasHtmlName 
  * @param {Map<string, string[]} webGLShaders 
- * @returns {WebGLXEnvironment}
+ * @returns {GLXEnvironment}
  */
 function createWebglEnvironment(canvasHtmlName, webGLShaders) {
     let canvas = document.getElementById(canvasHtmlName);
@@ -2079,7 +3048,21 @@ function createWebglEnvironment(canvasHtmlName, webGLShaders) {
         alert("Unable to find the canvas with id: " + canvas);
         throw new Error("Unable to find the canvas with id: " + canvas);
     }
-    return new WebGLXEnvironment(canvas, webGLShaders);
+    return new GLXEnvironment(canvas, webGLShaders);
+}
+
+/**
+ *
+ * @template T
+ * @template R
+ * @param {T|null|undefined} obj 
+ * @param {(obj: T) => R} action 
+ * @returns R
+ */
+function ifNotNullOrUndefined(obj, action) {
+    if (isNotNullOrUndefined(obj)) {
+        action(obj);
+    }
 }
 
 /**

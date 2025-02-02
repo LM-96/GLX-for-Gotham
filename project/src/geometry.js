@@ -5,7 +5,16 @@
 
 /* TYPES (JSDoc) **************************************************************************************************** */
 /**
+ * @template T
+ * @typedef {Mapper<Angle, T>} AngleMapper
+ */
+
+/**
  * @typedef {Transformer<Angle>} AngleTransformer
+ */
+
+/**
+ * @typedef {import('./geometry').Axis} Axis
  */
 
 /**
@@ -54,7 +63,7 @@ export class AngleUnits {
     }
 }
 
-class Axes {
+export class Axes {
     static X = "x";
     static Y = "y";
     static Z = "z";
@@ -78,7 +87,7 @@ class RotationMatrices {
      * @returns {Matrix}
      */
     static RX(angle) {
-        let theta = angle.transform(AngleMath.toRadians()).value;
+        let theta = angle.transform(AngleMath.asRadians()).value;
         return new Matrix([
             [1, 0, 0],
             [0, Math.cos(theta), -1 * Math.sin(theta)],
@@ -92,7 +101,7 @@ class RotationMatrices {
      * @returns {Matrix}
      */
     static RY(angle) {
-        let theta = angle.transform(AngleMath.toRadians()).value;
+        let theta = angle.transform(AngleMath.asRadians()).value;
         return new Matrix([
             [Math.cos(theta), 0, Math.sin(theta)],
             [0, 1, 0],
@@ -106,7 +115,7 @@ class RotationMatrices {
      * @returns {Matrix}
      */
     static RZ(angle) {
-        let theta = angle.transform(AngleMath.toRadians()).value;
+        let theta = angle.transform(AngleMath.asRadians()).value;
         return new Matrix([
             [Math.cos(theta), -1 * Math.sin(theta), 0],
             [Math.sin(theta), Math.cos(theta), 0],
@@ -173,6 +182,16 @@ export class Angle {
         return false;
     }
 
+    /**
+     * 
+     * @template R
+     * @param {AngleMapper<R>} mapper 
+     * @returns R
+     */
+    map(mapper) {
+        return mapper(this);
+    }
+
     toString() {
         return `Angle(value=${this.value}, unit=${this.unit})`;
     }
@@ -190,6 +209,22 @@ export class Angle {
 export class AngleMath {
     static #TO_DEGREES = AngleMath.convert(AngleUnits.DEGREES);
     static #TO_RADIANS = AngleMath.convert(AngleUnits.RADIANS);
+
+    /**
+     * 
+     * @returns {AngleTransformer}
+     */
+    static asDegrees() {
+        return AngleMath.#TO_DEGREES;
+    }
+
+    /**
+     * 
+     * @returns {AngleTransformer}
+     */
+    static asRadians() {
+        return AngleMath.#TO_RADIANS;
+    }
 
     /**
      *
@@ -211,12 +246,41 @@ export class AngleMath {
         };
     }
 
-    static toDegrees() {
-        return AngleMath.#TO_DEGREES;
+    /**
+     * 
+     * @returns {AngleMapper<number>}
+     */
+    static degreeValue() {
+        return angle => {
+            if (angle.unit === AngleUnits.RADIANS) {
+                return AngleMath.#rad2Deg(angle.value);
+            }
+
+            return angle.value;
+        }
     }
 
-    static toRadians() {
-        return AngleMath.#TO_RADIANS;
+    /**
+     * 
+     * @param {number} value
+     * @returns {AngleTransformer} 
+     */
+    static multiplyBy(value) {
+        return angle => new Angle(angle.value * value, angle.unit);
+    }
+
+    /**
+     * 
+     * @returns {AngleMapper<number>}
+     */
+    static radiansValue() {
+        return angle => {
+            if (angle.unit === AngleUnits.DEGREES) {
+                return AngleMath.#deg2Rad(angle.value);
+            }
+
+            return angle.value;
+        }
     }
 
     /**
@@ -283,6 +347,24 @@ export class Math3D {
      */
     static scale(mx, my, mz) {
         return point => new Point3D(point.x * mx, point.y * my, point.z * mz);
+    }
+
+    /**
+     * 
+     * @param {Axis} coordinate 
+     * @param {number} value 
+     * @returns {Point3DTransformer}
+     */
+    static setCoordinate(coordinate, value) {
+        return point => {
+            switch(coordinate) {
+                case Axes.X: return new Point3D(value, point.y, point.z);
+                case Axes.Y: return new Point3D(point.x, value, point.z);
+                case Axes.Z: return new Point3D(point.x, point.y, value);
+                default: throw new Error(`invalid axis ${coordinate}`);
+                
+            }
+        }
     }
 
     /**

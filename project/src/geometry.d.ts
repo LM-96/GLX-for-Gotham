@@ -1,5 +1,7 @@
 export type AngleUnit = 'deg' | 'rad';
 
+export type AngleMapper<R> = Mapper<Angle, R>
+
 export type AngleTransformer = Transformer<Angle>;
 
 export type Axis = 'x' | 'y' | 'z';
@@ -28,15 +30,18 @@ export declare class Angle {
 
     clone();
     equals(other: any);
+    map<R>(mapper: Mapper<R>): R
     toString(): string;
     transform(...transformers: AngleTransformer[]): Angle;
 }
 
 export declare class AngleMath {
+    static asDegrees(): AngleTransformer;
+    static asRadians(): AngleTransformer;
+    static degreeValue(): Mapper<number>;
     static convert(unit: AngleUnit): AngleTransformer;
-    static toDegrees(): AngleTransformer;
-
-    static toRadians(): AngleTransformer;
+    static multiplyBy(value: number): AngleTransformer;
+    static radianValue(): Mapper<number>;
 }
 
 export declare class AngleUnits {
@@ -47,9 +52,9 @@ export declare class AngleUnits {
 }
 
 export declare class Axes {
-    static X: string;
-    static Y: string;
-    static Z: string;
+    static X: Axis;
+    static Y: Axis;
+    static Z: Axis;
 
     static checkAxis(axis: string): void;
 }
@@ -57,6 +62,7 @@ export declare class Axes {
 export declare class Math3D {
     static rotateAround(axis: Axis, angle: Angle): Point3DTransformer;
     static scale(mx: number, my: number, mz: number): Point3DTransformer;
+    static setCoordinate(coordinate: Axis, value: number): Point3DTransformer;
     static toColumnMatrix(): Point3DMapper<Matrix>;
     static toColumnVector(): Point3DMapper<number[][]>;
     static toImmutableArray(): Point3DMapper<Readonly<number[]>>;
