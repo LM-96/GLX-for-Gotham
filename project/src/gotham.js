@@ -42,7 +42,7 @@ start({
         color: ["color-vertex-shader", "color-fragment-shader"]
     },
     shadowLightSetting: {
-        far: 200,
+        lightFar: 200,
         projectionHeight: 500,
         projectionWidth: 500,
         lightPosition: position(200, 20, 10),

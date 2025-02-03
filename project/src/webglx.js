@@ -101,6 +101,14 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
+ * @typedef {import("./webglx.js").GLXShadowLightSignalWorkspace} GLXShadowLightSignalWorkspace
+ */
+
+/**
+ * @typedef {import("./webglx.js").GLXShadowLightSignalDescriptors} GLXShadowLightSignalDescriptors
+ */
+
+/**
  * @typedef {import("./webglx.js").GLXSpriteManagerConstructorParams} GLXSpriteManagerConstructorParams
  */
 
@@ -123,6 +131,11 @@ import { SIGNALS } from "./signals.js";
 /**
  * @template T
  * @typedef {import("./signals.js").SignalDescriptor<T>} SignalDescriptor
+ */
+
+/**
+ * @template T
+ * @typedef {import("./webglx.js").SignaledProperty<T>} SignaledProperty
  */
 
 /**
@@ -983,6 +996,7 @@ export class GLXShadowLightManager {
 
     /** @type {Logger} */ #logger;
     /** @type {ShadowLightSettings} */ #settings;
+    /** @type {GLXShadowLightSignalDescriptors} */ #signalDescriptors;
 
     /**
      * 
@@ -1000,167 +1014,226 @@ export class GLXShadowLightManager {
             projectionHeight: 10,
             isShadowEnabled: false,
             near: 1,
-            far: 700,
+            lightFar: 700,
+            ligthFrustum: false,
             ...params.settings
         };
-
+        this.#signalDescriptors = this.#buildSignalDescriptors(params.signalWorkspace);
         this.#logger = Logger.forName(`ShadowLightManager[${params.applicationName}]`)
             .enabledOn(params.logEnabled);
         this.#logger.info('shadow light manager initialized with settings: ', this.#settings);
     }
-
-    /**
-     * @returns {number}
-     */
+    
     get lightFar() {
-        return this.#settings.far;
+        return this.#settings.lightFar;
     }
-
-    /**
-     * @returns {boolean}
-     */
+    
     get isShadowEnabled() {
         return this.#settings.isShadowEnabled;
     }
-
-    /**
-     * @returns {boolean}
-     */
+    
     get isSpotlight() {
         return this.#settings.isSpotlight;
     }
-
-    /**
-     * @returns {Angle}
-     */
+    
     get lightFov() {
         return this.#settings.lightFov;
     }
 
-    /**
-     * @returns {Trio<number>}
-     */
+    get lightFrustum() {
+        return this.#settings.ligthFrustum;
+    }
+    
     get ligthDirection() {
         return this.#settings.lightDirection;
     }
-
-    /**
-     * @returns {Point3D}
-     */
+    
     get lightPosition() {
         return this.#settings.lightPosition;
     }
-
-    /**
-     * @returns {Point3D}
-     */
+    
     get lightTarget() {
         return this.#settings.lightTarget;
     }
-
-    /**
-     * @returns {Trio<number>}
-     */
+    
     get lightUp() {
         return this.#settings.lightUp;
     }
-
-    /**
-     * @returns {number}
-     */
+    
     get lightNear() {
         return this.#settings.near;
     }
-
-    /**
-     * @returns {number}
-     */
+    
     get projectionHeight() {
         return this.#settings.projectionHeight;
     }
-
-    /**
-     * @returns {number}
-     */
+    
     get projectionWidth() {
         return this.#settings.projectionWidth;
     }
 
+
     /**
-     * @param {number} far 
+     * @param {number} nextFar 
      */
-    set lightFar(far) {
-        this.#settings.far = far;
+    set lightFar(nextFar) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.lightFar,
+            propertySetter: (value) => this.#settings.lightFar = value,
+            nextValue: nextFar,
+            signalDescriptor: this.#signalDescriptors.lightFar
+        });
     }
 
     /**
-     * @param {Angle} fov 
+     * @param {Angle} nextFov 
      */
-    set lightFov(fov) {
-        this.lightFov = fov;
+    set lightFov(nextFov) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.lightFov,
+            propertySetter: (value) => this.#settings.lightFov = value,
+            nextValue: nextFov,
+            signalDescriptor: this.#signalDescriptors.lightFov
+        });
+    }
+
+    set lightFrustum(nextFrustum) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.ligthFrustum,
+            propertySetter: (value) => this.#settings.ligthFrustum = value,
+            nextValue: nextFrustum,
+            signalDescriptor: this.#signalDescriptors.lightFrustum
+        })
     }
 
     /**
-     * @param {boolean} shadowEnabled
+     * @param {boolean} nextShadowEnabled
      */
-    set isShadowEnabled(shadowEnabled) {
-        this.#settings.isShadowEnabled = shadowEnabled
+    set isShadowEnabled(nextShadowEnabled) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.isShadowEnabled,
+            propertySetter: (value) => { this.#settings.isShadowEnabled = value; },
+            nextValue: nextShadowEnabled,
+            signalDescriptor: this.#signalDescriptors.isShadowEnabled
+        });
     }
 
     /**
-     * @param {boolean} spotlight 
+     * @param {boolean} nextSpotlight 
      */
-    set isSpotlight(spotlight) {
-        this.#settings.isSpotlight = spotlight;
+    set isSpotlight(nextSpotlight) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.isSpotlight,
+            propertySetter: (value) => { this.#settings.isSpotlight = value; },
+            nextValue: nextSpotlight,
+            signalDescriptor: this.#signalDescriptors.isSpotlight
+        });
     }
 
     /**
-     * @param {Trio<number>} direction 
+     * @param {Trio<number>} nextDirection 
      */
-    set lightDirection(direction) {
-        this.#settings.lightDirection = direction;
+    set lightDirection(nextDirection) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.lightDirection,
+            propertySetter: (value) => { this.#settings.lightDirection = value; },
+            nextValue: nextDirection,
+            signalDescriptor: this.#signalDescriptors.lightDirection
+        });
     }
 
     /**
-     * @param {Point3D} position 
+     * @param {Point3D} nextPosition 
      */
-    set lightPosition(position) {
-        this.lightPosition = position;
+    set lightPosition(nextPosition) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.lightPosition,
+            propertySetter: (value) => { this.#settings.lightPosition = value; },
+            nextValue: nextPosition,
+            signalDescriptor: this.#signalDescriptors.lightPosition
+        });
     }
 
     /**
-     * @param {Point3D} target 
+     * @param {Point3D} nextTarget 
      */
-    set lightTarget(target) {
-        this.#settings.lightTarget = target;
+    set lightTarget(nextTarget) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.lightTarget,
+            propertySetter: (value) => { this.#settings.lightTarget = value; },
+            nextValue: nextTarget,
+            signalDescriptor: this.#signalDescriptors.lightTarget
+        });
     }
 
     /**
-     * @param {Trio<number>} up 
+     * @param {Trio<number>} nextUp 
      */
-    set lightUp(up) {
-        this.#settings.lightUp = up;
+    set lightUp(nextUp) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.lightUp,
+            propertySetter: (value) => { this.#settings.lightUp = value; },
+            nextValue: nextUp,
+            signalDescriptor: this.#signalDescriptors.lightUp
+        });
     }
 
     /**
-     * @param {number} near 
+     * @param {number} nextNear 
      */
-    set lightNear(near) {
-        this.#settings.near = near
+    set lightNear(nextNear) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.near,
+            propertySetter: (value) => { this.#settings.near = value; },
+            nextValue: nextNear,
+            signalDescriptor: this.#signalDescriptors.lightNear
+        });
     }
 
     /**
-     * @param {number} height
+     * @param {number} nextHeight 
      */
-    set projectionHeight(height) {
-        this.#settings.projectionHeight = height;
+    set projectionHeight(nextHeight) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.projectionHeight,
+            propertySetter: (value) => { this.#settings.projectionHeight = value; },
+            nextValue: nextHeight,
+            signalDescriptor: this.#signalDescriptors.projectionHeight
+        });
     }
 
     /**
-     * @param {number} width 
+     * @param {number} nextWidth 
      */
-    set projectionWidth(width) {
-        this.#settings.projectionWidth = width;
+    set projectionWidth(nextWidth) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.projectionWidth,
+            propertySetter: (value) => { this.#settings.projectionWidth = value; },
+            nextValue: nextWidth,
+            signalDescriptor: this.#signalDescriptors.projectionWidth
+        });
+    }
+
+    /**
+     * 
+     * @param {GLXShadowLightSignalWorkspace} signalWorkspace 
+     * @returns {GLXShadowLightSignalDescriptors}
+     */
+    #buildSignalDescriptors(signalWorkspace) {
+        return {
+            lightFar: SIGNALS.register(signalWorkspace.lightFar),
+            lightFrustum: SIGNALS.register(signalWorkspace.lightFrustum),
+            lightFov: SIGNALS.register(signalWorkspace.lightFov),
+            isShadowEnabled: SIGNALS.register(signalWorkspace.isShadowEnabled),
+            isSpotlight: SIGNALS.register(signalWorkspace.isSpotlight),
+            lightDirection: SIGNALS.register(signalWorkspace.lightDirection),
+            lightPosition: SIGNALS.register(signalWorkspace.lightPosition),
+            lightTarget: SIGNALS.register(signalWorkspace.lightTarget),
+            lightUp: SIGNALS.register(signalWorkspace.lightUp),
+            lightNear: SIGNALS.register(signalWorkspace.lightNear),
+            projectionHeight: SIGNALS.register(signalWorkspace.projectionHeight),
+            projectionWidth: SIGNALS.register(signalWorkspace.projectionWidth)
+        }
     }
 
 }
@@ -1407,7 +1480,6 @@ class GLXDrawer {
     /** @type {import("./webglx.js").GLXCamera} */ #camera;
     /** @type {any} */ #cubeLinesBufferInfo;
     /** @type {import("./webglx.js").GLXEnvironment} */ #glXEnvironment;
-    /** @type {boolean} */ #lightFrustum;
     /** @type {Logger} */ #logger
     /** @type {import("./webglx.js").GLXShadowLightManager} */ #shadowLightManager;
     /** @type {SharedUniforms} */ #sharedUniforms;
@@ -1426,7 +1498,6 @@ class GLXDrawer {
         this.#glXEnvironment = params.glxEnvironment;
         this.#shadowLightManager = params.shadowLightManager;
         this.#spriteManager = params.spriteManager;
-        this.#lightFrustum = false;
         this.#sharedUniforms = params.sharedUniforms;
         this.#cubeLinesBufferInfo = this.#buildCubeLinesBufferInfo();
         this.#spriteSubscriptions = new Map();
@@ -1439,17 +1510,6 @@ class GLXDrawer {
 
         this.#logger = Logger.forName(`SpriteDrawer[${params.applicationName}]`)
             .enabledOn(params.logEnabled);
-    }
-
-    get lightFrustum() {
-        return this.#lightFrustum;
-    }
-
-    /**
-     * @param {boolean} value 
-     */
-    set lightFrustum(value) {
-        this.#lightFrustum = value;
     }
 
     /**
@@ -1549,7 +1609,7 @@ class GLXDrawer {
             programInfo: this.#glXEnvironment.getProgramInfo('main')
         })
 
-        if (this.#lightFrustum) {
+        if (this.#shadowLightManager.lightFrustum) {
             this.#renderLightFrustum(lightMatrices);
         }
         this.#logger.info('render complete');
@@ -1642,7 +1702,7 @@ class GLXDrawer {
             return M4.perspective(
                 this.#shadowLightManager.lightFov.transform(AngleMath.asRadians()).value,
                 this.#shadowLightManager.projectionWidth / this.#shadowLightManager.projectionHeight,
-                this.#shadowLightManager.near,
+                this.#shadowLightManager.lightNear,
                 this.#shadowLightManager.lightFar)
         } else {
             let halfProjectionWidth = this.#shadowLightManager.projectionWidth / 2;
@@ -1650,7 +1710,7 @@ class GLXDrawer {
             return M4.orthographic(
                 -halfProjectionWidth, halfProjectionWidth,
                 -halfProjectionHeight, halfProjectionHeight,
-                this.#shadowLightManager.near,
+                this.#shadowLightManager.lightNear,
                 this.#shadowLightManager.lightFov)
         }
     }
@@ -1742,20 +1802,28 @@ class GLXDrawer {
     #setupAutoRender() {
         this.#setupAutoRenderForSprites();
         SIGNALS.subscribe(this.#applicationSignalWorkspace.main, this.#onApplicationMainSignal.bind(this));
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.fovChanges, this.renderScene.bind(this));
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.positionChanges, this.renderScene.bind(this));
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.targetChanges, this.renderScene.bind(this));
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.upChanges, this.renderScene.bind(this));
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.zFarChanges, this.renderScene.bind(this));
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.camera.zNearChanges, this.renderScene.bind(this));
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.targetSpriteChanges, this.renderScene.bind(this));
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.workModeChanges, this.renderScene.bind(this));
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.distanceChanges, this.renderScene.bind(this));
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.highChanges, this.renderScene.bind(this));
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.cameraMan.phaseChanges, this.renderScene.bind(this));
+        
+        this.#setupAutoRenderOnSignals(
+            ...Object.values(this.#applicationSignalWorkspace.camera),
+            ...Object.values(this.#applicationSignalWorkspace.cameraMan),
+            ...Object.values(this.#applicationSignalWorkspace.shadowLight)
+        );
 
         this.#logger.info('auto render setup complete')
         this.renderScene();
+    }
+
+    /**
+     * 
+     * @param {...string} signalNames 
+     */
+    #setupAutoRenderOnSignals(...signalNames) {
+        this.#logger.info('setup autorender on signals: ', signalNames);
+        if (isNotNullOrUndefined(signalNames)) {
+            for (let signalName of signalNames) {
+                SIGNALS.subscribe(signalName, this.renderScene.bind(this));
+            }
+        }
     }
 
     #setupAutoRenderForSprites() {
@@ -2001,66 +2069,43 @@ export class GLXApplication {
      * @returns {GLXControl<any>[]}
      */
     #buildGuiControls(sprites) {
-        let spriteNames = sprites.map(sprite => sprite.name);
-        let currentSprite = this.#spriteManager.getFirstSprite();
+        const spriteNames = sprites.map(sprite => sprite.name);
+        let currentSprite = isNotNullOrUndefined(spriteNames[0]) ? this.#spriteManager.getSprite(spriteNames[0]) : undefined;
 
         return [
             {
                 type: GLXControlTypes.DRAW,
-                value: () => this.#spriteDrawer.renderScene()
+                value: () => this.#spriteDrawer.renderScene(),
             },
             {
                 type: GLXControlTypes.LOG,
-                value: loggingEnabled()
+                value: loggingEnabled(),
             },
             {
                 type: GLXControlTypes.CAM_MAN_WORK_MODE,
                 value: this.#cameraMan.workMode,
                 options: CAMERA_MAN_WORK_MODES,
                 listenSignal: this.#signalWorkspace.cameraMan.workModeChanges,
-                listenReducer: (/** @type {Signal<Change<GLXCameraManWorkMode>>} */ signal) => signal.data.to,
-                onValueChange: (/** @type {GLXCameraManWorkMode} */ value) => this.#cameraMan.hire(value)
+                listenReducer: signal => signal.data.to,
             },
             {
                 type: GLXControlTypes.TARGET,
                 value: this.#cameraMan.targetSprite?.name,
                 options: spriteNames,
                 listenSignal: this.#signalWorkspace.cameraMan.targetSpriteChanges,
-                listenReducer: (/** @type {Signal<Change<Sprite>>} */ signal) => signal.data.to,
-                onValueChange: (/** @type {string} */ value) => {
-                    let sprite = this.#spriteManager.getSprite(value);
-                    if (isNotNullOrUndefined(sprite)) {
-                        this.#cameraMan.targetSprite = sprite;
-                    } else {
-                        alert(`unable to set target sprite: missing sprite named ${value}`);
-                    }
-                }
+                listenReducer: signal => signal.data.to,
             },
             {
                 type: GLXControlTypes.CHASE,
                 value: this.#cameraMan.isChasingSprite,
                 listenSignal: this.#signalWorkspace.cameraMan.isChasingSpriteChanges,
-                listenReducer: (/** @type {Signal<Change<boolean>>} */ signal) => signal.data.to,
-                onValueChange: (/** @type {boolean} */ value) => {
-                    if (value) {
-                        this.#cameraMan.chaseTargetSprite();
-                    } else {
-                        this.#cameraMan.unChaseSprite();
-                    }
-                }
+                listenReducer: signal => signal.data.to,
             },
             {
                 type: GLXControlTypes.LOOK_AT,
                 value: this.#cameraMan.isLookingAtSprite,
                 listenSignal: this.#signalWorkspace.cameraMan.isLookingAtSpriteChanges,
-                listenReducer: (/** @type {Signal<Change<boolean>>} */ signal) => signal.data.to,
-                onValueChange: (/** @type {boolean} */ value) => {
-                    if (value) {
-                        this.#cameraMan.lookAtTargetSprite();
-                    } else {
-                        this.#cameraMan.unLookAtSprite();
-                    }
-                }
+                listenReducer: signal => signal.data.to,
             },
             {
                 type: GLXControlTypes.CAM_MAN_HIGH,
@@ -2069,8 +2114,7 @@ export class GLXApplication {
                 max: 100,
                 step: 1,
                 listenSignal: this.#signalWorkspace.cameraMan.highChanges,
-                listenReducer: (/** @type {Signal<Change<number>>} */ signal) => signal.data.to,
-                onValueChange: (/** @type {number} */ value) => this.#cameraMan.high = value
+                listenReducer: signal => signal.data.to,
             },
             {
                 type: GLXControlTypes.CAM_MAN_DISTANCE,
@@ -2079,8 +2123,7 @@ export class GLXApplication {
                 max: 100,
                 step: 1,
                 listenSignal: this.#signalWorkspace.cameraMan.distanceChanges,
-                listenReducer: (/** @type {Signal<Change<number>} */ signal) => signal.data.to,
-                onValueChange: (/** @type {number} */ value) => this.#cameraMan.distance = value
+                listenReducer: signal => signal.data.to,
             },
             {
                 type: GLXControlTypes.CAM_X,
@@ -2089,9 +2132,7 @@ export class GLXApplication {
                 max: 500,
                 step: 5,
                 listenSignal: this.#signalWorkspace.camera.positionChanges,
-                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.x,
-                onValueChange: (/** @type {number} */ value) => this.#camera.position =
-                    this.#camera.position.transform(Math3D.setCoordinate(Axes.X, value))
+                listenReducer: signal => signal.data.to.x,
             },
             {
                 type: GLXControlTypes.CAM_Y,
@@ -2100,9 +2141,7 @@ export class GLXApplication {
                 max: 500,
                 step: 5,
                 listenSignal: this.#signalWorkspace.camera.positionChanges,
-                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.y,
-                onValueChange: (/** @type {number} */ value) => this.#camera.position =
-                    this.#camera.position.transform(Math3D.setCoordinate(Axes.Y, value))
+                listenReducer: signal => signal.data.to.y,
             },
             {
                 type: GLXControlTypes.CAM_Z,
@@ -2111,9 +2150,7 @@ export class GLXApplication {
                 max: 500,
                 step: 5,
                 listenSignal: this.#signalWorkspace.camera.positionChanges,
-                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.z,
-                onValueChange: (/** @type {number} */ value) => this.#camera.position =
-                    this.#camera.position.transform(Math3D.setCoordinate(Axes.Z, value))
+                listenReducer: signal => signal.data.to.z,
             },
             {
                 type: GLXControlTypes.CAM_UP_X,
@@ -2122,9 +2159,7 @@ export class GLXApplication {
                 max: 1,
                 step: 0.001,
                 listenSignal: this.#signalWorkspace.camera.upChanges,
-                listenReducer: (/** @type {Signal<Change<Trio<number>>>} */ signal) => signal.data.to.first,
-                onValueChange: (/** @type {number} */ value) => this.#camera.up =
-                    trio(value, this.#camera.up.second, this.#camera.up.third)
+                listenReducer: signal => signal.data.to.first,
             },
             {
                 type: GLXControlTypes.CAM_UP_Y,
@@ -2133,9 +2168,7 @@ export class GLXApplication {
                 max: 1,
                 step: 0.001,
                 listenSignal: this.#signalWorkspace.camera.upChanges,
-                listenReducer: (/** @type {Signal<Change<Trio<number>>>} */ signal) => signal.data.to.second,
-                onValueChange: (/** @type {number} */ value) => this.#camera.up =
-                    trio(this.#camera.up.first, value, this.#camera.up.third)
+                listenReducer: signal => signal.data.to.second,
             },
             {
                 type: GLXControlTypes.CAM_UP_Z,
@@ -2144,9 +2177,7 @@ export class GLXApplication {
                 max: 1,
                 step: 0.001,
                 listenSignal: this.#signalWorkspace.camera.upChanges,
-                listenReducer: (/** @type {Signal<Change<Trio<number>>>} */ signal) => signal.data.to.third,
-                onValueChange: (/** @type {number} */ value) => this.#camera.up =
-                    trio(this.#camera.up.first, this.#camera.up.second, value)
+                listenReducer: signal => signal.data.to.third,
             },
             {
                 type: GLXControlTypes.Z_NEAR,
@@ -2155,8 +2186,7 @@ export class GLXApplication {
                 max: 10,
                 step: 0.1,
                 listenSignal: this.#signalWorkspace.camera.zNearChanges,
-                listenReducer: (/** @type {Signal<Change<number>>} */ signal) => signal.data.to,
-                onValueChange: (/** @type {number} */ value) => this.#camera.zNear = value
+                listenReducer: signal => signal.data.to,
             },
             {
                 type: GLXControlTypes.Z_FAR,
@@ -2165,8 +2195,7 @@ export class GLXApplication {
                 max: 1000,
                 step: 1,
                 listenSignal: this.#signalWorkspace.camera.zFarChanges,
-                listenReducer: (/** @type {Signal<Change<number>>} */ signal) => signal.data.to,
-                onValueChange: (/** @type {number} */ value) => this.#camera.zFar = value
+                listenReducer: signal => signal.data.to,
             },
             {
                 type: GLXControlTypes.FOV,
@@ -2174,8 +2203,7 @@ export class GLXApplication {
                 min: 0,
                 max: 180,
                 listenSignal: this.#signalWorkspace.camera.zFarChanges,
-                listenReducer: (/** @type {Signal<Change<Angle>>} */ signal) => signal.data.to.map(AngleMath.degreeValue()),
-                onValueChange: (/** @type {number} */ value) => this.#camera.fov = degrees(value)
+                listenReducer: signal => signal.data.to.map(AngleMath.degreeValue),
             },
             {
                 type: GLXControlTypes.TARGET_X,
@@ -2184,9 +2212,7 @@ export class GLXApplication {
                 max: 500,
                 step: 1,
                 listenSignal: this.#signalWorkspace.camera.targetChanges,
-                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.x,
-                onValueChange: (/** @type {number} */ value) => this.#camera.targetPosition =
-                    this.#camera.targetPosition.transform(Math3D.setCoordinate(Axes.X, value))
+                listenReducer: signal => signal.data.to.x,
             },
             {
                 type: GLXControlTypes.TARGET_Y,
@@ -2195,9 +2221,7 @@ export class GLXApplication {
                 max: 500,
                 step: 1,
                 listenSignal: this.#signalWorkspace.camera.targetChanges,
-                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.y,
-                onValueChange: (/** @type {number} */ value) => this.#camera.targetPosition =
-                    this.#camera.targetPosition.transform(Math3D.setCoordinate(Axes.Y, value))
+                listenReducer: signal => signal.data.to.y,
             },
             {
                 type: GLXControlTypes.TARGET_Z,
@@ -2206,19 +2230,15 @@ export class GLXApplication {
                 max: 500,
                 step: 1,
                 listenSignal: this.#signalWorkspace.camera.targetChanges,
-                listenReducer: (/** @type {Signal<Change<Point3D>>} */ signal) => signal.data.to.z,
-                onValueChange: (/** @type {number} */ value) => this.#camera.targetPosition =
-                    this.#camera.targetPosition.transform(Math3D.setCoordinate(Axes.Z, value))
+                listenReducer: signal => signal.data.to.z,
             },
             {
                 type: GLXControlTypes.SHADOWS,
                 value: this.#shadowLightManager.isShadowEnabled,
-                onValueChange: (/** @type {boolean} */ value) => this.#shadowLightManager.isShadowEnabled = value
             },
             {
                 type: GLXControlTypes.FRUSTUM,
-                value: this.#spriteDrawer.lightFrustum,
-                onValueChange: (/** @type {boolean} */ value) => this.#spriteDrawer.lightFrustum = value
+                value: this.#shadowLightManager.lightFrustum,
             },
             {
                 type: GLXControlTypes.LIGHT_X,
@@ -2226,8 +2246,6 @@ export class GLXApplication {
                 min: -500,
                 max: 500,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightPosition =
-                    this.#shadowLightManager.lightPosition.transform(Math3D.setCoordinate(Axes.X, value))
             },
             {
                 type: GLXControlTypes.LIGHT_Y,
@@ -2235,8 +2253,6 @@ export class GLXApplication {
                 min: -500,
                 max: 500,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightPosition =
-                    this.#shadowLightManager.lightPosition.transform(Math3D.setCoordinate(Axes.Y, value))
             },
             {
                 type: GLXControlTypes.LIGHT_Z,
@@ -2244,8 +2260,6 @@ export class GLXApplication {
                 min: -500,
                 max: 500,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightPosition =
-                    this.#shadowLightManager.lightPosition.transform(Math3D.setCoordinate(Axes.Z, value))
             },
             {
                 type: GLXControlTypes.LIGHT_TARGET_X,
@@ -2253,8 +2267,6 @@ export class GLXApplication {
                 min: -500,
                 max: 500,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightTarget =
-                    this.#shadowLightManager.lightTarget.transform(Math3D.setCoordinate(Axes.X, value))
             },
             {
                 type: GLXControlTypes.LIGHT_TARGET_Y,
@@ -2262,8 +2274,6 @@ export class GLXApplication {
                 min: -500,
                 max: 500,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightTarget =
-                    this.#shadowLightManager.lightTarget.transform(Math3D.setCoordinate(Axes.Y, value))
             },
             {
                 type: GLXControlTypes.LIGHT_TARGET_Z,
@@ -2271,8 +2281,6 @@ export class GLXApplication {
                 min: -500,
                 max: 500,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightTarget =
-                    this.#shadowLightManager.lightTarget.transform(Math3D.setCoordinate(Axes.Z, value))
             },
             {
                 type: GLXControlTypes.LIGHT_FOV,
@@ -2280,8 +2288,6 @@ export class GLXApplication {
                 min: 0,
                 max: 360,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightFov =
-                    this.#shadowLightManager.lightFov = degrees(value)
             },
             {
                 type: GLXControlTypes.LIGHT_NEAR,
@@ -2289,7 +2295,6 @@ export class GLXApplication {
                 min: 0,
                 max: 100,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightNear = value
             },
             {
                 type: GLXControlTypes.LIGHT_FAR,
@@ -2297,12 +2302,10 @@ export class GLXApplication {
                 min: 0,
                 max: 1000,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.lightFar = value
             },
             {
                 type: GLXControlTypes.SPOTLIGHT,
                 value: this.#shadowLightManager.isSpotlight,
-                onValueChange: (/** @type {boolean} */ value) => this.#shadowLightManager.isSpotlight = value
             },
             {
                 type: GLXControlTypes.LIGHT_WIDTH,
@@ -2310,7 +2313,6 @@ export class GLXApplication {
                 min: 0,
                 max: 100,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.projectionWidth = value
             },
             {
                 type: GLXControlTypes.LIGHT_HEIGHT,
@@ -2318,20 +2320,11 @@ export class GLXApplication {
                 min: 0,
                 max: 100,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => this.#shadowLightManager.projectionHeight = value
             },
             {
                 type: GLXControlTypes.CURR_SPRITE,
                 value: currentSprite?.name,
                 options: spriteNames,
-                onValueChange: (/** @type {string} */ value) => {
-                    let sprite = this.#spriteManager.getSprite(value);
-                    if (isNotNullOrUndefined(sprite)) {
-                        currentSprite = sprite;
-                    } else {
-                        alert(`unable to set current sprite:  missing sprite named ${value}`)
-                    }
-                }
             },
             {
                 type: GLXControlTypes.SPRITE_X,
@@ -2339,11 +2332,6 @@ export class GLXApplication {
                 min: -200,
                 max: 200,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => {
-                    if (isNotNullOrUndefined(currentSprite)) {
-                        currentSprite.position = currentSprite.position.transform(Math3D.setCoordinate(Axes.X, value));
-                    }
-                }
             },
             {
                 type: GLXControlTypes.SPRITE_Y,
@@ -2351,11 +2339,6 @@ export class GLXApplication {
                 min: -200,
                 max: 200,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => {
-                    if (isNotNullOrUndefined(currentSprite)) {
-                        currentSprite.position = currentSprite.position.transform(Math3D.setCoordinate(Axes.Y, value));
-                    }
-                }
             },
             {
                 type: GLXControlTypes.SPRITE_Z,
@@ -2363,11 +2346,6 @@ export class GLXApplication {
                 min: -200,
                 max: 200,
                 step: 1,
-                onValueChange: (/** @type {number} */ value) => {
-                    if (isNotNullOrUndefined(currentSprite)) {
-                        currentSprite.position = currentSprite.position.transform(Math3D.setCoordinate(Axes.Z, value));
-                    }
-                }
             },
             {
                 type: GLXControlTypes.SPRITE_SCALE_X,
@@ -2375,11 +2353,6 @@ export class GLXApplication {
                 min: 0,
                 max: 10,
                 step: 0.01,
-                onValueChange: (/** @type {number} */ value) => {
-                    if (isNotNullOrUndefined(currentSprite)) {
-                        currentSprite.scale = trio(value, currentSprite.scale.second, currentSprite.scale.third);
-                    }
-                }
             },
             {
                 type: GLXControlTypes.SPRITE_SCALE_Y,
@@ -2387,11 +2360,6 @@ export class GLXApplication {
                 min: 0,
                 max: 10,
                 step: 0.01,
-                onValueChange: (/** @type {number} */ value) => {
-                    if (isNotNullOrUndefined(currentSprite)) {
-                        currentSprite.scale = trio(currentSprite.scale.first, value, currentSprite.scale.third);
-                    }
-                }
             },
             {
                 type: GLXControlTypes.SPRITE_SCALE_Z,
@@ -2399,11 +2367,6 @@ export class GLXApplication {
                 min: 0,
                 max: 10,
                 step: 0.01,
-                onValueChange: (/** @type {number} */ value) => {
-                    if (isNotNullOrUndefined(currentSprite)) {
-                        currentSprite.scale = trio(currentSprite.scale.first, currentSprite.scale.second, value);
-                    }
-                }
             },
             {
                 type: GLXControlTypes.SPRITE_PSI,
@@ -2411,11 +2374,6 @@ export class GLXApplication {
                 min: -180,
                 max: 180,
                 step: 0.1,
-                onValueChange: (/** @type {number} */ value) => {
-                    if (isNotNullOrUndefined(currentSprite)) {
-                        currentSprite.rotation = trio(degrees(value), currentSprite.rotation.second, currentSprite.rotation.third);
-                    }
-                }
             },
             {
                 type: GLXControlTypes.SPRITE_THETA,
@@ -2423,11 +2381,6 @@ export class GLXApplication {
                 min: -180,
                 max: 180,
                 step: 0.1,
-                onValueChange: (/** @type {number} */ value) => {
-                    if (isNotNullOrUndefined(currentSprite)) {
-                        currentSprite.rotation = trio(currentSprite.rotation.first, degrees(value), currentSprite.rotation.third);
-                    }
-                }
             },
             {
                 type: GLXControlTypes.SPRITE_PHI,
@@ -2435,12 +2388,7 @@ export class GLXApplication {
                 min: -180,
                 max: 180,
                 step: 0.1,
-                onValueChange: (/** @type {number} */ value) => {
-                    if (isNotNullOrUndefined(currentSprite)) {
-                        currentSprite.rotation = trio(currentSprite.rotation.first, currentSprite.rotation.second, degrees(value));
-                    }
-                }
-            }
+            },
         ];
     }
 
@@ -2453,6 +2401,7 @@ export class GLXApplication {
         return new GLXShadowLightManager({
             applicationName: params.applicationName,
             logEnabled: params.appStart.logEnabled ?? true,
+            signalWorkspace: this.#signalWorkspace.shadowLight,
             settings: params.appStart.shadowLightSetting
         });
     }
@@ -2487,55 +2436,152 @@ export class GLXApplication {
     }
 
     #linkControls() {
-        SIGNALS.subscribe(this.#signalWorkspace.controls, (/** @type {Signal<GLXControlInfo>} */ signal) => {
-            switch (signal.data.type) {
-                case GLXControlTypes.LOG:
-                    enableLoggingOn(signal.data.value);
-                    break;
-                case GLXControlTypes.TARGET:
-                    let sprite = this.#spriteManager.getSprite(signal.data.value);
-                    if (isNotNullOrUndefined(sprite)) {
-                        this.#cameraMan.targetSprite = sprite;
-                    }
-                    break;
-                case GLXControlTypes.CHASE:
-                    signal.data.value ? this.#cameraMan.chaseTargetSprite() : this.#cameraMan.unChaseSprite();
-                    break;
-                case GLXControlTypes.LOOK_AT:
-                    signal.data.value ? this.#cameraMan.lookAtTargetSprite() : this.#cameraMan.unLookAtSprite();
-                    break;
-                case GLXControlTypes.CAM_X:
-                    this.#camera.position =
-                        this.#camera.position.transform(Math3D.setCoordinate(Axes.X, signal.data.value));
-                    break;
-                case GLXControlTypes.CAM_Y:
-                    this.#camera.position =
-                        this.#camera.position.transform(Math3D.setCoordinate(Axes.Y, signal.data.value));
-                    break;
-                case GLXControlTypes.CAM_Z:
-                    this.#camera.position =
-                        this.#camera.position.transform(Math3D.setCoordinate(Axes.Z, signal.data.value));
-                    break;
-                case GLXControlTypes.CAM_UP_X:
-                    var previousUp = this.#camera.up;
-                    this.#camera.up = trio(signal.data.value, previousUp.second, previousUp.third);
-                    break;
-                case GLXControlTypes.CAM_UP_Y:
-                    var previousUp = this.#camera.up;
-                    this.#camera.up = trio(previousUp.first, signal.data.value, previousUp.third);
-                    break;
-                case GLXControlTypes.CAM_UP_Z:
-                    var previousUp = this.#camera.up;
-                    this.#camera.up = trio(previousUp.first, previousUp.second, signal.data.value);
-                    break;
-                case GLXControlTypes.Z_FAR:
-                    this.#camera.zFar = signal.data.value;
-                    break;
-                case GLXControlTypes.Z_NEAR:
-                    this.#camera.zNear = signal.data.value;
-                    break;
+        let currentSprite = this.#spriteManager.getFirstSprite();
+
+        const updateCurrentSprite = (/** @type {(sprite: Sprite) => void} */ updateFn) => {
+            if (currentSprite) {
+                updateFn(currentSprite);
+            } else {
+                console.warn("Sprite update skipped: current sprite is not defined.");
             }
-        })
+        };
+
+        const handlers = {
+            [GLXControlTypes.LOG]: (/** @type {boolean} */ value) => enableLoggingOn(value),
+            [GLXControlTypes.CAM_MAN_WORK_MODE]: (/** @type {GLXCameraManWorkMode} */ value) => this.#cameraMan.hire(value),
+            [GLXControlTypes.TARGET]: (/** @type {string} */ value) => {
+                const sprite = this.#spriteManager.getSprite(value);
+                if (isNotNullOrUndefined(sprite)) {
+                    this.#cameraMan.targetSprite = sprite;
+                } else {
+                    alert(`selected sprite has not been found: ${value}`)
+                }
+            },
+
+            [GLXControlTypes.CHASE]: (/** @type {boolean} */ value) => {
+                value ? this.#cameraMan.chaseTargetSprite() : this.#cameraMan.unChaseSprite();
+            },
+
+            [GLXControlTypes.LOOK_AT]: (/** @type {boolean} */ value) => {
+                value ? this.#cameraMan.lookAtTargetSprite() : this.#cameraMan.unLookAtSprite();
+            },
+
+            [GLXControlTypes.CAM_MAN_HIGH]: (/** @type {number} */ value) => this.#cameraMan.high = value,
+
+            [GLXControlTypes.CAM_MAN_DISTANCE]: (/** @type {number} */ value) => this.#cameraMan.distance = value,
+
+            [GLXControlTypes.CAM_X]: (/** @type {number} */ value) => {
+                this.#camera.position = this.#camera.position.transform(Math3D.setCoordinate(Axes.X, value));
+            },
+            [GLXControlTypes.CAM_Y]: (/** @type {number} */ value) => {
+                this.#camera.position = this.#camera.position.transform(Math3D.setCoordinate(Axes.Y, value));
+            },
+            [GLXControlTypes.CAM_Z]: (/** @type {number} */ value) => {
+                this.#camera.position = this.#camera.position.transform(Math3D.setCoordinate(Axes.Z, value));
+            },
+            [GLXControlTypes.CAM_UP_X]: (/** @type {number} */ value) => {
+                const prevUp = this.#camera.up;
+                this.#camera.up = trio(value, prevUp.second, prevUp.third);
+            },
+            [GLXControlTypes.CAM_UP_Y]: (/** @type {number} */ value) => {
+                const prevUp = this.#camera.up;
+                this.#camera.up = trio(prevUp.first, value, prevUp.third);
+            },
+            [GLXControlTypes.CAM_UP_Z]: (/** @type {number} */ value) => {
+                const prevUp = this.#camera.up;
+                this.#camera.up = trio(prevUp.first, prevUp.second, value);
+            },
+            [GLXControlTypes.Z_NEAR]: (/** @type {number} */ value) => this.#camera.zNear = value,
+            [GLXControlTypes.Z_FAR]: (/** @type {number} */ value) => this.#camera.zFar = value,
+            [GLXControlTypes.FOV]: (/** @type {number} */ value) => this.#camera.fov = degrees(value),
+            [GLXControlTypes.TARGET_X]: (/** @type {number} */ value) => {
+                this.#camera.targetPosition = this.#camera.targetPosition.transform(Math3D.setCoordinate(Axes.X, value));
+            },
+            [GLXControlTypes.TARGET_Y]: (/** @type {number} */ value) => {
+                this.#camera.targetPosition = this.#camera.targetPosition.transform(Math3D.setCoordinate(Axes.Y, value));
+            },
+            [GLXControlTypes.TARGET_Z]: (/** @type {number} */ value) => {
+                this.#camera.targetPosition = this.#camera.targetPosition.transform(Math3D.setCoordinate(Axes.Z, value));
+            },
+            [GLXControlTypes.SHADOWS]: (/** @type {boolean} */ value) => this.#shadowLightManager.isShadowEnabled = value,
+            [GLXControlTypes.FRUSTUM]: (/** @type {boolean} */ value) => this.#shadowLightManager.lightFrustum = value,
+            [GLXControlTypes.LIGHT_X]: (/** @type {number} */ value) => {
+                this.#shadowLightManager.lightPosition =
+                    this.#shadowLightManager.lightPosition.transform(Math3D.setCoordinate(Axes.X, value));
+            },
+            [GLXControlTypes.LIGHT_Y]: (/** @type {number} */ value) => {
+                this.#shadowLightManager.lightPosition =
+                    this.#shadowLightManager.lightPosition.transform(Math3D.setCoordinate(Axes.Y, value));
+            },
+            [GLXControlTypes.LIGHT_Z]: (/** @type {number} */ value) => {
+                this.#shadowLightManager.lightPosition =
+                    this.#shadowLightManager.lightPosition.transform(Math3D.setCoordinate(Axes.Z, value));
+            },
+            [GLXControlTypes.LIGHT_TARGET_X]: (/** @type {number} */ value) => {
+                this.#shadowLightManager.lightTarget =
+                    this.#shadowLightManager.lightTarget.transform(Math3D.setCoordinate(Axes.X, value));
+            },
+            [GLXControlTypes.LIGHT_TARGET_Y]: (/** @type {number} */ value) => {
+                this.#shadowLightManager.lightTarget =
+                    this.#shadowLightManager.lightTarget.transform(Math3D.setCoordinate(Axes.Y, value));
+            },
+            [GLXControlTypes.LIGHT_TARGET_Z]: (/** @type {number} */ value) => {
+                this.#shadowLightManager.lightTarget =
+                    this.#shadowLightManager.lightTarget.transform(Math3D.setCoordinate(Axes.Z, value));
+            },
+            [GLXControlTypes.LIGHT_FOV]: (/** @type {number} */ value) => this.#shadowLightManager.lightFov = degrees(value),
+            [GLXControlTypes.LIGHT_NEAR]: (/** @type {number} */ value) => this.#shadowLightManager.lightNear = value,
+            [GLXControlTypes.LIGHT_FAR]: (/** @type {number} */ value) => this.#shadowLightManager.lightFar = value,
+            [GLXControlTypes.SPOTLIGHT]: (/** @type {boolean} */ value) => this.#shadowLightManager.isSpotlight = value,
+            [GLXControlTypes.LIGHT_WIDTH]: (/** @type {number} */ value) => this.#shadowLightManager.projectionWidth = value,
+            [GLXControlTypes.LIGHT_HEIGHT]: (/** @type {number} */ value) => this.#shadowLightManager.projectionHeight = value,
+            [GLXControlTypes.CURR_SPRITE]: (/** @type {string} */ value) => {
+                const sprite = this.#spriteManager.getSprite(value);
+                if (isNotNullOrUndefined(sprite)) {
+                    currentSprite = sprite;
+                } else {
+                    alert(`unable to set current sprite: missing sprite named ${value}`);
+                }
+            },
+            [GLXControlTypes.SPRITE_X]: (/** @type {number} */ value) => updateCurrentSprite(sprite => {
+                sprite.position = sprite.position.transform(Math3D.setCoordinate(Axes.X, value));
+            }),
+            [GLXControlTypes.SPRITE_Y]: (/** @type {number} */ value) => updateCurrentSprite(sprite => {
+                sprite.position = sprite.position.transform(Math3D.setCoordinate(Axes.Y, value));
+            }),
+            [GLXControlTypes.SPRITE_Z]: (/** @type {number} */ value) => updateCurrentSprite(sprite => {
+                sprite.position = sprite.position.transform(Math3D.setCoordinate(Axes.Z, value));
+            }),
+            [GLXControlTypes.SPRITE_SCALE_X]: (/** @type {number} */ value) => updateCurrentSprite(sprite => {
+                sprite.scale = trio(value, sprite.scale.second, sprite.scale.third);
+            }),
+            [GLXControlTypes.SPRITE_SCALE_Y]: (/** @type {number} */ value) => updateCurrentSprite(sprite => {
+                sprite.scale = trio(sprite.scale.first, value, sprite.scale.third);
+            }),
+            [GLXControlTypes.SPRITE_SCALE_Z]: (/** @type {number} */ value) => updateCurrentSprite(sprite => {
+                sprite.scale = trio(sprite.scale.first, sprite.scale.second, value);
+            }),
+            [GLXControlTypes.SPRITE_PSI]: (/** @type {number} */ value) => updateCurrentSprite(sprite => {
+                sprite.rotation = trio(degrees(value), sprite.rotation.second, sprite.rotation.third);
+            }),
+            [GLXControlTypes.SPRITE_THETA]: (/** @type {number} */ value) => updateCurrentSprite(sprite => {
+                sprite.rotation = trio(sprite.rotation.first, degrees(value), sprite.rotation.third);
+            }),
+            [GLXControlTypes.SPRITE_PHI]: (/** @type {number} */ value) => updateCurrentSprite(sprite => {
+                sprite.rotation = trio(sprite.rotation.first, sprite.rotation.second, degrees(value));
+            })
+        };
+
+        SIGNALS.subscribe(this.#signalWorkspace.controls, signal => {
+            /** @type {GLXControlInfo} */ let controlInfo = signal.data;
+            const handler = handlers[controlInfo.type];
+            if (handler) {
+                // @ts-ignore
+                handler(controlInfo.value);
+            } else {
+                console.warn(`Unhandled control type: ${controlInfo.type}`);
+            }
+        });
     }
 
     /**
@@ -2552,7 +2598,7 @@ export class GLXApplication {
                     controls: this.#buildGuiControls(this.#spriteManager.getAllSprites()),
                     logEnabled: logEnabled
                 });
-                //this.#linkControls();
+                this.#linkControls();
             }
         })
     }
@@ -2671,13 +2717,30 @@ export class GLXApplicationSignalWorkspace {
     /** @type {string} */
     static #MAIN = "main";
 
+    /** @type {GLXShadowLightSignalWorkspace} */
+    static #SHADOW_LIGHT = {
+        lightFar: 'shadowLight.far',
+        lightFov: 'shadowLight.fox',
+        isShadowEnabled: 'shadowLight.shadowEnabled',
+        isSpotlight: 'shadowLight.spotlight',
+        lightDirection: 'shadowLight.direction',
+        lightFrustum: 'shadowLight.frustum',
+        lightPosition: 'shadowLight.position',
+        lightTarget: 'shadowLight.target',
+        lightUp: 'shadowLight.up',
+        lightNear: 'shadowLight.near',
+        projectionHeight: 'shadowLight.projectionHeight',
+        projectionWidth: 'shadowLight.projectionWidth'
+    }
+
     /** @type {string} */ #applicationName;
 
     /** @type {CameraSignalWorkspace} */ #camera
     /** @type {GLXCameraManSignalWorkspace} */ #cameraMan
     /** @type {string} */ #controls;
     /** @type {string}*/ #main;
-    /** @type {Map<string, SpriteSignalWorkspace>} */ #sprites
+    /** @type {GLXShadowLightSignalWorkspace} */ #shadowLight;
+    /** @type {Map<string, SpriteSignalWorkspace>} */ #sprites;
 
     /**
      * 
@@ -2707,35 +2770,43 @@ export class GLXApplicationSignalWorkspace {
 
         this.#controls = this.#absolutize(GLXApplicationSignalWorkspace.#CONTROLS);
         this.#main = this.#absolutize(GLXApplicationSignalWorkspace.#MAIN);
+
+        this.#shadowLight = Object.freeze({
+            lightFar: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.lightFar),
+            lightFov: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.lightFov),
+            isShadowEnabled: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.isShadowEnabled),
+            isSpotlight: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.isSpotlight),
+            lightDirection: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.lightDirection),
+            lightFrustum: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.lightFrustum),
+            lightPosition: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.lightPosition),
+            lightTarget: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.lightTarget),
+            lightUp: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.lightUp),
+            lightNear: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.lightNear),
+            projectionHeight: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.projectionHeight),
+            projectionWidth: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.projectionWidth)
+        });
+
         this.#sprites = new Map();
     }
 
-    /**
-     * @returns {CameraSignalWorkspace}
-     */
     get camera() {
         return this.#camera;
     }
 
-    /**
-     * @returns {GLXCameraManSignalWorkspace}
-     */
     get cameraMan() {
         return this.#cameraMan;
     }
 
-    /**
-     * @returns {string}
-     */
     get controls() {
         return this.#controls;
     }
 
-    /**
-     * @returns {string}
-     */
     get main() {
         return this.#main;
+    }
+
+    get shadowLight() {
+        return this.#shadowLight;
     }
 
     /**
@@ -3106,6 +3177,24 @@ function mapShaders(shaders) {
         res.set(key, value)
     })
     return res
+}
+
+/**
+ * 
+ * @template T
+ * @param {SignaledProperty<T>} setter 
+ */
+function setSignaledProperty(setter) {
+    // @ts-ignore
+    let previousValue = setter.propertyGetter();
+    let nextValue = setter.nextValue;
+    if (nextValue !== previousValue) {
+        // @ts-ignore
+        setter.propertySetter(nextValue);
+        setter.signalDescriptor.trigger({
+            data: change(nextValue, previousValue)
+        })
+    }
 }
 
 /**

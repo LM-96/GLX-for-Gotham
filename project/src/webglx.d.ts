@@ -188,14 +188,14 @@ export type GLXEnvironment = {
 export class GLXShadowLightManager {
     lightFar: number;
     lightFov: Angle;
+    lightFrustum: boolean;
     isShadowEnabled: boolean;
     isSpotlight: boolean;
     lightDirection: Trio<number>;
-    lightFov: Angle
     lightPosition: Point3D;
     lightTarget: Point3D;
     lightUp: Trio<number>;
-    near: number;
+    lightNear: number;
     projectionHeight: number;
     projectionWidth: number;
 }
@@ -203,11 +203,13 @@ export class GLXShadowLightManager {
 export type GLXShadowLightManagerConstructorParams = {
     applicationName: string;
     logEnabled: boolean;
+    signalWorkspace: GLXShadowLightSignalWorkspace;
     settings?: Partial<GLXShadowLightSettings>;
 }
 
 export type GLXShadowLightSettings = {
-    far: number;
+    lightFar: number;
+    ligthFrustum: boolean;
     lightDirection: Trio<number>;
     lightPosition: Point3D;
     lightTarget: Point3D;
@@ -218,6 +220,36 @@ export type GLXShadowLightSettings = {
     projectionWidth: number;
     isShadowEnabled: boolean;
     near: number;
+}
+
+export class GLXShadowLightSignalDescriptors {
+    lightFar: SignalDescriptor<Change<number>>;
+    lightFrustum: SignalDescriptor<Change<boolean>>;
+    lightFov: SignalDescriptor<Change<Angle>>;
+    isShadowEnabled: SignalDescriptor<Change<boolean>>;
+    isSpotlight: SignalDescriptor<Change<boolean>>;
+    lightDirection: SignalDescriptor<Change<Trio<number>>>;
+    lightPosition: SignalDescriptor<Change<Point3D>>;
+    lightTarget: SignalDescriptor<Change<Point3D>>;
+    lightUp: SignalDescriptor<Change<Trio<number>>>;
+    lightNear: SignalDescriptor<Change<number>>;
+    projectionHeight: SignalDescriptor<Change<number>>;
+    projectionWidth: SignalDescriptor<Change<number>>;
+}
+
+export class GLXShadowLightSignalWorkspace {
+    lightFar: string;
+    lightFov: string;
+    lightFrustum: string;
+    isShadowEnabled: string;
+    isSpotlight: string;
+    lightDirection: string;
+    lightPosition: string;
+    lightTarget: string;
+    lightUp: string;
+    lightNear: string;
+    projectionHeight: string;
+    projectionWidth: string;
 }
 
 export type GLXSprite = {
@@ -298,12 +330,6 @@ export type Signal<D> = {
 
 export type SignalConsumer<D> = (signal: Signal<D>) => void;
 
-export type SignalDescriptor<D> = {
-    readonly name: string;
-    readonly subscriber: SignalSubscriber<D>;
-    readonly trigger: SignalTrigger<D>
-};
-
 export type SpriteActionType = 1 | 2 | 3;
 
 export type SpriteConstructorParams = {
@@ -379,6 +405,7 @@ export declare class GLXApplicationSignalWorkspace {
     readonly cameraMan: GLXCameraManSignalWorkspace;
     readonly controls: string;
     readonly main: string;
+    readonly shadowLight: GLXShadowLightSignalWorkspace;
 
     sprite(sprite: Sprite): SpriteSignalWorkspace;
     spriteName(name: string): SpriteSignalWorkspace;
@@ -505,7 +532,7 @@ declare class GLXSpriteManager {
     getSprite(name: string): Sprite|undefined
 }
 
-declare type GLXSpriteManagerConstructorParams {
+declare type GLXSpriteManagerConstructorParams = {
     applicationName: string;
     logEnabled: boolean;
 }
@@ -525,6 +552,13 @@ export declare class Rotations {
 
 export declare class Scales {
     static readonly NOT_SCALED: Trio<number>;
+}
+
+export type SignaledProperty<T> = {
+    readonly propertyGetter: () => T;
+    readonly propertySetter: (value: T) => void; 
+    readonly nextValue: T;
+    readonly signalDescriptor: SignalDescriptor<Change<T>>;
 }
 
 export declare class Sprite {
