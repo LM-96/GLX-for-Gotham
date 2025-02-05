@@ -1,5 +1,10 @@
 import { AngleMath, degrees } from "./geometry.js";
-import { GLXCameraManWorkModes, duo, LimitCheckers, position, rotation, scale, start, GLXApplication } from "./webglx.js";
+import { GLXApplication } from "./glx-core.js";
+import { start } from "./glx-core.js";
+import { LimitCheckers } from "./glx-model.js";
+import { duo, GLXCameraManWorkModes, position, rotation, scale } from "./glx-model.js";
+
+
 
 const BASE = 200;
 const HIGH = 365;
