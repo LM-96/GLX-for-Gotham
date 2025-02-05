@@ -30,7 +30,6 @@ class GothamApp extends GLXApplication {
         this.cameraMan.phase = this.batMoto.rotation.third.transform(AngleMath.multiplyBy(-1));
         this.cameraMan.distance = 50;
         this.cameraMan.hire(GLXCameraManWorkModes.THIRD_PERSON);
-        //setTimeout(() => this.cameraMan.dismiss(), 5000);
     }
 }
 
@@ -48,5 +47,8 @@ start({
         lightPosition: position(200, 20, 10),
         lightTarget: position(20, 20, 0),
         isShadowEnabled: true
+    },
+    cameraSettings: {
+        zFar: 700
     }
 });

@@ -41,7 +41,7 @@ export declare class AngleMath {
     static degreeValue(): Mapper<number>;
     static convert(unit: AngleUnit): AngleTransformer;
     static multiplyBy(value: number): AngleTransformer;
-    static radianValue(): Mapper<number>;
+    static radiansValue(): Mapper<number>;
 }
 
 export declare class AngleUnits {

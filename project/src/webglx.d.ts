@@ -91,7 +91,7 @@ export type GLXCameraManSettings = {
     high: number;
     isChasingSprite: boolean,
     isLookingAtSprite: boolean
-    phase: number;
+    phase: Angle;
     targetSprite: Sprite | null;
     workMode: GLXCameraManWorkMode;
 }
@@ -101,7 +101,7 @@ export type GLXCameraManSignalDescriptors = {
     highChanges: SignalDescriptor<Change<number>>;
     isLookingAtSpriteChanges: SignalDescriptor<Change<boolean>>;
     isChasingSpriteChanges: SignalDescriptor<Change<boolean>>;
-    phaseChanges: SignalDescriptor<Change<number>>;
+    phaseChanges: SignalDescriptor<Change<Angle>>;
     targetSpriteChanges: SignalDescriptor<Change<Sprite | null>>;
     workModeChanges: SignalDescriptor<Change<GLXCameraManWorkMode>>;
 }
@@ -120,6 +120,7 @@ export type GLXControlType =
     | 'look_at'
     | 'cam_man_high'
     | 'cam_man_distance'
+    | 'cam_man_phase'
     | 'cam_x'
     | 'cam_y'
     | 'cam_z'
@@ -147,6 +148,7 @@ export type GLXControlType =
     | 'light_width'
     | 'light_height'
     | 'curr_sprite'
+    | 'hidden'
     | 'sprite_x'
     | 'sprite_y'
     | 'sprite_z'
@@ -166,8 +168,9 @@ export type GLXControl<T> = {
     max?: T,
     step?: T,
     listenSignal?: string,
-    listenReducer?: (signal: Signal<any>) => T,
-    onValueChange?: (newValue: T) => void;
+    listenSignalPool?: string[],
+    listenSignalGuard?: (signal: Signal<any>) => boolean,
+    listenReducer?: (signal: Signal<any>) => T
 }
 
 export type GLXControlsParams = {
@@ -350,13 +353,15 @@ export type SpriteSettings = {
 export type SpriteSignalDescriptors = {
     readonly positionChange: SignalDescriptor<PositionChange>,
     readonly rotationChange: SignalDescriptor<RotationChange>,
-    readonly scaleChange: SignalDescriptor<ScaleChange>
+    readonly scaleChange: SignalDescriptor<ScaleChange>,
+    readonly hiddenChange: SignalDescriptor<Change<boolean>>
 }
 
 export type SpriteSignalWorkspace = {
     readonly positionChange: string,
     readonly rotationChange: string,
-    readonly scaleChange: string
+    readonly scaleChange: string,
+    readonly hiddenChange: string
 };
 
 export type Trio<T> = {
@@ -477,6 +482,7 @@ export declare class GLXControlTypes {
     static LOOK_AT: GLXControlType;
     static CAM_MAN_HIGH: GLXControlType;
     static CAM_MAN_DISTANCE: GLXControlType;
+    static CAM_MAN_PHASE: GLXControlType;
     static CAM_X: GLXControlType;
     static CAM_Y: GLXControlType;
     static CAM_Z: GLXControlType;
@@ -504,6 +510,7 @@ export declare class GLXControlTypes {
     static LIGHT_WIDTH: GLXControlType;
     static LIGHT_HEIGHT: GLXControlType;
     static CURR_SPRITE: GLXControlType;
+    static HIDDEN: GLXControlType;
     static SPRITE_X: GLXControlType;
     static SPRITE_Y: GLXControlType;
     static SPRITE_Z: GLXControlType;
