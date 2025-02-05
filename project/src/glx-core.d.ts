@@ -1,5 +1,19 @@
-import { GLXApplicationSignalWorkspace } from "./glx-model";
+import { 
+    GLXApplicationInfoType, 
+    GLXApplicationSignalWorkspace, 
+    GLXCamera,
+    GLXCameraManWorkMode,
+    GLXCameraSettings,
+    GLXControl,
+    GLXShadowLightSettings, 
+    GLXSprite,
+    GLXSpriteSettings,
+    GLXSpriteSignalWorkspace,
+    LimitChecker, 
+    Trio } from "./glx-model";
+import { Angle, Point3D } from "./geometry";
 import { Logger } from "./logjsx";
+import { SignalDescriptor } from "./signals";
 
 export declare class GLXApplication {
     readonly applicationName: string;
@@ -10,18 +24,20 @@ export declare class GLXApplication {
     glxSprite(load: MeshSpriteLoad);
 }
 
+export type WebGLXApplicationClass = { new(...args: any[]): GLXApplication };
+
 export type GLXApplicationParams = {
     readonly applicationName: string;
     readonly appStart: GLXApplicationStart;
-    readonly mainSignalDescriptor: SignalDescriptor<GLXApplicationInfo>;
+    readonly mainSignalDescriptor: SignalDescriptor<GLXApplicationInfoType>;
     readonly webGLXEnvironment: GLXEnvironment;
     readonly signalWorkspace: GLXApplicationSignalWorkspace;
 }
 
 export type GLXApplicationStart = {
-    applicationClass: WebGLXApplicationClass;
+    applicationClass: GLXApplicationClass;
     canvasElementName: string;
-    webGLShaders: WebGLShaderRef;
+    webGLShaders: WebGLShaderReference;
     cameraSettings?: Partial<GLXCameraSettings>;
     logEnabled?: boolean;
     shadowLightSetting?: Partial<GLXShadowLightSettings>;
@@ -75,8 +91,8 @@ export type GLXEnvironment = {
 export type GLXSpriteCreation = {
     readonly name: string;
     readonly glData: any;
-    readonly signalWorkspace: SpriteSignalWorkspace;
-    readonly settings?: Partial<SpriteSettings>;
+    readonly signalWorkspace: GLXSpriteSignalWorkspace;
+    readonly settings?: Partial<GLXSpriteSettings>;
 }
 
 export type GLXSpriteData = {
@@ -136,4 +152,4 @@ export type WebGLShaderReference = {
 }
 
 
-export declare function start<WebGLXApplicationClass>(appStart: GLXApplicationStart);
+export declare function start(appStart: GLXApplicationStart);

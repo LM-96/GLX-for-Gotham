@@ -2208,7 +2208,7 @@ function changeToVector3D(change) {
 /**
  * 
  * @param {string} canvasHtmlName 
- * @param {Map<string, string[]} webGLShaders 
+ * @param {Map<string, string[]>} webGLShaders 
  * @returns {GLXEnvironment}
  */
 function createWebglEnvironment(canvasHtmlName, webGLShaders) {

@@ -46,12 +46,14 @@ start({
         color: ["color-vertex-shader", "color-fragment-shader"]
     },
     shadowLightSetting: {
-        lightFar: 200,
-        projectionHeight: 500,
-        projectionWidth: 500,
-        lightPosition: position(200, 20, 10),
-        lightTarget: position(20, 20, 0),
-        isShadowEnabled: true
+        lightFar: 150,
+        projectionHeight: 100,
+        projectionWidth: 100,
+        lightFov: degrees(160),
+        lightPosition: position(150, -120, 1),
+        lightTarget: position(170, -131, 1),
+        isShadowEnabled: true,
+        isSpotlight: true
     },
     cameraSettings: {
         zFar: 700
