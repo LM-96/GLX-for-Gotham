@@ -521,6 +521,9 @@ export class GLXControlTypes {
     /** @type {GLXControlType} */ static LIGHT_TARGET_X = 'light_target_x';
     /** @type {GLXControlType} */ static LIGHT_TARGET_Y = 'light_target_y';
     /** @type {GLXControlType} */ static LIGHT_TARGET_Z = 'light_target_z';
+    /** @type {GLXControlType} */ static LIGHT_UP_X = 'light_up_x';
+    /** @type {GLXControlType} */ static LIGHT_UP_Y = 'light_up_y';
+    /** @type {GLXControlType} */ static LIGHT_UP_Z = 'light_up_z';
     /** @type {GLXControlType} */ static LIGHT_FOV = 'light_fov';
     /** @type {GLXControlType} */ static LIGHT_NEAR = 'light_near';
     /** @type {GLXControlType} */ static LIGHT_FAR = 'light_far';

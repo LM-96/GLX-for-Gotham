@@ -523,6 +523,33 @@ export class GLXApplication {
                 listenReducer: signal => signal.data.to.z
             },
             {
+                type: GLXControlTypes.LIGHT_UP_X,
+                value: this.#shadowLightManager.lightUp.first,
+                min: -500,
+                max: 500,
+                step: 1,
+                listenSignal: this.#signalWorkspace.shadowLight.lightUp,
+                listenReducer: signal => signal.data.to.first
+            },
+            {
+                type: GLXControlTypes.LIGHT_UP_Y,
+                value: this.#shadowLightManager.lightUp.second,
+                min: -500,
+                max: 500,
+                step: 1,
+                listenSignal: this.#signalWorkspace.shadowLight.lightUp,
+                listenReducer: signal => signal.data.to.second
+            },
+            {
+                type: GLXControlTypes.LIGHT_UP_Z,
+                value: this.#shadowLightManager.lightUp.third,
+                min: -500,
+                max: 500,
+                step: 1,
+                listenSignal: this.#signalWorkspace.shadowLight.lightUp,
+                listenReducer: signal => signal.data.to.third
+            },
+            {
                 type: GLXControlTypes.LIGHT_FOV,
                 value: this.#shadowLightManager.lightFov.map(AngleMath.degreeValue()),
                 min: 0,
@@ -834,6 +861,18 @@ export class GLXApplication {
             [GLXControlTypes.LIGHT_TARGET_Z]: (/** @type {number} */ value) => {
                 this.#shadowLightManager.lightTarget =
                     this.#shadowLightManager.lightTarget.transform(Math3D.setCoordinate(Axes.Z, value));
+            },
+            [GLXControlTypes.LIGHT_UP_X]: (/** @type {number} */ value) => {
+                let prevUp = this.#shadowLightManager.lightUp;
+                this.#shadowLightManager.lightUp = trio(value, prevUp.second, prevUp.third);
+            },
+            [GLXControlTypes.LIGHT_UP_Y]: (/** @type {number} */ value) => {
+                let prevUp = this.#shadowLightManager.lightUp;
+                this.#shadowLightManager.lightUp = trio(prevUp.first, value, prevUp.third);
+            },
+            [GLXControlTypes.LIGHT_UP_Z]: (/** @type {number} */ value) => {
+                let prevUp = this.#shadowLightManager.lightUp;
+                this.#shadowLightManager.lightUp = trio(prevUp.first, prevUp.second, value);
             },
             [GLXControlTypes.LIGHT_FOV]: (/** @type {number} */ value) => this.#shadowLightManager.lightFov = degrees(value),
             [GLXControlTypes.LIGHT_NEAR]: (/** @type {number} */ value) => this.#shadowLightManager.lightNear = value,
@@ -1789,7 +1828,7 @@ class GLXDrawer {
     #computeLightProjectionMatrix() {
         if (this.#shadowLightManager.isSpotlight) {
             return M4.perspective(
-                this.#shadowLightManager.lightFov.transform(AngleMath.asRadians()).value,
+                this.#shadowLightManager.lightFov.map(AngleMath.radiansValue()),
                 this.#shadowLightManager.projectionWidth / this.#shadowLightManager.projectionHeight,
                 this.#shadowLightManager.lightNear,
                 this.#shadowLightManager.lightFar)
@@ -1800,7 +1839,7 @@ class GLXDrawer {
                 -halfProjectionWidth, halfProjectionWidth,
                 -halfProjectionHeight, halfProjectionHeight,
                 this.#shadowLightManager.lightNear,
-                this.#shadowLightManager.lightFov)
+                this.#shadowLightManager.lightFar)
         }
     }
 

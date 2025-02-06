@@ -173,6 +173,9 @@ export type GLXControlType =
     | 'light_target_x'
     | 'light_target_y'
     | 'light_target_z'
+    | 'light_up_x'
+    | 'light_up_y'
+    | 'light_up_z'
     | 'light_fov'
     | 'light_near'
     | 'light_far'
@@ -221,6 +224,9 @@ export declare class GLXControlTypes {
     static LIGHT_TARGET_X: GLXControlType;
     static LIGHT_TARGET_Y: GLXControlType;
     static LIGHT_TARGET_Z: GLXControlType;
+    static LIGHT_UP_X: GLXControlType;
+    static LIGHT_UP_Y: GLXControlType;
+    static LIGHT_UP_Z: GLXControlType;
     static LIGHT_FOV: GLXControlType;
     static LIGHT_NEAR: GLXControlType;
     static LIGHT_FAR: GLXControlType;
