@@ -186,6 +186,7 @@ export class GLXApplicationSignalWorkspace {
 
     /** @type {GLXShadowLightSignalWorkspace} */
     static #SHADOW_LIGHT = {
+        bias: 'shadowLight.bias',
         lightFar: 'shadowLight.far',
         lightFov: 'shadowLight.fox',
         isShadowEnabled: 'shadowLight.shadowEnabled',
@@ -239,6 +240,7 @@ export class GLXApplicationSignalWorkspace {
         this.#main = this.#absolutize(GLXApplicationSignalWorkspace.#MAIN);
 
         this.#shadowLight = Object.freeze({
+            bias: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.bias),
             lightFar: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.lightFar),
             lightFov: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.lightFov),
             isShadowEnabled: this.#absolutize(GLXApplicationSignalWorkspace.#SHADOW_LIGHT.isShadowEnabled),
@@ -527,6 +529,7 @@ export class GLXControlTypes {
     /** @type {GLXControlType} */ static LIGHT_FOV = 'light_fov';
     /** @type {GLXControlType} */ static LIGHT_NEAR = 'light_near';
     /** @type {GLXControlType} */ static LIGHT_FAR = 'light_far';
+    /** @type {GLXControlType} */ static BIAS = 'bias';
     /** @type {GLXControlType} */ static SPOTLIGHT = 'spotlight';
     /** @type {GLXControlType} */ static LIGHT_WIDTH = 'light_width';
     /** @type {GLXControlType} */ static LIGHT_HEIGHT = 'light_height';
@@ -555,6 +558,7 @@ export class GLXShadowLight {
      */
     constructor(params) {
         this.#settings = {
+            bias: -0.006,
             lightDirection: trio(0, 0, 0),
             lightPosition: point3D(0, 0, 100),
             lightTarget: point3D(0, 0, 0),
@@ -570,6 +574,10 @@ export class GLXShadowLight {
             ...params.settings
         };
         this.#signalDescriptors = this.#buildSignalDescriptors(params.signalWorkspace);
+    }
+
+    get bias() {
+        return this.#settings.bias;
     }
 
     get lightFar() {
@@ -618,6 +626,18 @@ export class GLXShadowLight {
 
     get projectionWidth() {
         return this.#settings.projectionWidth;
+    }
+
+    /**
+     * @param {number} nextBias
+     */
+    set bias(nextBias) {
+        setSignaledProperty({
+            propertyGetter: () => this.#settings.bias,
+            propertySetter: (value) => this.#settings.bias = value,
+            nextValue: nextBias,
+            signalDescriptor: this.#signalDescriptors.bias
+        })
     }
 
 
@@ -769,6 +789,7 @@ export class GLXShadowLight {
      */
     #buildSignalDescriptors(signalWorkspace) {
         return {
+            bias: SIGNALS.register(signalWorkspace.bias),
             lightFar: SIGNALS.register(signalWorkspace.lightFar),
             lightFrustum: SIGNALS.register(signalWorkspace.lightFrustum),
             lightFov: SIGNALS.register(signalWorkspace.lightFov),

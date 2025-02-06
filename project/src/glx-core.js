@@ -577,6 +577,15 @@ export class GLXApplication {
                 listenReducer: signal => signal.data.to
             },
             {
+                type: GLXControlTypes.BIAS,
+                value: this.#shadowLightManager.bias,
+                min: -0.20,
+                max: 0.00,
+                step: 0.025,
+                listenSignal: this.#signalWorkspace.shadowLight.bias,
+                listenReducer: signal => signal.data.to
+            },
+            {
                 type: GLXControlTypes.SPOTLIGHT,
                 value: this.#shadowLightManager.isSpotlight,
                 listenSignal: this.#signalWorkspace.shadowLight.isSpotlight,
@@ -877,6 +886,7 @@ export class GLXApplication {
             [GLXControlTypes.LIGHT_FOV]: (/** @type {number} */ value) => this.#shadowLightManager.lightFov = degrees(value),
             [GLXControlTypes.LIGHT_NEAR]: (/** @type {number} */ value) => this.#shadowLightManager.lightNear = value,
             [GLXControlTypes.LIGHT_FAR]: (/** @type {number} */ value) => this.#shadowLightManager.lightFar = value,
+            [GLXControlTypes.BIAS]: (/** @type {number} */ value) => this.#shadowLightManager.bias = value,
             [GLXControlTypes.SPOTLIGHT]: (/** @type {boolean} */ value) => this.#shadowLightManager.isSpotlight = value,
             [GLXControlTypes.LIGHT_WIDTH]: (/** @type {number} */ value) => this.#shadowLightManager.projectionWidth = value,
             [GLXControlTypes.LIGHT_HEIGHT]: (/** @type {number} */ value) => this.#shadowLightManager.projectionHeight = value,
@@ -1601,7 +1611,6 @@ class GLXDrawer {
     }
 
     /** @type {GLXApplicationSignalWorkspace} */ #applicationSignalWorkspace;
-    /** @type {number} */ #bias;
     /** @type {GLXCamera} */ #camera;
     /** @type {any} */ #cubeLinesBufferInfo;
     /** @type {import("./glx-core").GLXEnvironment} */ #glXEnvironment;
@@ -1619,7 +1628,6 @@ class GLXDrawer {
      */
     constructor(params) {
         this.#applicationSignalWorkspace = params.applicationSignalWorkspace;
-        this.#bias = -0.006;
         this.#camera = params.camera
         this.#glXEnvironment = params.glxEnvironment;
         this.#shadowLightManager = params.shadowLightManager;
@@ -1650,7 +1658,7 @@ class GLXDrawer {
         WebGLUtils.setUniforms(drawSceneContext.programInfo, {
             u_view: viewMatrix,
             u_projection: drawSceneContext.projectionMatrix,
-            u_bias: this.#bias,
+            u_bias: this.#shadowLightManager.bias,
             u_textureMatrix: drawSceneContext.textureMatrix,
             u_projectedTexture: GLXDrawer.getTextureForLights(this.#glXEnvironment.glContext),
             u_lightDirection: this.#computeLightWorldMatrix().slice(8, 11),

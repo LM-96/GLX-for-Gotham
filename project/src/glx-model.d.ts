@@ -180,6 +180,7 @@ export type GLXControlType =
     | 'light_near'
     | 'light_far'
     | 'spotlight'
+    | 'bias'
     | 'light_width'
     | 'light_height'
     | 'curr_sprite'
@@ -230,6 +231,7 @@ export declare class GLXControlTypes {
     static LIGHT_FOV: GLXControlType;
     static LIGHT_NEAR: GLXControlType;
     static LIGHT_FAR: GLXControlType;
+    static BIAS: GLXControlType;
     static SPOTLIGHT: GLXControlType;
     static LIGHT_WIDTH: GLXControlType;
     static LIGHT_HEIGHT: GLXControlType;
@@ -262,6 +264,7 @@ export type DrawSpriteContext = {
 }
 
 export class GLXShadowLight {
+    bias: number;
     lightFar: number;
     lightFov: Angle;
     lightFrustum: boolean;
@@ -286,6 +289,7 @@ export type GLXShadowLightConstructorParams = {
 }
 
 export type GLXShadowLightSettings = {
+    bias: number;
     lightFar: number;
     ligthFrustum: boolean;
     lightDirection: Trio<number>;
@@ -301,6 +305,7 @@ export type GLXShadowLightSettings = {
 }
 
 export class GLXShadowLightSignalDescriptors {
+    bias: SignalDescriptor<Change<number>>;
     lightFar: SignalDescriptor<Change<number>>;
     lightFrustum: SignalDescriptor<Change<boolean>>;
     lightFov: SignalDescriptor<Change<Angle>>;
@@ -316,6 +321,7 @@ export class GLXShadowLightSignalDescriptors {
 }
 
 export class GLXShadowLightSignalWorkspace {
+    bias: string;
     lightFar: string;
     lightFov: string;
     lightFrustum: string;
