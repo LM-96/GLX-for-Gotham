@@ -1,5 +1,9 @@
-import { GLXControlHandler, GLXControlHandlerParams } from "./glx-core";
+import { GLXControlHandler, GLXControlsHandlerParams } from "./glx-core";
 
-export declare class GLXDatGuiCotrolsHandler implements GLXControlHandler {
-    setup(params: GLXControlHandlerParams)
+export declare class GothamDatGuiCotrolsHandler implements GLXControlHandler {
+    setup(params: GLXControlsHandlerParams);
+}
+
+export declare class GothamKeyboardControlsHandler implements GLXControlHandler {
+    setup(params: GLXControlsHandlerParams);
 }

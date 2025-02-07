@@ -86,7 +86,7 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
- * @typedef {import("./glx-core").GLXControlHandlerParams} GLXControlHandlerParams
+ * @typedef {import("./glx-core").GLXControlsHandlerParams} GLXControlHandlerParams
  */
 
 /**
@@ -94,7 +94,7 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
- * @typedef {import("./glx-core").GLXControlHandlerParams} GLXControlsParams
+ * @typedef {import("./glx-core").GLXControlsHandlerParams} GLXControlsParams
  */
 
 /**
@@ -965,6 +965,7 @@ export class GLXApplication {
                 /** @type {GLXControlHandlerParams} */
                 let controlHandlerParams = Object.freeze({
                     applicatioName: this.#applicationName,
+                    canvas: this.#glxEnvironment.canvas,
                     controls: this.#buildGuiControls(this.#spriteManager.getAllSprites()),
                     controlsSignalDescriptor: controlsSignalDescriptor
                 });
@@ -972,7 +973,7 @@ export class GLXApplication {
                 for (let controlHandlerClass of controlHandlerClasses) {
                     /** @type {GLXControlHandler} */ let controlHandler = new controlHandlerClass();
                     controlHandler.setup(controlHandlerParams);
-                    this.#logger.info(`controls handler '${controlHandlerClass.prototype.name}' has been setup`)
+                    this.#logger.info(`controls handler '${controlHandlerClass.name}' has been setup`)
                 }
             }
         })

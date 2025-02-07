@@ -293,7 +293,6 @@ export type GLXShadowLightSettings = {
     bias: number;
     lightFar: number;
     ligthFrustum: boolean;
-    lightDirection: Trio<number>;
     lightPosition: Point3D;
     lightTarget: Point3D;
     lightUp: Trio<number>;

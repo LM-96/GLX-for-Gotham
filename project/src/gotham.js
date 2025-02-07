@@ -1,5 +1,5 @@
 import { AngleMath, degrees } from "./geometry.js";
-import { GLXDatGuiCotrolsHandler } from "./gotham-controls.js";
+import { GothamDatGuiCotrolsHandler, GothamKeyboardControlsHandler } from "./gotham-controls.js";
 import { GLXApplication } from "./glx-core.js";
 import { start } from "./glx-core.js";
 import { LimitCheckers } from "./glx-model.js";
@@ -59,5 +59,5 @@ start({
     cameraSettings: {
         zFar: 700
     },
-    controlHandlerClasses: [ GLXDatGuiCotrolsHandler ]
+    controlHandlerClasses: [ GothamDatGuiCotrolsHandler, GothamKeyboardControlsHandler ]
 });

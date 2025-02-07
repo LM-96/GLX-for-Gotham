@@ -1,69 +1,67 @@
-import { 
-    ifNotNullOrUndefined, 
-    isNotNullOrUndefined 
+import { Angle, radians } from "./geometry.js";
+import {
+    GLXControlTypes,
+    ifNotNullOrUndefined,
+    isNotNullOrUndefined
 } from "./glx-model.js";
 import { SIGNALS } from "./signals.js";
 
 /**
  * @template T
- * @typedef {import("./glx-model.js").GLXControl<T>} GLXControl
+ * @typedef {import("./glx-model").GLXControl<T>} GLXControl
  */
 
 /**
- * @typedef {import("./glx-model.js").GLXControlInfo} GLXControlInfo
+ * @typedef {import("./glx-model").GLXControlInfo} GLXControlInfo
+ */
+
+/**
+ * @typedef {import("./glx-model").GLXControlType} GLXControlType
+ */
+
+
+/**
+ * @template D
+ * @typedef {import("./signals").SignalDescriptor<D>} SignalDescriptor
+ */
+
+/**
+ * @typedef {import("./signals").SubscriptionToken} SubscriptionToken
+ */
+
+/**
+ * @template T
+ * @typedef {import("./glx-model").Trio<T>} Trio<T>
+ */
+
+/**
+ * @typedef {import("./glx-core").GLXControlsHandlerParams} GLXControlsHandlerParams
  */
 
 /**
  * @template D
- * @typedef {import("./signals.js").SignalDescriptor<D>} SignalDescriptor
- */
-
-/**
- * @typedef {import("./signals.js").SubscriptionToken} SubscriptionToken
- */
-
-/**
- * @typedef {import("./glx-core.js").GLXControlHandlerParams} GLXControlsParams
- */
-
-/**
- * @template D
- * @typedef {import("./signals.js").Signal<D>} Signal
+ * @typedef {import("./signals").Signal<D>} Signal
  */
 
 
-export class GLXDatGuiCotrolsHandler {
+export class GothamDatGuiCotrolsHandler {
 
     /** @type {GLXControl<any>[]} */ #controls = [];
     /** @type {any} */ #settings = {};
     /** @type {SignalDescriptor<GLXControlInfo>|undefined} */ #signalDescriptor;
     /** @type {SubscriptionToken[]} */ #targetSubscriptionTokens = [];
 
-    
+
     /**
      * 
-     * @param {GLXControlsParams} params
+     * @param {GLXControlsHandlerParams} params
      */
     setup(params) {
         this.#controls = params.controls;
         this.#signalDescriptor = params.controlsSignalDescriptor;
         this.#targetSubscriptionTokens = [];
-        this.#settings = this.#controlsToSettings(params.controls);
+        this.#settings = controlsToSettings(this.#controls);
         this.#setupControls(this.#signalDescriptor);
-    }
-
-    /**
-     * 
-     * @param {GLXControl<any>[]} controls 
-     * @returns {any}
-     */
-    #controlsToSettings(controls) {
-        /** @type {any} */ let settings = {};
-        for (let control of controls) {
-            settings[control.type] = control.value
-        }
-
-        return settings;
     }
 
     /**
@@ -90,25 +88,7 @@ export class GLXDatGuiCotrolsHandler {
                 }
             };
 
-            let subscribeListenSignal = (/** @type {string} */ signalName) => {
-                SIGNALS.subscribe(signalName, onListenSignal)
-            }
-
-            ifNotNullOrUndefined(control.listenSignal, subscribeListenSignal);
-            ifNotNullOrUndefined(control.listenSignalPool, listenSignalNames => {
-                for (let signalName of listenSignalNames) {
-                    if (isNotNullOrUndefined(control.listenSignalGuard)) {
-                        SIGNALS.subscribe(signalName, (/** @type {Signal<any>} */ signal) => {
-                            // @ts-ignore
-                            if (control.listenSignalGuard(signal)) {
-                                onListenSignal(signal);
-                            }
-                        })
-                    } else {
-                        subscribeListenSignal(signalName);
-                    }
-                }
-            })
+            listenControlSignal(control, onListenSignal);
         }
     }
 
@@ -128,4 +108,182 @@ export class GLXDatGuiCotrolsHandler {
             });
         };
     }
+}
+
+
+export class GothamKeyboardControlsHandler {
+
+    // @ts-ignore
+    /** @type {HTMLCanvasElement}  */ #canvas;
+
+    /** @type {number} */ #canvasHeight = 0;
+    /** @type {number} */ #canvasWidth = 0;
+    /** @type {boolean} */ #drag = false;
+    /** @type {number} */ #previousX = 0;
+    /** @type {number} */ #previousY = 0;
+    /** @type {any} */ #settings = {};
+    /** @type {SignalDescriptor<GLXControlInfo>|undefined} */ #signalDescriptor;
+
+    /**
+     * 
+     * @param {GLXControlsHandlerParams} params 
+     */
+    setup(params) {
+        this.#signalDescriptor = params.controlsSignalDescriptor;
+        this.#canvas = params.canvas;
+        this.#canvasHeight = params.canvas.height;
+        this.#canvasWidth = params.canvas.width;
+
+        let controls = filterControlsByType(params.controls,
+            GLXControlTypes.SPRITE_X, GLXControlTypes.SPRITE_Y,
+            GLXControlTypes.SPRITE_PHI);
+        this.#settings = controlsToSettings(controls);
+        this.#updateSettingsOnSignal(controls);
+        this.#attachJsEventListener();
+    }
+
+    #attachJsEventListener() {
+        this.#canvas.addEventListener('mousedown', this.#onMouseTouchDown.bind(this));
+        this.#canvas.addEventListener('mouseup', this.#onMouseTouchUp.bind(this));
+        this.#canvas.addEventListener('mousemove', this.#onMouseMove.bind(this));
+    }
+
+    /**
+     * 
+     * @param {MouseEvent|TouchEvent} event 
+     */
+    #onMouseTouchDown(event) {
+        this.#drag = true;
+        if (event instanceof MouseEvent) {
+            this.#previousX = event.pageX;
+            this.#previousY = event.pageY;
+        } else {
+            this.#previousX = event.touches[0].clientX;
+            this.#previousY = event.touches[0].clientY;
+        }
+        event.preventDefault();
+        return false;
+    }
+
+    /**
+     * 
+     * @param {MouseEvent|TouchEvent} event 
+     */
+    #onMouseTouchUp(event) {
+        this.#drag = false;
+    }
+
+    /**
+     * 
+     * @param {MouseEvent|TouchEvent} event
+     */
+    #onMouseMove(event) {
+        if (!this.#drag) return false;
+        /** @type {number} */ let dX = 0;
+        /** @type {number} */ let dY = 0;
+        if (event instanceof MouseEvent) {
+            dX = (event.pageX - this.#previousX) * 2 * Math.PI / this.#canvasWidth;
+            dY = (event.pageY - this.#previousY) * 2 * Math.PI / this.#canvasHeight;
+            this.#previousX = event.pageX;
+            this.#previousY = event.pageY;
+        } else if (event instanceof TouchEvent) {
+            dX = (event.touches[0].clientX - this.#previousX) * 2 * Math.PI / this.#canvasWidth;
+            dY = (event.touches[0].clientY - this.#previousY) * 2 * Math.PI / this.#canvasHeight;
+            this.#previousX = event.touches[0].clientX;
+            this.#previousY = event.touches[0].clientY;
+        }
+        
+        let nextPhi = this.#settings[GLXControlTypes.SPRITE_PHI] + dX;
+        this.#signalDescriptor?.trigger({
+            data: {
+                type: GLXControlTypes.SPRITE_PHI,
+                value: nextPhi
+            }
+        });
+
+        this.#signalDescriptor?.trigger({
+            data: {
+                type: GLXControlTypes.SPRITE_X,
+                value: this.#settings[GLXControlTypes.SPRITE_X] + dY * -Math.sin(nextPhi)
+            }
+        });
+
+        this.#signalDescriptor?.trigger({
+            data: {
+                type: GLXControlTypes.SPRITE_Y,
+                value: this.#settings[GLXControlTypes.SPRITE_Y] + dY * Math.cos(nextPhi)
+            }
+        })
+    }
+
+    /**
+     * 
+     * @param {GLXControl<any>[]} controls 
+     */
+    #updateSettingsOnSignal(controls) {
+        for (let control of controls) {
+            let onListenedSignal = isNotNullOrUndefined(control.listenReducer) ?
+                // @ts-ignore
+                (/** @type {Signal<*>} */ signal) => this.#settings[control.type] = control.listenReducer(signal) :
+                (/** @type {Signal<*>} */ signal) => this.#settings = signal.data;
+
+            listenControlSignal(control, onListenedSignal);
+        }
+    }
+
+}
+
+/**
+  * 
+  * @param {GLXControl<any>[]} controls 
+  * @returns {any}
+  */
+function controlsToSettings(controls) {
+    /** @type {any} */ let settings = {};
+    for (let control of controls) {
+        settings[control.type] = control.value
+    }
+
+    return settings;
+}
+
+/**
+ * 
+ * @param {GLXControl<any>[]} controls
+ * @param {...GLXControlType} types 
+ * @returns {GLXControl<any>[]}
+ */
+function filterControlsByType(controls, ...types) {
+    if (isNotNullOrUndefined(types) && types.length > 0) {
+        return controls.filter(control => types.includes(control.type));
+    }
+
+    return [];
+}
+
+/**
+ * 
+ * @param {GLXControl<any>} control 
+ * @param {(signal: Signal<any>) => void} onListenedSignal 
+ */
+function listenControlSignal(control, onListenedSignal) {
+    let subscribeListenSignal = (/** @type {string} */ signalName) => {
+        SIGNALS.subscribe(signalName, onListenedSignal)
+    }
+
+    ifNotNullOrUndefined(control.listenSignal, subscribeListenSignal);
+    ifNotNullOrUndefined(control.listenSignalPool, listenSignalNames => {
+        for (let signalName of listenSignalNames) {
+            if (isNotNullOrUndefined(control.listenSignalGuard)) {
+                SIGNALS.subscribe(signalName, (/** @type {Signal<any>} */ signal) => {
+                    // @ts-ignore
+                    if (control.listenSignalGuard(signal)) {
+                        onListenedSignal(signal);
+                    }
+                })
+            } else {
+                subscribeListenSignal(signalName);
+            }
+        }
+    })
 }

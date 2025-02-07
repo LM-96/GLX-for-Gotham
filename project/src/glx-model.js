@@ -560,7 +560,6 @@ export class GLXShadowLight {
     constructor(params) {
         this.#settings = {
             bias: -0.006,
-            lightDirection: trio(0, 0, 0),
             lightPosition: point3D(0, 0, 100),
             lightTarget: point3D(0, 0, 0),
             lightUp: trio(0, 1, 0),
@@ -599,10 +598,6 @@ export class GLXShadowLight {
 
     get lightFrustum() {
         return this.#settings.ligthFrustum;
-    }
-
-    get ligthDirection() {
-        return this.#settings.lightDirection;
     }
 
     get lightPosition() {
@@ -696,18 +691,6 @@ export class GLXShadowLight {
             propertySetter: (value) => { this.#settings.isSpotlight = value; },
             nextValue: nextSpotlight,
             signalDescriptor: this.#signalDescriptors.isSpotlight
-        });
-    }
-
-    /**
-     * @param {Trio<number>} nextDirection 
-     */
-    set lightDirection(nextDirection) {
-        setSignaledProperty({
-            propertyGetter: () => this.#settings.lightDirection,
-            propertySetter: (value) => { this.#settings.lightDirection = value; },
-            nextValue: nextDirection,
-            signalDescriptor: this.#signalDescriptors.lightDirection
         });
     }
 

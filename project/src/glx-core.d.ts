@@ -67,13 +67,14 @@ export declare class GLXCameraMan {
 }
 
 export declare interface GLXControlHandler {
-    setup(params: GLXControlHandlerParams)
+    setup(params: GLXControlsHandlerParams)
 }
 
 export type GLXControlHandlerClass = { new(...args: any[]): GLXControlHandler };
 
-export type GLXControlHandlerParams = {
+export type GLXControlsHandlerParams = {
     readonly applicatioName: string;
+    readonly canvas: HTMLCanvasElement;
     readonly controlsSignalDescriptor: SignalDescriptor<GLXControlInfo>
     readonly controls: GLXControl[];
 }
