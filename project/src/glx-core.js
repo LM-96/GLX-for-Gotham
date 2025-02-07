@@ -426,8 +426,8 @@ export class GLXApplication {
                 value: this.#camera.fov.map(AngleMath.degreeValue()),
                 min: 0,
                 max: 180,
-                listenSignal: this.#signalWorkspace.camera.zFarChanges,
-                listenReducer: signal => signal.data.to.map(AngleMath.degreeValue),
+                listenSignal: this.#signalWorkspace.camera.fovChanges,
+                listenReducer: signal => signal.data.to.map(AngleMath.degreeValue()),
             },
             {
                 type: GLXControlTypes.TARGET_X,
