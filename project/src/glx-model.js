@@ -152,7 +152,8 @@ class FireRequests {
 export class GLXApplicationInfoTypes {
     /** @type {GLXApplicationInfoType} */ static ADDED_SPRITE = 'ADDED_SPRITE';
     /** @type {GLXApplicationInfoType} */ static BOOTED = 'BOOTED';
-    /** @type {GLXApplicationInfoType} */static CONSTRUCTED = 'CONSTRUCTED';
+    /** @type {GLXApplicationInfoType} */ static CONSTRUCTED = 'CONSTRUCTED';
+    /** @type {GLXApplicationInfoType} */ static TEXTURE_READY = 'TEXTURE_READY';
 }
 
 export class GLXApplicationSignalWorkspace {

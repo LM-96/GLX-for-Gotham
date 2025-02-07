@@ -12,12 +12,13 @@ export type Duo<T> = {
     readonly second: T;
 }
 
-export type GLXApplicationInfoType = 'BOOTED' | 'CONSTRUCTED' | 'ADDED_SPRITE';
+export type GLXApplicationInfoType = 'BOOTED' | 'CONSTRUCTED' | 'ADDED_SPRITE' | 'TEXTURE_READY';
 
 export declare class GLXApplicationInfoTypes {
     static ADDED_SPRITE: GLXApplicationInfoType;
     static BOOTED: GLXApplicationInfoType;
     static CONSTRUCTED: GLXApplicationInfoType;
+    static TEXTURE_READY: GLXApplicationInfoType;
 }
 
 export declare class GLXApplicationSignalWorkspace {

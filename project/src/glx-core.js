@@ -15,16 +15,15 @@ import {
     GLXShadowLight,
     GLXSprite,
     change,
-    ifNotNullOrUndefined,
     isNotNullOrUndefined,
     isNullOrUndefined,
     pair,
     trio
 } from "./glx-model.js";
-import { 
-    Logger, 
+import {
+    Logger,
     enableLoggingOn,
-    loggingEnabled 
+    loggingEnabled
 } from "./logjsx.js";
 import { SIGNALS } from "./signals.js";
 
@@ -79,11 +78,23 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
+ * @typedef {import("./glx-core").GLXControlHandler} GLXControlHandler
+ */
+
+/**
+ * @typedef {import("./glx-core").GLXControlHandlerClass} GLXControlHandlerClass
+ */
+
+/**
+ * @typedef {import("./glx-core").GLXControlHandlerParams} GLXControlHandlerParams
+ */
+
+/**
  * @typedef {import("./glx-model").GLXControlInfo} GLXControlInfo
  */
 
 /**
- * @typedef {import("./glx-core").GLXControlsParams} GLXControlsParams
+ * @typedef {import("./glx-core").GLXControlHandlerParams} GLXControlsParams
  */
 
 /**
@@ -100,6 +111,10 @@ import { SIGNALS } from "./signals.js";
 
 /**
  * @typedef {import("./glx-core").GLXSpriteData} GLXSpriteData
+ */
+
+/**
+ * @typedef {import("./glx-model").GLXSpriteSignalWorkspace} GLXSpriteSignalWorkspace
  */
 
 /**
@@ -137,10 +152,6 @@ import { SIGNALS } from "./signals.js";
 /**
  * @template D
  * @typedef {import("./signals").SignalSubscription<D>} SignalSubscription
- */
-
-/**
- * @typedef {import("./glx-model").GLXSpriteSignalWorkspace} GLXSpriteSignalWorkspace
  */
 
 /**
@@ -193,7 +204,7 @@ export class GLXApplication {
         this.#shadowLightManager = this.#buildShadowLightManager(params);
         this.#glxEnvironment = params.webGLXEnvironment;
         this.#spriteDrawer = this.#buildDrawer(params);
-        this.#setupControls(logEnabled);
+        this.#setupControls(params.controlHandlerClasses);
     }
 
     get applicationName() {
@@ -227,6 +238,7 @@ export class GLXApplication {
         })
 
         this.#logger.info('loaded mesh: ', load);
+        
         this.#mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.ADDED_SPRITE });
         return sprite;
     }
@@ -942,128 +954,28 @@ export class GLXApplication {
 
     /**
      * 
-     * @param {boolean} logEnabled 
+     * @param {GLXControlHandlerClass[]} controlHandlerClasses
      */
-    #setupControls(logEnabled) {
-
-
+    #setupControls(controlHandlerClasses) {
         SIGNALS.subscribe(this.#signalWorkspace.main, (/** @type {Signal<GLXApplicationInfoType>} */ signal) => {
             if (signal.data == GLXApplicationInfoTypes.BOOTED) {
-                new GLXApplicationControls({
-                    applicatioName: this.#applicationName,
-                    // @ts-ignore
-                    applicationSignalWorkspace: this.#signalWorkspace,
-                    controls: this.#buildGuiControls(this.#spriteManager.getAllSprites()),
-                    logEnabled: logEnabled
-                });
+                let controlsSignalDescriptor = SIGNALS.register(this.#signalWorkspace.controls);
                 this.#linkControls();
+
+                /** @type {GLXControlHandlerParams} */
+                let controlHandlerParams = Object.freeze({
+                    applicatioName: this.#applicationName,
+                    controls: this.#buildGuiControls(this.#spriteManager.getAllSprites()),
+                    controlsSignalDescriptor: controlsSignalDescriptor
+                });
+
+                for (let controlHandlerClass of controlHandlerClasses) {
+                    /** @type {GLXControlHandler} */ let controlHandler = new controlHandlerClass();
+                    controlHandler.setup(controlHandlerParams);
+                    this.#logger.info(`controls handler '${controlHandlerClass.prototype.name}' has been setup`)
+                }
             }
         })
-    }
-}
-
-class GLXApplicationControls {
-
-    /** @type {GLXApplicationSignalWorkspace} */ #applicationSignalWorkspace;
-    /** @type {GLXControl<any>[]} */ #controls = [];
-    /** @type {Logger} */ #logger;
-    /** @type {any} */ #settings = {};
-    /** @type {SignalDescriptor<GLXControlInfo>} */ #signalDescriptor;
-    /** @type {SubscriptionToken[]} */ #targetSubscriptionTokens;
-
-    /**
-     * 
-     * @param {GLXControlsParams} params
-     */
-    constructor(params) {
-        // @ts-ignore
-        this.#applicationSignalWorkspace = params.applicationSignalWorkspace;
-        this.#controls = params.controls;
-        this.#logger = Logger.forName(`WebGLXAppControls[${params.applicatioName}]`).enabledOn(params.logEnabled ?? true);
-
-        this.#signalDescriptor = SIGNALS.register(params.applicationSignalWorkspace.controls);
-        this.#targetSubscriptionTokens = [];
-
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.main, (signal) => {
-            // @ts-ignore
-            this.#controls = this.#controls;
-            this.#settings = this.#controlsToSettings(this.#controls);
-            if (signal.data === GLXApplicationInfoTypes.BOOTED) {
-                this.#setup();
-            }
-        });
-    }
-
-    /**
-     * 
-     * @param {GLXControl<any>[]} controls 
-     * @returns {any}
-     */
-    #controlsToSettings(controls) {
-        /** @type {any} */ let settings = {};
-        for (let control of controls) {
-            settings[control.type] = control.value
-        }
-
-        return settings;
-    }
-
-    #setup() {
-        /** @type {any} */ let gui = new dat.GUI();
-        for (let control of this.#controls) {
-            let controller = gui.add(this.#settings, control.type, control.options);
-            ifNotNullOrUndefined(control.min, min => controller = controller.min(min));
-            ifNotNullOrUndefined(control.max, max => controller = controller.max(max));
-            ifNotNullOrUndefined(control.step, step => controller = controller.step(step));
-            let onChange = this.#buildOnChange(control);
-            controller.onChange(onChange);
-
-            let onListenSignal = (/** @type {Signal<any>} */ signal) => {
-                let newValue = isNotNullOrUndefined(control.listenReducer) ? control.listenReducer(signal) : signal.data;
-                if (newValue !== this.#settings[control.type]) {
-                    this.#settings[control.type] = newValue;
-                    controller.onChange(undefined);
-                    controller.setValue(newValue);
-                    controller.onChange(onChange)
-                }
-            };
-
-            let subscribeListenSignal = (/** @type {string} */ signalName) => {
-                SIGNALS.subscribe(signalName, onListenSignal)
-            }
-
-            ifNotNullOrUndefined(control.listenSignal, subscribeListenSignal);
-            ifNotNullOrUndefined(control.listenSignalPool, listenSignalNames => {
-                for (let signalName of listenSignalNames) {
-                    if (isNotNullOrUndefined(control.listenSignalGuard)) {
-                        SIGNALS.subscribe(signalName, (/** @type {Signal<any>} */ signal) => {
-                            // @ts-ignore
-                            if (control.listenSignalGuard(signal)) {
-                                onListenSignal(signal);
-                            }
-                        })
-                    } else {
-                        subscribeListenSignal(signalName);
-                    }
-                }
-            })
-        }
-    }
-
-    /**
-     * 
-     * @param {GLXControl<*>} control 
-     * @returns {(value: any) => void}
-     */
-    #buildOnChange(control) {
-        return (/** @type {any} */ value) => {
-            this.#signalDescriptor.trigger({
-                data: {
-                    type: control.type,
-                    value: value
-                }
-            });
-        };
     }
 }
 
@@ -1639,6 +1551,9 @@ class GLXDrawer {
         SIGNALS.subscribe(params.applicationSignalWorkspace.main, (signal) => {
             if (signal.data == GLXApplicationInfoTypes.BOOTED) {
                 this.#setupAutoRender();
+                this.renderScene();
+            }
+            if (signal.data == GLXApplicationInfoTypes.TEXTURE_READY) {
                 this.renderScene();
             }
         })
@@ -2289,15 +2204,18 @@ export function start(appStart) {
     let glxEnv = createWebglEnvironment(appStart.canvasElementName, mapShaders(appStart.webGLShaders));
     let signalWorkspace = new GLXApplicationSignalWorkspace(appName);
     let mainSignalDescriptor = SIGNALS.register(signalWorkspace.main);
+    ON_TEXTURE_READY = (objName, imgUrl) => {
+        logger.info(`texture ready for '${objName}' with image url ${imgUrl}`)
+        mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.TEXTURE_READY});
+    }
 
     /** @type {GLXApplicationParams} */ let params = {
         applicationName: appName,
-        // @ts-ignore
         webGLXEnvironment: glxEnv,
         appStart: appStart,
-        // @ts-ignore
         signalWorkspace: signalWorkspace,
-        mainSignalDescriptor: mainSignalDescriptor
+        mainSignalDescriptor: mainSignalDescriptor,
+        controlHandlerClasses: appStart.controlHandlerClasses ?? []
 
     }
     let app = new appStart.applicationClass(params);

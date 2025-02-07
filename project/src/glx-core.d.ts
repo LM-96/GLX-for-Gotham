@@ -5,6 +5,7 @@ import {
     GLXCameraManWorkMode,
     GLXCameraSettings,
     GLXControl,
+    GLXControlInfo,
     GLXShadowLightSettings, 
     GLXSprite,
     GLXSpriteSettings,
@@ -22,9 +23,10 @@ export declare class GLXApplication {
     readonly signalWorkspace: GLXApplicationSignalWorkspace;
 
     glxSprite(load: MeshSpriteLoad);
+    main();
 }
 
-export type WebGLXApplicationClass = { new(...args: any[]): GLXApplication };
+export type GLXApplicationClass = { new(...args: any[]): GLXApplication };
 
 export type GLXApplicationParams = {
     readonly applicationName: string;
@@ -32,12 +34,14 @@ export type GLXApplicationParams = {
     readonly mainSignalDescriptor: SignalDescriptor<GLXApplicationInfoType>;
     readonly webGLXEnvironment: GLXEnvironment;
     readonly signalWorkspace: GLXApplicationSignalWorkspace;
+    readonly controlHandlerClasses: GLXControlHandlerClass[];
 }
 
 export type GLXApplicationStart = {
     applicationClass: GLXApplicationClass;
     canvasElementName: string;
     webGLShaders: WebGLShaderReference;
+    controlHandlerClasses?: GLXControlHandlerClass[];
     cameraSettings?: Partial<GLXCameraSettings>;
     logEnabled?: boolean;
     shadowLightSetting?: Partial<GLXShadowLightSettings>;
@@ -62,11 +66,16 @@ export declare class GLXCameraMan {
     unLookAtSprite(): GLXCameraMan
 }
 
-export type GLXControlsParams = {
-    applicatioName: string;
-    applicationSignalWorkspace: GLXApplicationSignalWorkspace;
-    controls: GLXControl[];
-    logEnabled?: boolean;
+export declare interface GLXControlHandler {
+    setup(params: GLXControlHandlerParams)
+}
+
+export type GLXControlHandlerClass = { new(...args: any[]): GLXControlHandler };
+
+export type GLXControlHandlerParams = {
+    readonly applicatioName: string;
+    readonly controlsSignalDescriptor: SignalDescriptor<GLXControlInfo>
+    readonly controls: GLXControl[];
 }
 
 export type GLXDrawerConstructorParams = {
