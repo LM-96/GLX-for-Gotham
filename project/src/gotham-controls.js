@@ -1,4 +1,4 @@
-import { Angle, radians } from "./geometry.js";
+import { Angle, AngleMath, degrees, radians } from "./geometry.js";
 import {
     GLXControlTypes,
     ifNotNullOrUndefined,
@@ -19,6 +19,9 @@ import { SIGNALS } from "./signals.js";
  * @typedef {import("./glx-model").GLXControlType} GLXControlType
  */
 
+/**
+ * @typedef {import("./gotham-controls").KeyMove} KeyMove
+ */
 
 /**
  * @template D
@@ -122,6 +125,8 @@ export class GothamKeyboardControlsHandler {
     /** @type {number} */ #previousX = 0;
     /** @type {number} */ #previousY = 0;
     /** @type {any} */ #settings = {};
+    /** @type {number} */ #stepAngleSize = 0.09;
+    /** @type {number} */ #stepForwardSize = 6;
     /** @type {SignalDescriptor<GLXControlInfo>|undefined} */ #signalDescriptor;
 
     /**
@@ -150,6 +155,58 @@ export class GothamKeyboardControlsHandler {
 
     /**
      * 
+     * @param {KeyMove} keyMove 
+     */
+    #moveFirstPerson(keyMove) {
+        switch (keyMove) {
+            case KeyMoves.ARROW_UP:
+                this.#navigateSprite(-this.#stepForwardSize, this.#settings[GLXControlTypes.SPRITE_PHI]);
+                break;
+
+            case KeyMoves.ARROW_DOWN:
+                this.#navigateSprite(this.#stepForwardSize, this.#settings[GLXControlTypes.SPRITE_PHI]);
+                break;
+
+            case KeyMoves.ARROW_LEFT:
+                this.#turnSprite(this.#stepAngleSize);
+                break;
+
+            case KeyMoves.ARROW_RIGHT:
+                this.#turnSprite(-this.#stepAngleSize);
+                break;
+        }
+    }
+
+    /**
+     * 
+     * @param {number} dForward 
+     * @param {number} radians 
+     */
+    #navigateSprite(dForward, radians) {
+        let dx = dForward * (-Math.sin(radians));
+        let dy = dForward * Math.cos(radians);
+
+        if (dx !== 0) {
+            this.#signalDescriptor?.trigger({
+                data: {
+                    type: GLXControlTypes.SPRITE_X,
+                    value: this.#settings[GLXControlTypes.SPRITE_X] + dx
+                }
+            });
+        }
+
+        if (dy !== 0) {
+            this.#signalDescriptor?.trigger({
+                data: {
+                    type: GLXControlTypes.SPRITE_Y,
+                    value: this.#settings[GLXControlTypes.SPRITE_Y] - dy
+                }
+            })
+        }
+    }
+
+    /**
+     * 
      * @param {MouseEvent|TouchEvent} event 
      */
     #onMouseTouchDown(event) {
@@ -171,6 +228,7 @@ export class GothamKeyboardControlsHandler {
      */
     #onMouseTouchUp(event) {
         this.#drag = false;
+        event.preventDefault();
     }
 
     /**
@@ -192,28 +250,32 @@ export class GothamKeyboardControlsHandler {
             this.#previousX = event.touches[0].clientX;
             this.#previousY = event.touches[0].clientY;
         }
-        
-        let nextPhi = this.#settings[GLXControlTypes.SPRITE_PHI] + dX;
+
+        let currentPhi = degrees(this.#settings[GLXControlTypes.SPRITE_PHI]);
+        let nextPhi = currentPhi.transform(AngleMath.sum(radians(dX)));
+
         this.#signalDescriptor?.trigger({
             data: {
                 type: GLXControlTypes.SPRITE_PHI,
-                value: nextPhi
+                value: nextPhi.transform(AngleMath.degreeValue())
             }
         });
 
+        this.#navigateSprite(dY, currentPhi.map(AngleMath.radiansValue()));
+        event.preventDefault();
+    }
+
+    /**
+     * 
+     * @param {number} radians 
+     */
+    #turnSprite(radians) {
         this.#signalDescriptor?.trigger({
             data: {
-                type: GLXControlTypes.SPRITE_X,
-                value: this.#settings[GLXControlTypes.SPRITE_X] + dY * -Math.sin(nextPhi)
+                type: GLXControlTypes.SPRITE_PHI,
+                value: this.#settings[GLXControlTypes.SPRITE_PHI] + radians
             }
         });
-
-        this.#signalDescriptor?.trigger({
-            data: {
-                type: GLXControlTypes.SPRITE_Y,
-                value: this.#settings[GLXControlTypes.SPRITE_Y] + dY * Math.cos(nextPhi)
-            }
-        })
     }
 
     /**
@@ -231,6 +293,21 @@ export class GothamKeyboardControlsHandler {
         }
     }
 
+}
+
+export class KeyMoves {
+
+    /** @type {KeyMove} */
+    static ARROW_UP = 'ArrowUp';
+
+    /** @type {KeyMove} */
+    static ARROW_DOWN = 'ArrowDown';
+
+    /** @type {KeyMove} */
+    static ARROW_LEFT = 'ArrowLeft';
+
+    /** @type {KeyMove} */
+    static ARROW_RIGHT = 'ArrowRight';
 }
 
 /**

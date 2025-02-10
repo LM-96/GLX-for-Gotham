@@ -284,6 +284,18 @@ export class AngleMath {
     }
 
     /**
+     * 
+     * @param {Angle} other 
+     * @returns {AngleTransformer}
+     */
+    static sum(other) {
+        return angle => {
+            return new Angle(angle.map(AngleMath.radiansValue()) + other.map(AngleMath.radiansValue()),
+                AngleUnits.RADIANS);
+        }
+    }
+
+    /**
      *
      * @param {number} angle
      * @returns {number}
@@ -357,12 +369,12 @@ export class Math3D {
      */
     static setCoordinate(coordinate, value) {
         return point => {
-            switch(coordinate) {
+            switch (coordinate) {
                 case Axes.X: return new Point3D(value, point.y, point.z);
                 case Axes.Y: return new Point3D(point.x, value, point.z);
                 case Axes.Z: return new Point3D(point.x, point.y, value);
                 default: throw new Error(`invalid axis ${coordinate}`);
-                
+
             }
         }
     }
@@ -519,7 +531,7 @@ class MatrixMath {
             const n = matrix.totalColumns;
             const p = other.data[0].length;
 
-            const resultData = Array.from({length: m}, () => Array(p).fill(0));
+            const resultData = Array.from({ length: m }, () => Array(p).fill(0));
 
             for (let i = 0; i < m; i++) {
                 for (let j = 0; j < p; j++) {
