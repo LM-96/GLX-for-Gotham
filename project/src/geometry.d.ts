@@ -28,6 +28,10 @@ export declare class Angle {
     readonly value: number;
     readonly unit: AngleUnit;
 
+    readonly degreesValue: number;
+    readonly radiansValue: number;
+
+
     clone();
     equals(other: any);
     map<R>(mapper: Mapper<R>): R
@@ -38,7 +42,7 @@ export declare class Angle {
 export declare class AngleMath {
     static asDegrees(): AngleTransformer;
     static asRadians(): AngleTransformer;
-    static degreeValue(): Mapper<number>;
+    static degreesValue(): Mapper<number>;
     static convert(unit: AngleUnit): AngleTransformer;
     static multiplyBy(value: number): AngleTransformer;
     static radiansValue(): Mapper<number>;

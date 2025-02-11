@@ -125,7 +125,7 @@ export class GothamKeyboardControlsHandler {
     /** @type {number} */ #previousX = 0;
     /** @type {number} */ #previousY = 0;
     /** @type {any} */ #settings = {};
-    /** @type {number} */ #stepAngleSize = 0.09;
+    /** @type {Angle} */ #stepAngleSize = degrees(5);
     /** @type {number} */ #stepForwardSize = 6;
     /** @type {SignalDescriptor<GLXControlInfo>|undefined} */ #signalDescriptor;
 
@@ -151,39 +151,20 @@ export class GothamKeyboardControlsHandler {
         this.#canvas.addEventListener('mousedown', this.#onMouseTouchDown.bind(this));
         this.#canvas.addEventListener('mouseup', this.#onMouseTouchUp.bind(this));
         this.#canvas.addEventListener('mousemove', this.#onMouseMove.bind(this));
-    }
-
-    /**
-     * 
-     * @param {KeyMove} keyMove 
-     */
-    #moveFirstPerson(keyMove) {
-        switch (keyMove) {
-            case KeyMoves.ARROW_UP:
-                this.#navigateSprite(-this.#stepForwardSize, this.#settings[GLXControlTypes.SPRITE_PHI]);
-                break;
-
-            case KeyMoves.ARROW_DOWN:
-                this.#navigateSprite(this.#stepForwardSize, this.#settings[GLXControlTypes.SPRITE_PHI]);
-                break;
-
-            case KeyMoves.ARROW_LEFT:
-                this.#turnSprite(this.#stepAngleSize);
-                break;
-
-            case KeyMoves.ARROW_RIGHT:
-                this.#turnSprite(-this.#stepAngleSize);
-                break;
-        }
+        this.#canvas.addEventListener('touchend', this.#onMouseTouchUp.bind(this));
+        this.#canvas.addEventListener('touchstart', this.#onMouseTouchDown.bind(this));
+        this.#canvas.addEventListener('touchmove', this.#onMouseMove.bind(this));
+        document.addEventListener('keydown', this.#onKeyDown.bind(this));
     }
 
     /**
      * 
      * @param {number} dForward 
-     * @param {number} radians 
+     * @param {Angle} angle 
      */
-    #navigateSprite(dForward, radians) {
-        let dx = dForward * (-Math.sin(radians));
+    #forwardSprite(dForward, angle) {
+        let radians = angle.radiansValue;
+        let dx = dForward * Math.sin(radians);
         let dy = dForward * Math.cos(radians);
 
         if (dx !== 0) {
@@ -202,6 +183,31 @@ export class GothamKeyboardControlsHandler {
                     value: this.#settings[GLXControlTypes.SPRITE_Y] - dy
                 }
             })
+        }
+    }
+
+    /**
+     * 
+     * @param {KeyboardEvent} event
+     */
+    #onKeyDown(event) {
+        let keyMove = event.key;
+        switch (keyMove) {
+            case KeyMoves.ARROW_UP:
+                this.#forwardSprite(this.#stepForwardSize, degrees(this.#settings[GLXControlTypes.SPRITE_PHI]));
+                break;
+
+            case KeyMoves.ARROW_DOWN:
+                this.#forwardSprite(-this.#stepForwardSize, degrees(this.#settings[GLXControlTypes.SPRITE_PHI]));
+                break;
+
+            case KeyMoves.ARROW_LEFT:
+                this.#turnSprite(this.#stepAngleSize);
+                break;
+
+            case KeyMoves.ARROW_RIGHT:
+                this.#turnSprite(this.#stepAngleSize.transform(AngleMath.multiplyBy(-1)));
+                break;
         }
     }
 
@@ -228,7 +234,6 @@ export class GothamKeyboardControlsHandler {
      */
     #onMouseTouchUp(event) {
         this.#drag = false;
-        event.preventDefault();
     }
 
     /**
@@ -254,26 +259,20 @@ export class GothamKeyboardControlsHandler {
         let currentPhi = degrees(this.#settings[GLXControlTypes.SPRITE_PHI]);
         let nextPhi = currentPhi.transform(AngleMath.sum(radians(dX)));
 
-        this.#signalDescriptor?.trigger({
-            data: {
-                type: GLXControlTypes.SPRITE_PHI,
-                value: nextPhi.transform(AngleMath.degreeValue())
-            }
-        });
-
-        this.#navigateSprite(dY, currentPhi.map(AngleMath.radiansValue()));
+        this.#turnSprite(nextPhi);
+        this.#forwardSprite(dY, nextPhi);
         event.preventDefault();
     }
 
     /**
      * 
-     * @param {number} radians 
+     * @param {Angle} angle
      */
-    #turnSprite(radians) {
+    #turnSprite(angle) {
         this.#signalDescriptor?.trigger({
             data: {
                 type: GLXControlTypes.SPRITE_PHI,
-                value: this.#settings[GLXControlTypes.SPRITE_PHI] + radians
+                value: this.#settings[GLXControlTypes.SPRITE_PHI] + angle.degreesValue
             }
         });
     }

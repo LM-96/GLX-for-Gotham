@@ -354,12 +354,12 @@ export class GLXApplication {
             },
             {
                 type: GLXControlTypes.CAM_MAN_PHASE,
-                value: this.#cameraMan.phase.map(AngleMath.degreeValue()),
+                value: this.#cameraMan.phase.degreesValue,
                 min: -180,
                 max: 180,
                 step: 1,
                 listenSignal: this.#signalWorkspace.cameraMan.phaseChanges,
-                listenReducer: signal => signal.data.to.map(AngleMath.degreeValue()),
+                listenReducer: signal => signal.data.to.degreesValue,
             },
             {
                 type: GLXControlTypes.CAM_X,
@@ -435,11 +435,11 @@ export class GLXApplication {
             },
             {
                 type: GLXControlTypes.FOV,
-                value: this.#camera.fov.map(AngleMath.degreeValue()),
+                value: this.#camera.fov.degreesValue,
                 min: 0,
                 max: 180,
                 listenSignal: this.#signalWorkspace.camera.fovChanges,
-                listenReducer: signal => signal.data.to.map(AngleMath.degreeValue()),
+                listenReducer: signal => signal.data.to.degreesValue,
             },
             {
                 type: GLXControlTypes.TARGET_X,
@@ -563,12 +563,12 @@ export class GLXApplication {
             },
             {
                 type: GLXControlTypes.LIGHT_FOV,
-                value: this.#shadowLightManager.lightFov.map(AngleMath.degreeValue()),
+                value: this.#shadowLightManager.lightFov.degreesValue,
                 min: 0,
                 max: 360,
                 step: 1,
                 listenSignal: this.#signalWorkspace.shadowLight.lightFov,
-                listenReducer: signal => signal.data.to.map(AngleMath.degreeValue())
+                listenReducer: signal => signal.data.to.degreesValue
             },
             {
                 type: GLXControlTypes.LIGHT_NEAR,
@@ -692,33 +692,33 @@ export class GLXApplication {
             },
             {
                 type: GLXControlTypes.SPRITE_PSI,
-                value: currentSprite?.rotation.first.map(AngleMath.degreeValue()),
+                value: currentSprite?.rotation.first.degreesValue,
                 min: -180,
                 max: 180,
                 step: 0.1,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.rotationChange),
                 listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.rotationChange),
-                listenReducer: signal => signal.data.to.first.map(AngleMath.degreeValue())
+                listenReducer: signal => signal.data.to.first.degreesValue
             },
             {
                 type: GLXControlTypes.SPRITE_THETA,
-                value: currentSprite?.rotation.second.map(AngleMath.degreeValue()),
+                value: currentSprite?.rotation.second.degreesValue,
                 min: -180,
                 max: 180,
                 step: 0.1,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.rotationChange),
                 listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.rotationChange),
-                listenReducer: signal => signal.data.to.second.map(AngleMath.degreeValue())
+                listenReducer: signal => signal.data.to.second.degreesValue
             },
             {
                 type: GLXControlTypes.SPRITE_PHI,
-                value: currentSprite?.rotation.third.map(AngleMath.degreeValue()),
+                value: currentSprite?.rotation.third.degreesValue,
                 min: -180,
                 max: 180,
                 step: 0.1,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.rotationChange),
                 listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.rotationChange),
-                listenReducer: signal => signal.data.to.third.map(AngleMath.degreeValue())
+                listenReducer: signal => signal.data.to.third.degreesValue
             },
         ];
     }
@@ -1358,8 +1358,8 @@ export class GLXCameraMan {
         if (isNotNullOrUndefined(this.#settings.targetSprite)) {
             this.#logger.info(`setting up first person [sprite: ${this.#settings.targetSprite.name}]`);
             let targetPosition = this.#settings.targetSprite.position;
-            let angle = this.#settings.targetSprite.rotation.third.map(AngleMath.radiansValue())
-                + this.#settings.phase.map(AngleMath.radiansValue());
+            let angle = this.#settings.targetSprite.rotation.third.radiansValue
+                + this.#settings.phase.radiansValue;
             this.#camera.position = targetPosition.transform(Math3D.translate(
                 5 * Math.cos(angle),
                 5 * Math.sin(angle),
@@ -1395,8 +1395,8 @@ export class GLXCameraMan {
     #workThirdPerson() {
         if (isNotNullOrUndefined(this.#settings.targetSprite)) {
             let targetPosition = this.#settings.targetSprite.position;
-            let angle = this.#settings.targetSprite.rotation.third.map(AngleMath.radiansValue())
-                + this.#settings.phase.map(AngleMath.radiansValue());
+            let angle = this.#settings.targetSprite.rotation.third.radiansValue
+                + this.#settings.phase.radiansValue;
             this.#camera.position = targetPosition.transform(Math3D.translate(
                 - this.#settings.distance * Math.cos(angle),
                 - this.#settings.distance * Math.sin(angle),
@@ -1752,7 +1752,7 @@ class GLXDrawer {
     #computeLightProjectionMatrix() {
         if (this.#shadowLightManager.isSpotlight) {
             return M4.perspective(
-                this.#shadowLightManager.lightFov.map(AngleMath.radiansValue()),
+                this.#shadowLightManager.lightFov.radiansValue,
                 this.#shadowLightManager.projectionWidth / this.#shadowLightManager.projectionHeight,
                 this.#shadowLightManager.lightNear,
                 this.#shadowLightManager.lightFar)
@@ -1778,9 +1778,9 @@ class GLXDrawer {
         let scale = sprite.scale;
 
         u_world = M4.translate(u_world, position.x, position.y, position.z);
-        u_world = M4.xRotate(u_world, rotation.first.map(AngleMath.radiansValue()));
-        u_world = M4.yRotate(u_world, rotation.second.map(AngleMath.radiansValue()));
-        u_world = M4.zRotate(u_world, rotation.third.map(AngleMath.radiansValue()));
+        u_world = M4.xRotate(u_world, rotation.first.radiansValue);
+        u_world = M4.yRotate(u_world, rotation.second.radiansValue);
+        u_world = M4.zRotate(u_world, rotation.third.radiansValue);
         u_world = M4.scale(u_world, scale.first, scale.second, scale.third);
         return u_world;
     }

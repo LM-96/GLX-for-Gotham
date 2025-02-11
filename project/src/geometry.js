@@ -161,6 +161,14 @@ export class Angle {
         Object.freeze(this);
     }
 
+    get degreesValue() {
+        return this.map(AngleMath.degreesValue());
+    }
+
+    get radiansValue() {
+        return this.map(AngleMath.radiansValue());
+    }
+
     /**
      *
      * @returns {Angle}
@@ -250,7 +258,7 @@ export class AngleMath {
      * 
      * @returns {AngleMapper<number>}
      */
-    static degreeValue() {
+    static degreesValue() {
         return angle => {
             if (angle.unit === AngleUnits.RADIANS) {
                 return AngleMath.#rad2Deg(angle.value);
