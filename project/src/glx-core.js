@@ -14,10 +14,12 @@ import {
     GLXControlTypes,
     GLXShadowLight,
     GLXSprite,
+    RenderingModes,
     change,
     isNotNullOrUndefined,
     isNullOrUndefined,
     pair,
+    setSignaledProperty,
     trio
 } from "./glx-model.js";
 import {
@@ -30,6 +32,10 @@ import { SIGNALS } from "./signals.js";
 /**
  * @template T
  * @typedef {import("./glx-model").Change<T>} Change
+ */
+
+/**
+ * @typedef {import("./glx-core").DrawMatrices} DrawMatrices
  */
 
 /**
@@ -102,6 +108,9 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
+ * @typedef {import("./glx-model").GLXDrawerSignalDescriptor} GLXDrawerSignalDescriptor
+
+/**
  * @typedef {import("./glx-core").GLXSpriteCreation} GLXSpriteCreation
  */
 
@@ -137,6 +146,10 @@ import { SIGNALS } from "./signals.js";
 
 /**
  * @typedef {import("./glx-core").ProgramInfo} ProgramInfo
+ */
+
+/**
+ * @typedef {import("./glx-model").RenderingMode} RenderingMode
  */
 
 /**
@@ -184,7 +197,7 @@ export class GLXApplication {
     /** @type {import("./glx-core").GLXEnvironment} */ #glxEnvironment;
     /** @type {SignalDescriptor<GLXApplicationInfoType>} */ #mainSignalDescriptor;
     /** @type {GLXShadowLight} */ #shadowLightManager;
-    /** @type {GLXDrawer} */ #spriteDrawer;
+    /** @type {GLXDrawer} */ drawer;
     /** @type {GLXSpriteManager} */ #spriteManager;
     /** @type {GLXApplicationSignalWorkspace}*/ #signalWorkspace;
 
@@ -197,13 +210,13 @@ export class GLXApplication {
         this.#logger = Logger.forName('WebGLXApp[' + params.applicationName + ']').enabledOn(logEnabled);
         this.#applicationName = params.applicationName;
         this.#signalWorkspace = params.signalWorkspace;
-        this.#mainSignalDescriptor = SIGNALS.register(this.#signalWorkspace.main);
+        this.#mainSignalDescriptor = params.mainSignalDescriptor;
         this.#camera = this.#buildCamera(params);
         this.#cameraMan = this.#buildCameraMan(params);
         this.#spriteManager = this.#buildSpriteManager(params);
         this.#shadowLightManager = this.#buildShadowLightManager(params);
         this.#glxEnvironment = params.webGLXEnvironment;
-        this.#spriteDrawer = this.#buildDrawer(params);
+        this.drawer = this.#buildDrawer(params);
         this.#setupControls(params.controlHandlerClasses);
     }
 
@@ -229,7 +242,7 @@ export class GLXApplication {
      */
     glxSprite(load) {
         let data = loadObjX(this.#glxEnvironment.glContext, load.name, load.path);
-        this.#spriteDrawer.initSpriteData(data);
+        this.drawer.initSpriteData(data);
         let sprite = this.#spriteManager.createSprite({
             name: load.name,
             glData: data,
@@ -280,6 +293,7 @@ export class GLXApplication {
         let sharedUniforms = this.#defaultSharedUniforms();
         return new GLXDrawer({
             applicationName: params.applicationName,
+            renderingMode: params.appStart.renderingMode ?? RenderingModes.HYBRID,
             glxEnvironment: this.#glxEnvironment,
             camera: this.#camera,
             shadowLightManager: this.#shadowLightManager,
@@ -307,6 +321,14 @@ export class GLXApplication {
             {
                 type: GLXControlTypes.LOG,
                 value: loggingEnabled(),
+            },
+            {
+                type: GLXControlTypes.RENDERING_MODE,
+                value: this.drawer.currentRenderingMode,
+                listenSignal: this.#signalWorkspace.drawer.renderingModeChange,
+                listenReducer: signal => signal.data.to,
+                options: [RenderingModes.SIGNAL, RenderingModes.HYBRID]
+
             },
             {
                 type: GLXControlTypes.CAM_MAN_WORK_MODE,
@@ -800,8 +822,9 @@ export class GLXApplication {
         };
 
         const handlers = {
-            [GLXControlTypes.DRAW]: () => this.#spriteDrawer.renderScene(),
+            [GLXControlTypes.DRAW]: () => this.drawer.renderScene(),
             [GLXControlTypes.LOG]: (/** @type {boolean} */ value) => enableLoggingOn(value),
+            [GLXControlTypes.RENDERING_MODE]: (/** @type {RenderingMode} */ value) => this.drawer.currentRenderingMode = value,
             [GLXControlTypes.CAM_MAN_WORK_MODE]: (/** @type {GLXCameraManWorkMode} */ value) => this.#cameraMan.hire(value),
             [GLXControlTypes.TARGET]: (/** @type {string} */ value) => {
                 const sprite = this.#spriteManager.getSprite(value);
@@ -1417,150 +1440,76 @@ export class GLXCameraMan {
 class GLXDrawer {
 
     /** @type {number} */ static #DEPTH_TEXTURE_SIZE = 512;
-    /** @type {Map<WebGLRenderingContext, Pair<WebGLTexture, WebGLFramebuffer>>} */ static #depthTB = new Map();
-
-    /**
-     * @returns {number}
-     */
-    static get DEPTH_TEXTURE_SIZE() {
-        return GLXDrawer.#DEPTH_TEXTURE_SIZE;
-    }
-
-    /**
-     * @param {WebGLRenderingContext} gl
-     * @returns {Pair<WebGLTexture, WebGLFramebuffer>}
-     */
-    static getTextureWithBufferForLights(gl) {
-        let res = GLXDrawer.#depthTB.get(gl);
-        if (isNotNullOrUndefined(res)) {
-            return res;
-        } else {
-            let texture = GLXDrawer.#createTexture(gl);
-            this.#depthTB.set(gl, texture);
-
-            return texture;
-        }
-    }
-
-    /**
-     * 
-     * @param {WebGLRenderingContext} gl 
-     * @returns {WebGLTexture}
-     */
-    static getTextureForLights(gl) {
-        return GLXDrawer.getTextureWithBufferForLights(gl).first;
-    }
-
-    /**
-     * 
-     * @param {WebGLRenderingContext} gl 
-     * @returns {WebGLFramebuffer}
-     */
-    static getTextureFrameBufferForLights(gl) {
-        return GLXDrawer.getTextureWithBufferForLights(gl).second;
-    }
-
-    /**
-     * @param {WebGLRenderingContext} gl
-     * @returns {Pair<WebGLTexture, WebGLFramebuffer>}
-     */
-    static #createTexture(gl) {
-        let depthTexture = gl.createTexture();
-        let depthTextureSize = GLXDrawer.#DEPTH_TEXTURE_SIZE;
-        gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-        gl.texImage2D(
-            gl.TEXTURE_2D,      // target
-            0,                  // mip level
-            gl.DEPTH_COMPONENT, // internal format
-            depthTextureSize,   // width
-            depthTextureSize,   // height
-            0,                  // border
-            gl.DEPTH_COMPONENT, // format
-            gl.UNSIGNED_INT,    // type
-            null);              // data
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        let depthFramebuffer = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, depthFramebuffer);
-        gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,       // target
-            gl.DEPTH_ATTACHMENT,  // attachment point
-            gl.TEXTURE_2D,        // texture target
-            depthTexture,         // texture
-            0);                   // mip level
-
-        // create a color texture of the same size as the depth texture
-        // see article why this is needed_
-        let unusedTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, unusedTexture);
-        gl.texImage2D(
-            gl.TEXTURE_2D,
-            0,
-            gl.RGBA,
-            depthTextureSize,
-            depthTextureSize,
-            0,
-            gl.RGBA,
-            gl.UNSIGNED_BYTE,
-            null,
-        );
-
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        // attach it to the framebuffer
-        gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,        // target
-            gl.COLOR_ATTACHMENT0,  // attachment point
-            gl.TEXTURE_2D,         // texture target
-            unusedTexture,         // texture
-            0);
-        return pair(depthTexture, depthFramebuffer);
-    }
 
     /** @type {GLXApplicationSignalWorkspace} */ #applicationSignalWorkspace;
     /** @type {GLXCamera} */ #camera;
     /** @type {any} */ #cubeLinesBufferInfo;
     /** @type {import("./glx-core").GLXEnvironment} */ #glXEnvironment;
     /** @type {Logger} */ #logger
+    /** @type {RenderingMode} */ #renderingMode;
     /** @type {GLXShadowLight} */ #shadowLightManager;
     /** @type {SharedUniforms} */ #sharedUniforms;
+    /** @type {GLXDrawerSignalDescriptor} */ #signalDescriptor;
     /** @type {import("./glx-core").GLXSpriteManager} */ #spriteManager;
-    /** @type {Map<string, number[]>} */ #spriteMatrices = new Map();
     /** @type {Map<string, SubscriptionToken[]>} */ #spriteSubscriptions;
+    /** @type {Pair<WebGLTexture, WebGLFramebuffer>} */ #textureWithBuffer;
 
-    /** @type {boolean} */ #autoRender = false;
+    /** @type {DrawMatrices} */ #drawMatrices;
+    
     /**
      * 
      * @param {GLXDrawerConstructorParams} params 
      */
     constructor(params) {
         this.#applicationSignalWorkspace = params.applicationSignalWorkspace;
+        this.#signalDescriptor = this.#buildSignalDescriptor(this.#applicationSignalWorkspace);
         this.#camera = params.camera
         this.#glXEnvironment = params.glxEnvironment;
+        this.#renderingMode = params.renderingMode ?? RenderingModes.HYBRID;
         this.#shadowLightManager = params.shadowLightManager;
         this.#spriteManager = params.spriteManager;
         this.#sharedUniforms = params.sharedUniforms;
         this.#cubeLinesBufferInfo = this.#buildCubeLinesBufferInfo();
         this.#spriteSubscriptions = new Map();
+        this.#textureWithBuffer = this.#createTexture();
+        this.#renderingMode = params.renderingMode;
+
+        this.#logger = Logger.forName(`GLXDrawer[${params.applicationName}]`)
+            .enabledOn(params.logEnabled);
+        this.#drawMatrices = this.#computeDrawMatrices();
 
         SIGNALS.subscribe(params.applicationSignalWorkspace.main, (signal) => {
             if (signal.data == GLXApplicationInfoTypes.BOOTED) {
                 this.#setupAutoRender();
-                this.renderScene();
+                this.renderScene()
             }
             if (signal.data == GLXApplicationInfoTypes.TEXTURE_READY) {
+                this.#drawMatrices = this.#computeDrawMatrices();
                 this.renderScene();
             }
-        })
+        });
 
-        this.#logger = Logger.forName(`SpriteDrawer[${params.applicationName}]`)
-            .enabledOn(params.logEnabled);
+        this.renderLoop();
+    }
+
+    get currentRenderingMode() {
+        return this.#renderingMode;
+    }
+
+    /**
+     * @param {RenderingMode} newRenderingMode 
+     */
+    set currentRenderingMode(newRenderingMode) {
+        setSignaledProperty({
+            propertyGetter: () => this.#renderingMode,
+            propertySetter: (value) => this.#renderingMode = value,
+            signalDescriptor: this.#signalDescriptor.renderingModeChange,
+            nextValue: newRenderingMode
+        });
+
+        if (newRenderingMode === RenderingModes.HYBRID) {
+            this.renderLoop();
+        }
     }
 
     /**
@@ -1576,8 +1525,8 @@ class GLXDrawer {
             u_projection: drawSceneContext.projectionMatrix,
             u_bias: this.#shadowLightManager.bias,
             u_textureMatrix: drawSceneContext.textureMatrix,
-            u_projectedTexture: GLXDrawer.getTextureForLights(this.#glXEnvironment.glContext),
-            u_lightDirection: this.#computeLightWorldMatrix().slice(8, 11),
+            u_projectedTexture: this.#textureWithBuffer.first,
+            u_lightDirection: drawSceneContext.lightMatrix.slice(8, 11),
         });
         gl.uniform1f(gl.getUniformLocation(drawSceneContext.programInfo.program, "mesh"), 1.);
 
@@ -1603,30 +1552,19 @@ class GLXDrawer {
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         }
         if (!drawSpriteContext.sprite.hidden) {
-            let u_world = this.#spriteMatrices.get(drawSpriteContext.sprite.name) ??
+            let u_world = this.#drawMatrices.sprite.get(drawSpriteContext.sprite.name) ??
                 this.#computeSpriteMatrix(drawSpriteContext.sprite);
 
             for (let { bufferInfo, material } of drawSpriteContext.glData.parts) {
-                // calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
                 WebGLUtils.setBuffersAndAttributes(gl, drawSpriteContext.programInfo, bufferInfo);
-                // calls gl.uniform
                 WebGLUtils.setUniforms(drawSpriteContext.programInfo, {
                     u_colorMult: [1, 1, 1, 1],
                     u_color: [1, 1, 1, 1],
                     u_world: u_world,
                 }, material);
-                // calls gl.drawArrays or gl.drawElements
                 WebGLUtils.drawBufferInfo(gl, bufferInfo);
             }
 
-            // for (let part of this.#data.parts) {
-            //   // calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
-            //   WebGLUtils.setBuffersAndAttributes(gl, programInfo, part.bufferInfo);
-            //   // calls gl.uniform
-            //   WebGLUtils.setUniforms(programInfo, { u_world }, part.material);
-            //   // calls gl.drawArrays or gl.drawElements
-            //   WebGLUtils.drawBufferInfo(gl, part.bufferInfo);
-            // }
             this.#logger.info(`drawn sprite '${drawSpriteContext.sprite.name}'`)
         } else {
             this.#logger.info(`sprite '${drawSpriteContext.sprite.name}' is hidden, draw skipped`)
@@ -1642,27 +1580,35 @@ class GLXDrawer {
         data.u_world = M4.identity();
     }
 
+    renderLoop() {
+        this.renderScene();
+
+        if (this.#renderingMode === RenderingModes.HYBRID) {
+            setTimeout(this.renderLoop.bind(this), 10);
+        } else {
+            this.#logger.info("render loop off");
+        }
+    }
+    
     renderScene() {
         this.#logger.info('rendering scene...');
         let gl = this.#glXEnvironment.glContext;
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
-
-        let lightMatrices = this.#computeLightMatrices();
-        this.#renderLights(lightMatrices);
+        
+        this.#renderLights();
         this.#clearGlBuffers();
-        let textureMatrix = this.#computeTextureMatrix(lightMatrices);
-        let viewProjectionMatrix = this.#computeViewProjectionMatrix();
-
+        
         this.drawScene({
-            projectionMatrix: viewProjectionMatrix,
-            cameraMatrix: this.#computeCameraMatrix(),
-            textureMatrix: textureMatrix,
+            projectionMatrix: this.#drawMatrices.viewProjection,
+            cameraMatrix: this.#drawMatrices.camera,
+            lightMatrix: this.#drawMatrices.light.world,
+            textureMatrix: this.#drawMatrices.texture,
             programInfo: this.#glXEnvironment.getProgramInfo('main')
         })
 
         if (this.#shadowLightManager.lightFrustum) {
-            this.#renderLightFrustum(lightMatrices);
+            this.#renderLightFrustum();
         }
 
         this.#logger.info('render complete');
@@ -1700,6 +1646,17 @@ class GLXDrawer {
         });
     }
 
+    /**
+     * 
+     * @param {GLXApplicationSignalWorkspace} applicationSignalWorkspace 
+     * @returns {GLXDrawerSignalDescriptor}
+     */
+    #buildSignalDescriptor(applicationSignalWorkspace) {
+        return {
+            renderingModeChange: SIGNALS.register(applicationSignalWorkspace.drawer.renderingModeChange)
+        }
+    }
+
     #clearGlBuffers() {
         let gl = this.#glXEnvironment.glContext;
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -1718,16 +1675,22 @@ class GLXDrawer {
     }
 
     /**
-     * @returns {LightMatrices}
+     * 
+     * @returns {DrawMatrices}
      */
-    #computeLightMatrices() {
-        let lightWorldMatrix = this.#computeLightWorldMatrix();
-        let lightProjectionMatrix = this.#computeLightProjectionMatrix();
-
+    #computeDrawMatrices() {
+        let cameraMatrix = this.#computeCameraMatrix();
+        let lightMatrices = {
+            projection: this.#computeLightProjectionMatrix(),
+            world: this.#computeLightWorldMatrix()
+        }
         return {
-            projection: lightProjectionMatrix,
-            world: lightWorldMatrix
-        };
+            camera: cameraMatrix,
+            light: lightMatrices,
+            sprite: new Map(),
+            texture: this.#computeTextureMatrix(lightMatrices),
+            viewProjection: this.#computeViewProjectionMatrix(cameraMatrix)
+        }
     }
 
     /**
@@ -1782,12 +1745,14 @@ class GLXDrawer {
         u_world = M4.yRotate(u_world, rotation.second.radiansValue);
         u_world = M4.zRotate(u_world, rotation.third.radiansValue);
         u_world = M4.scale(u_world, scale.first, scale.second, scale.third);
+
+        this.#logger.info(`matrix computed for sprite ${sprite.name}`);
         return u_world;
     }
 
     /**
      * 
-     * @param {LightMatrices} lightMatrices 
+     * @param {LightMatrices} lightMatrices
      * @returns {number[]}
      */
     #computeTextureMatrix(lightMatrices) {
@@ -1805,11 +1770,12 @@ class GLXDrawer {
 
     /**
      * 
+     * @param {number[]} cameraMatrix 
      * @returns {number[]}
      */
-    #computeViewProjectionMatrix() {
+    #computeViewProjectionMatrix(cameraMatrix) {
         this.#updateProjectionMatrix()
-        this.#updateViewMatrix()
+        this.#updateViewMatrix(cameraMatrix)
         let viewProjectionMatrix = M4.multiply(this.#sharedUniforms.u_projection,
             this.#sharedUniforms.u_view)
         this.#logger.info("view projection matrix calculated");
@@ -1819,18 +1785,76 @@ class GLXDrawer {
 
     /**
      * 
+     * @returns {Pair<WebGLTexture, WebGLFramebuffer>}
+     */
+    #createTexture() {
+        let gl = this.#glXEnvironment.glContext;
+        let depthTexture = gl.createTexture();
+        let depthTextureSize = GLXDrawer.#DEPTH_TEXTURE_SIZE;
+        gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.DEPTH_COMPONENT,
+            depthTextureSize,
+            depthTextureSize,
+            0,
+            gl.DEPTH_COMPONENT,
+            gl.UNSIGNED_INT,
+            null); 
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        let depthFramebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, depthFramebuffer);
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,      
+            gl.DEPTH_ATTACHMENT, 
+            gl.TEXTURE_2D,
+            depthTexture,
+            0);
+            
+        let unusedTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, unusedTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            depthTextureSize,
+            depthTextureSize,
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            null,
+        );
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            unusedTexture,
+            0);
+        return pair(depthTexture, depthFramebuffer);
+    }
+
+    /**
+     * 
      * @param {Signal<GLXApplicationInfoTypes>} signal 
      */
-    #onApplicationMainSignal(signal) {
+    #onApplicationAddedSpriteSignal(signal) {
         if (signal.data === GLXApplicationInfoTypes.ADDED_SPRITE) {
             this.#setupAutoRenderForSprites();
         }
     }
-    /**
-     * 
-     * @param {LightMatrices} lightMatrices 
-     */
-    #renderLightFrustum(lightMatrices) {
+    
+    #renderLightFrustum() {
         let gl = this.#glXEnvironment.glContext;
         let viewMatrix = M4.inverse(this.#computeCameraMatrix())
         gl.useProgram(this.#glXEnvironment.getProgramInfo('color').program)
@@ -1838,7 +1862,7 @@ class GLXDrawer {
             this.#glXEnvironment.getProgramInfo('color'),
             this.#cubeLinesBufferInfo);
 
-        const mat = M4.multiply(lightMatrices.world, M4.inverse(lightMatrices.projection));
+        const mat = M4.multiply(this.#drawMatrices.light.world, M4.inverse(this.#drawMatrices.light.projection));
         WebGLUtils.setUniforms(this.#glXEnvironment.getProgramInfo('color'), {
             u_color: [1, 1, 1, 1],
             u_view: viewMatrix,
@@ -1848,20 +1872,18 @@ class GLXDrawer {
         WebGLUtils.drawBufferInfo(gl, this.#cubeLinesBufferInfo, gl.LINES);
         this.#logger.info("light frustum rendered")
     }
-
-    /**
-     * @param {LightMatrices} lightMatrices 
-     */
-    #renderLights(lightMatrices) {
+    
+    #renderLights() {
         let gl = this.#glXEnvironment.glContext;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, GLXDrawer.getTextureFrameBufferForLights(gl));
-        gl.viewport(0, 0, GLXDrawer.DEPTH_TEXTURE_SIZE, GLXDrawer.DEPTH_TEXTURE_SIZE);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.#textureWithBuffer.second);
+        gl.viewport(0, 0, GLXDrawer.#DEPTH_TEXTURE_SIZE, GLXDrawer.#DEPTH_TEXTURE_SIZE);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         if (this.#shadowLightManager.isShadowEnabled) {
             this.drawScene({
-                projectionMatrix: lightMatrices.projection,
-                cameraMatrix: lightMatrices.world,
+                projectionMatrix: this.#drawMatrices.light.projection,
+                cameraMatrix: this.#drawMatrices.light.world,
+                lightMatrix: this.#drawMatrices.light.world,
                 textureMatrix: M4.identity(),
                 programInfo: this.#glXEnvironment.getProgramInfo('color')
             })
@@ -1870,42 +1892,69 @@ class GLXDrawer {
     }
 
     #setupAutoRender() {
-        this.#setupAutoRenderForSprites();
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.main, this.#onApplicationMainSignal.bind(this));
-
-        this.#setupAutoRenderOnSignals(
-            ...Object.values(this.#applicationSignalWorkspace.camera),
-            ...Object.values(this.#applicationSignalWorkspace.cameraMan),
-            ...Object.values(this.#applicationSignalWorkspace.shadowLight)
-        );
-
+        this.#setupAutoRenderForCamera();
+        this.#setupAutoRenderForShadownLight();
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.main, this.#onApplicationAddedSpriteSignal.bind(this));
         this.#logger.info('auto render setup complete');
     }
 
-    /**
-     * 
-     * @param {...string} signalNames 
-     */
-    #setupAutoRenderOnSignals(...signalNames) {
-        this.#logger.info('setup autorender on signals: ', signalNames);
-        if (isNotNullOrUndefined(signalNames)) {
-            for (let signalName of signalNames) {
-                SIGNALS.subscribe(signalName, this.renderScene.bind(this));
+    #setupAutoRenderForShadownLight() {
+        let onShadowLightChange = () => {
+            let lightMatrices = {
+                projection: this.#computeLightProjectionMatrix(),
+                world: this.#computeLightWorldMatrix()
+            }
+
+            this.#drawMatrices = {
+                ...this.#drawMatrices,
+                light: lightMatrices,
+                texture: this.#computeTextureMatrix(lightMatrices)
+            }
+            
+            if (this.#renderingMode === RenderingModes.SIGNAL) {
+                this.renderScene();
             }
         }
+
+        for (let shadowLightSignal of Object.values(this.#applicationSignalWorkspace.shadowLight)) {
+            SIGNALS.subscribe(shadowLightSignal, onShadowLightChange.bind(this));
+        }
+        this.#logger.info('shadow light signal subscribed');
+    }
+
+    #setupAutoRenderForCamera() {
+        let onCameraChange = () => {
+            let cameraMatrix = this.#computeCameraMatrix();
+            this.#drawMatrices = {
+                ...this.#drawMatrices,
+                camera: cameraMatrix,
+                viewProjection: this.#computeViewProjectionMatrix(cameraMatrix)
+            }
+            
+            if (this.#renderingMode === RenderingModes.SIGNAL) {
+                this.renderScene();
+            }
+        }
+
+        for (let cameraSignal of Object.values(this.#applicationSignalWorkspace.camera)) {
+            SIGNALS.subscribe(cameraSignal, onCameraChange.bind(this));
+        }
+        this.#logger.info('camera signal subscribed');
     }
 
     #setupAutoRenderForSprites() {
         for (let /** @type {GLXSprite} */ sprite of this.#spriteManager.getAllSprites()) {
             let spriteName = sprite.name;
-            this.#spriteMatrices.set(spriteName, this.#computeSpriteMatrix(sprite));
-
-            let onSpriteChange = () => {
-                this.#spriteMatrices.set(spriteName, this.#computeSpriteMatrix(sprite));
-                this.renderScene();
-            }
 
             if (!this.#spriteSubscriptions.has(spriteName)) {
+                let onSpriteChange = () => {
+                    this.#drawMatrices.sprite.set(spriteName, this.#computeSpriteMatrix(sprite));
+                    
+                    if (this.#renderingMode === RenderingModes.SIGNAL) {
+                        this.renderScene();
+                    }
+                }
+
                 /** @type {SubscriptionToken[]} */ let subscriptions = [];
                 let spriteSignalWorkspace = this.#applicationSignalWorkspace.spriteName(spriteName);
                 subscriptions.push(SIGNALS.subscribe(
@@ -1918,14 +1967,18 @@ class GLXDrawer {
                     spriteSignalWorkspace.hiddenChange, onSpriteChange.bind(this)));
 
                 this.#spriteSubscriptions.set(spriteName, subscriptions);
-                this.#logger.info(`auto rendering on any change of sprite '${spriteName}'`);
+                this.#logger.info(`signal of sprite '${spriteName}' subscribed`);
             }
         }
     }
 
 
-    #updateViewMatrix() {
-        this.#sharedUniforms.u_view = M4.inverse(this.#computeCameraMatrix());
+    /**
+     * 
+     * @param {number[]} cameraMatrix 
+     */
+    #updateViewMatrix(cameraMatrix) {
+        this.#sharedUniforms.u_view = M4.inverse(cameraMatrix);
     }
 
     #updateProjectionMatrix() {
@@ -2227,6 +2280,7 @@ export function start(appStart) {
         logger.info('running application main');
         app.main();
     }
+    
     mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.BOOTED })
 }
 

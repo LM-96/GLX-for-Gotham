@@ -11,10 +11,19 @@ import {
     GLXSpriteSettings,
     GLXSpriteSignalWorkspace,
     LimitChecker, 
+    RenderingMode, 
     Trio } from "./glx-model";
 import { Angle, Point3D } from "./geometry";
 import { Logger } from "./logjsx";
 import { SignalDescriptor } from "./signals";
+
+export declare type DrawMatrices = {
+    camera: number[],
+    light: LightMatrices,
+    sprite: Map<string, number[]>,
+    texture: number[],
+    viewProjection: number[]
+}
 
 export declare class GLXApplication {
     readonly applicationName: string;
@@ -41,6 +50,7 @@ export type GLXApplicationStart = {
     applicationClass: GLXApplicationClass;
     canvasElementName: string;
     webGLShaders: WebGLShaderReference;
+    renderingMode?: RenderingMode;
     controlHandlerClasses?: GLXControlHandlerClass[];
     cameraSettings?: Partial<GLXCameraSettings>;
     logEnabled?: boolean;
@@ -81,6 +91,7 @@ export type GLXControlsHandlerParams = {
 
 export type GLXDrawerConstructorParams = {
     applicationName: string;
+    renderingMode: RenderingMode;
     glxEnvironment: GLXEnvironment;
     camera: GLXCamera;
     shadowLightManager: GLXShadowLight;

@@ -7,6 +7,21 @@ export type Change<T> = {
     readonly to: T;
 }
 
+export type DrawSceneContext = {
+    projectionMatrix: number[],
+    cameraMatrix: number[],
+    lightMatrix: number[],
+    textureMatrix: number[],
+    programInfo: ProgramInfo
+}
+
+export type DrawSpriteContext = {
+    clear?: boolean,
+    sprite: Sprite,
+    glData: any,
+    programInfo: ProgramInfo
+}
+
 export type Duo<T> = {
     readonly first: T;
     readonly second: T;
@@ -25,6 +40,7 @@ export declare class GLXApplicationSignalWorkspace {
     readonly camera: GLXCameraSignalWorkspace;
     readonly cameraMan: GLXCameraManSignalWorkspace;
     readonly controls: string;
+    readonly drawer: GLXDrawerSignalWorkspace;
     readonly main: string;
     readonly shadowLight: GLXShadowLightSignalWorkspace;
 
@@ -147,6 +163,7 @@ export type GLXControlInfo = {
 
 export type GLXControlType =
     | 'log'
+    | 'rendering_mode'
     | 'cam_man_work_mode'
     | 'target'
     | 'chase'
@@ -199,6 +216,7 @@ export type GLXControlType =
 
 export declare class GLXControlTypes {
     static LOG: GLXControlType;
+    static RENDERING_MODE: GLXControlType;
     static TARGET: GLXControlType;
     static CHASE: GLXControlType;
     static LOOK_AT: GLXControlType;
@@ -250,18 +268,12 @@ export declare class GLXControlTypes {
     static DRAW: GLXControl;
 }
 
-export type DrawSceneContext = {
-    projectionMatrix: number[],
-    cameraMatrix: number[],
-    textureMatrix: number[],
-    programInfo: ProgramInfo
+export type GLXDrawerSignalDescriptor = {
+    readonly renderingModeChange: SignalDescriptor<Change<RenderingMode>>;
 }
 
-export type DrawSpriteContext = {
-    clear?: boolean,
-    sprite: Sprite,
-    glData: any,
-    programInfo: ProgramInfo
+export type GLXDrawerSignalWorkspace = {
+    readonly renderingModeChange: string;
 }
 
 export class GLXShadowLight {
@@ -404,6 +416,13 @@ export declare class Positions {
     static readonly ORIGIN: Point3D;
 }
 
+export declare type RenderingMode = 'SIGNAL' | 'HYBRID' ;
+
+export declare class RenderingModes {
+    static SIGNAL: RenderingMode
+    static HYBRID: RenderingMode
+}
+
 export type RotationChange = Change<Trio<Angle>>;
 
 export declare class Rotations {
@@ -438,4 +457,5 @@ export declare function pair<F, S>(first, second): Pair<F, S>;
 export declare function position(x: number, y: number, z: number): Point3D
 export declare function rotation(psi: Angle, theta: Angle, phi: Angle);
 export declare function scale(mx: number, my: number, mz: number): Trio<number>;
+export declare function setSignaledProperty<T>(property: SignaledProperty<T>);
 export declare function trio<T>(first: T, second: T, third: T): Trio<T>;

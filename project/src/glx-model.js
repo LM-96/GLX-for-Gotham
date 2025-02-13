@@ -49,6 +49,10 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
+ * @typedef {import("./glx-model").GLXDrawerSignalWorkspace} GLXDrawerSignalWorkspace
+ */
+
+/**
  * @typedef {import("./glx-model").GLXShadowLightConstructorParams} GLXShadowLightConstructorParams
  */
 
@@ -96,16 +100,21 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
+ * @typedef {import("./glx-model").RenderingMode} RenderingMode
+ */
+
+/**
+ * @typedef {import("./glx-model").RotationChange} RotationChange
+ */
+
+
+/**
  * @typedef {import("./glx-model").ScaleChange} ScaleChange
  */
 
 /**
  * @template T
  * @typedef {import("./glx-model").SignaledProperty<T>} SignaledProperty
- */
-
-/**
- * @typedef {import("./glx-model").RotationChange} RotationChange
  */
 
 /**
@@ -182,6 +191,11 @@ export class GLXApplicationSignalWorkspace {
     /** @type {string} */
     static #CONTROLS = "gui_settings";
 
+    /** @type {GLXDrawerSignalWorkspace} */
+    static #DRAWER = {
+        renderingModeChange: 'drawer.renderingMode'
+    }
+
     /** @type {string} */
     static #MAIN = "main";
 
@@ -207,6 +221,7 @@ export class GLXApplicationSignalWorkspace {
     /** @type {GLXCameraSignalWorkspace} */ #camera
     /** @type {GLXCameraManSignalWorkspace} */ #cameraMan
     /** @type {string} */ #controls;
+    /** @type {GLXDrawerSignalWorkspace} */ #drawer;
     /** @type {string}*/ #main;
     /** @type {GLXShadowLightSignalWorkspace} */ #shadowLight;
     /** @type {Map<string, GLXSpriteSignalWorkspace>} */ #sprites;
@@ -238,6 +253,11 @@ export class GLXApplicationSignalWorkspace {
         })
 
         this.#controls = this.#absolutize(GLXApplicationSignalWorkspace.#CONTROLS);
+
+        this.#drawer = Object.freeze({
+            renderingModeChange: this.#absolutize(GLXApplicationSignalWorkspace.#DRAWER.renderingModeChange)
+        });
+
         this.#main = this.#absolutize(GLXApplicationSignalWorkspace.#MAIN);
 
         this.#shadowLight = Object.freeze({
@@ -269,6 +289,10 @@ export class GLXApplicationSignalWorkspace {
 
     get controls() {
         return this.#controls;
+    }
+
+    get drawer() {
+        return this.#drawer;
     }
 
     get main() {
@@ -497,6 +521,7 @@ export class GLXCameraManWorkModes {
 
 export class GLXControlTypes {
     /** @type {GLXControlType} */ static LOG = 'log';
+    /** @type {GLXControlType} */ static RENDERING_MODE = 'rendering_mode';
     /** @type {GLXControlType} */ static CAM_MAN_WORK_MODE = 'cam_man_work_mode';
     /** @type {GLXControlType} */ static TARGET = 'target';
     /** @type {GLXControlType} */ static CHASE = 'chase';
@@ -948,6 +973,16 @@ class Positions {
     static ORIGIN = point3D(0, 0, 0);
 }
 
+export class RenderingModes {
+    /** @type {RenderingMode} */
+    static SIGNAL = 'SIGNAL';
+
+    /**
+     * @type {RenderingMode}
+     */
+    static HYBRID = 'HYBRID';
+}
+
 class Rotations {
     /** @type {Trio<Angle>} */
     static NOT_ROTATED = trio(radians(0), radians(0), radians(0));
@@ -1095,7 +1130,7 @@ export function trio(first, second, third) {
  * @template T
  * @param {SignaledProperty<T>} setter 
  */
-function setSignaledProperty(setter) {
+export function setSignaledProperty(setter) {
     // @ts-ignore
     let previousValue = setter.propertyGetter();
     let nextValue = setter.nextValue;
