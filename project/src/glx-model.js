@@ -914,6 +914,18 @@ export class GLXSprite {
         this.#signalDescriptors.scaleChange.trigger(FireRequests.ofScaleChange(scaleChange));
     }
 
+    emitInformationSignal() {
+        this.#signalDescriptors.positionChange.trigger(FireRequests.ofPositionChange(
+            change(this.#settings.position, this.#settings.position)));
+        this.#signalDescriptors.rotationChange.trigger(FireRequests.ofRotationChange(
+            change(this.#settings.rotation, this.#settings.rotation)));
+        this.#signalDescriptors.scaleChange.trigger(FireRequests.ofScaleChange(
+            change(this.#settings.scale, this.#settings.scale)));
+        this.#signalDescriptors.hiddenChange.trigger({
+            data: change(this.#settings.hidden, this.#settings.hidden)
+        });
+    }
+
     /**
      * @param {Partial<GLXSpriteSetting>} settings 
      * @returns {GLXSpriteSetting}

@@ -241,27 +241,30 @@ export class GothamKeyboardControlsHandler {
      * @param {MouseEvent|TouchEvent} event
      */
     #onMouseMove(event) {
-        if (!this.#drag) return false;
-        /** @type {number} */ let dX = 0;
-        /** @type {number} */ let dY = 0;
-        if (event instanceof MouseEvent) {
-            dX = (event.pageX - this.#previousX) * 2 * Math.PI / this.#canvasWidth;
-            dY = (event.pageY - this.#previousY) * 2 * Math.PI / this.#canvasHeight;
-            this.#previousX = event.pageX;
-            this.#previousY = event.pageY;
-        } else if (event instanceof TouchEvent) {
-            dX = (event.touches[0].clientX - this.#previousX) * 2 * Math.PI / this.#canvasWidth;
-            dY = (event.touches[0].clientY - this.#previousY) * 2 * Math.PI / this.#canvasHeight;
-            this.#previousX = event.touches[0].clientX;
-            this.#previousY = event.touches[0].clientY;
+        if (this.#drag) {
+            /** @type {number} */ let dX = 0;
+            /** @type {number} */ let dY = 0;
+
+            if (event instanceof MouseEvent) {
+                dX = (event.pageX - this.#previousX) * 2 * Math.PI / this.#canvasWidth;
+                dY = (event.pageY - this.#previousY) * 2 * Math.PI / this.#canvasHeight;
+                this.#previousX = event.pageX;
+                this.#previousY = event.pageY;
+            } else if (event instanceof TouchEvent) {
+                dX = (event.touches[0].clientX - this.#previousX) * 2 * Math.PI / this.#canvasWidth;
+                dY = (event.touches[0].clientY - this.#previousY) * 2 * Math.PI / this.#canvasHeight;
+                this.#previousX = event.touches[0].clientX;
+                this.#previousY = event.touches[0].clientY;
+            }
+
+            let currentPhi = degrees(this.#settings[GLXControlTypes.SPRITE_PHI]);
+            let nextPhi = currentPhi.transform(AngleMath.sum(radians(dX)));
+            console.log(`CURRENT PHI: ${currentPhi.degreesValue}, NEXT PHI: ${nextPhi.degreesValue}`)
+
+            this.#turnSprite(nextPhi);
+            this.#forwardSprite(dY, nextPhi);
+            event.preventDefault();
         }
-
-        let currentPhi = degrees(this.#settings[GLXControlTypes.SPRITE_PHI]);
-        let nextPhi = currentPhi.transform(AngleMath.sum(radians(dX)));
-
-        this.#turnSprite(nextPhi);
-        this.#forwardSprite(dY, nextPhi);
-        event.preventDefault();
     }
 
     /**

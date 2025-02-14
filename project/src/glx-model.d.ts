@@ -358,7 +358,8 @@ export declare class GLXSprite {
     scale: Trio<number>;
     hidden: boolean;
 
-    constructor(params: GLXSpriteConstructorParams)
+    constructor(params: GLXSpriteConstructorParams);
+    emitInformationSignal();
 }
 
 export type GLXSpriteConstructorParams = {

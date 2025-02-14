@@ -35,6 +35,10 @@ import { SIGNALS } from "./signals.js";
  */
 
 /**
+ * @typedef {import("./glx-core").ControlsRuntime} ControlsRuntime
+ */
+
+/**
  * @typedef {import("./glx-core").DrawMatrices} DrawMatrices
  */
 
@@ -251,7 +255,7 @@ export class GLXApplication {
         })
 
         this.#logger.info('loaded mesh: ', load);
-        
+
         this.#mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.ADDED_SPRITE });
         return sprite;
     }
@@ -306,12 +310,12 @@ export class GLXApplication {
 
     /**
      * 
+     * @param {ControlsRuntime} controlsRuntime 
      * @param {GLXSprite[]} sprites 
      * @returns {GLXControl<any>[]}
      */
-    #buildGuiControls(sprites) {
+    #buildGuiControls(controlsRuntime, sprites) {
         const spriteNames = sprites.map(sprite => sprite.name);
-        let currentSprite = isNotNullOrUndefined(spriteNames[0]) ? this.#spriteManager.getSprite(spriteNames[0]) : undefined;
 
         return [
             {
@@ -645,101 +649,101 @@ export class GLXApplication {
             },
             {
                 type: GLXControlTypes.CURR_SPRITE,
-                value: currentSprite?.name,
+                value: controlsRuntime.currentSprite?.name,
                 options: spriteNames,
             },
             {
                 type: GLXControlTypes.HIDDEN,
-                value: currentSprite?.hidden ?? false,
+                value: controlsRuntime.currentSprite?.hidden ?? false,
             },
             {
                 type: GLXControlTypes.SPRITE_X,
-                value: currentSprite?.position.x,
+                value: controlsRuntime.currentSprite?.position.x,
                 min: -500,
                 max: 500,
                 step: 1,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.positionChange),
-                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.positionChange),
+                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(controlsRuntime, spriteWorkspace => spriteWorkspace.positionChange),
                 listenReducer: signal => signal.data.to.x
             },
             {
                 type: GLXControlTypes.SPRITE_Y,
-                value: currentSprite?.position.y,
+                value: controlsRuntime.currentSprite?.position.y,
                 min: -500,
                 max: 500,
                 step: 1,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.positionChange),
-                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.positionChange),
+                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(controlsRuntime, spriteWorkspace => spriteWorkspace.positionChange),
                 listenReducer: signal => signal.data.to.y
             },
             {
                 type: GLXControlTypes.SPRITE_Z,
-                value: currentSprite?.position.z,
+                value: controlsRuntime.currentSprite?.position.z,
                 min: -500,
                 max: 500,
                 step: 1,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.positionChange),
-                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.positionChange),
+                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(controlsRuntime, spriteWorkspace => spriteWorkspace.positionChange),
                 listenReducer: signal => signal.data.to.z
             },
             {
                 type: GLXControlTypes.SPRITE_SCALE_X,
-                value: currentSprite?.scale.first,
+                value: controlsRuntime.currentSprite?.scale.first,
                 min: 0,
                 max: 10,
                 step: 0.01,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.scaleChange),
-                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.scaleChange),
+                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(controlsRuntime, spriteWorkspace => spriteWorkspace.scaleChange),
                 listenReducer: signal => signal.data.to.first
             },
             {
                 type: GLXControlTypes.SPRITE_SCALE_Y,
-                value: currentSprite?.scale.second,
+                value: controlsRuntime.currentSprite?.scale.second,
                 min: 0,
                 max: 10,
                 step: 0.01,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.scaleChange),
-                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.scaleChange),
+                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(controlsRuntime, spriteWorkspace => spriteWorkspace.scaleChange),
                 listenReducer: signal => signal.data.to.second
             },
             {
                 type: GLXControlTypes.SPRITE_SCALE_Z,
-                value: currentSprite?.scale.third,
+                value: controlsRuntime.currentSprite?.scale.third,
                 min: 0,
                 max: 10,
                 step: 0.01,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.scaleChange),
-                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.scaleChange),
+                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(controlsRuntime, spriteWorkspace => spriteWorkspace.scaleChange),
                 listenReducer: signal => signal.data.to.third
             },
             {
                 type: GLXControlTypes.SPRITE_PSI,
-                value: currentSprite?.rotation.first.degreesValue,
+                value: controlsRuntime.currentSprite?.rotation.first.degreesValue,
                 min: -180,
                 max: 180,
                 step: 0.1,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.rotationChange),
-                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.rotationChange),
+                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(controlsRuntime, spriteWorkspace => spriteWorkspace.rotationChange),
                 listenReducer: signal => signal.data.to.first.degreesValue
             },
             {
                 type: GLXControlTypes.SPRITE_THETA,
-                value: currentSprite?.rotation.second.degreesValue,
+                value: controlsRuntime.currentSprite?.rotation.second.degreesValue,
                 min: -180,
                 max: 180,
                 step: 0.1,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.rotationChange),
-                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.rotationChange),
+                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(controlsRuntime, spriteWorkspace => spriteWorkspace.rotationChange),
                 listenReducer: signal => signal.data.to.second.degreesValue
             },
             {
                 type: GLXControlTypes.SPRITE_PHI,
-                value: currentSprite?.rotation.third.degreesValue,
+                value: controlsRuntime.currentSprite?.rotation.third.degreesValue,
                 min: -180,
                 max: 180,
                 step: 0.1,
                 listenSignalPool: this.#getSpriteSignalPool(spriteWorkspace => spriteWorkspace.rotationChange),
-                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(currentSprite, spriteWorkspace => spriteWorkspace.rotationChange),
+                listenSignalGuard: this.#buildCurrentSpriteSignalGuard(controlsRuntime, spriteWorkspace => spriteWorkspace.rotationChange),
                 listenReducer: signal => signal.data.to.third.degreesValue
             },
         ];
@@ -747,14 +751,14 @@ export class GLXApplication {
 
     /**
      * 
-     * @param {GLXSprite|undefined} currentSprite 
+     * @param {ControlsRuntime} controlsRuntime
      * @param {(spriteSignalWorkspace: GLXSpriteSignalWorkspace) => string} signalSelector 
      * @returns {(signal: Signal<*>) => boolean}
      */
-    #buildCurrentSpriteSignalGuard(currentSprite, signalSelector) {
+    #buildCurrentSpriteSignalGuard(controlsRuntime, signalSelector) {
         return signal =>
-            isNotNullOrUndefined(currentSprite)
-            && signal.name === signalSelector(this.#signalWorkspace.sprite(currentSprite));
+            isNotNullOrUndefined(controlsRuntime.currentSprite)
+            && signal.name === signalSelector(this.#signalWorkspace.sprite(controlsRuntime.currentSprite));
     }
 
     /**
@@ -810,12 +814,15 @@ export class GLXApplication {
             .map(sprite => signalSelector(this.#signalWorkspace.sprite(sprite)));
     }
 
-    #linkControls() {
-        let currentSprite = this.#spriteManager.getFirstSprite();
+    /**
+     * 
+     * @param {ControlsRuntime} controlsRuntime 
+     */
+    #linkControls(controlsRuntime) {
 
         const updateCurrentSprite = (/** @type {(sprite: GLXSprite) => void} */ updateFn) => {
-            if (currentSprite) {
-                updateFn(currentSprite);
+            if (controlsRuntime.currentSprite) {
+                updateFn(controlsRuntime.currentSprite);
             } else {
                 console.warn("Sprite update skipped: current sprite is not defined.");
             }
@@ -928,7 +935,8 @@ export class GLXApplication {
             [GLXControlTypes.CURR_SPRITE]: (/** @type {string} */ value) => {
                 const sprite = this.#spriteManager.getSprite(value);
                 if (isNotNullOrUndefined(sprite)) {
-                    currentSprite = sprite;
+                    controlsRuntime.currentSprite = sprite;
+                    sprite.emitInformationSignal();
                 } else {
                     alert(`unable to set current sprite: missing sprite named ${value}`);
                 }
@@ -982,14 +990,19 @@ export class GLXApplication {
     #setupControls(controlHandlerClasses) {
         SIGNALS.subscribe(this.#signalWorkspace.main, (/** @type {Signal<GLXApplicationInfoType>} */ signal) => {
             if (signal.data == GLXApplicationInfoTypes.BOOTED) {
+                /** @type {ControlsRuntime} */
+                let controlsRuntime = {
+                    currentSprite: this.#spriteManager.getFirstSprite()
+                }
+
                 let controlsSignalDescriptor = SIGNALS.register(this.#signalWorkspace.controls);
-                this.#linkControls();
+                this.#linkControls(controlsRuntime);
 
                 /** @type {GLXControlHandlerParams} */
                 let controlHandlerParams = Object.freeze({
                     applicatioName: this.#applicationName,
                     canvas: this.#glxEnvironment.canvas,
-                    controls: this.#buildGuiControls(this.#spriteManager.getAllSprites()),
+                    controls: this.#buildGuiControls(controlsRuntime, this.#spriteManager.getAllSprites()),
                     controlsSignalDescriptor: controlsSignalDescriptor
                 });
 
@@ -1455,7 +1468,7 @@ class GLXDrawer {
     /** @type {Pair<WebGLTexture, WebGLFramebuffer>} */ #textureWithBuffer;
 
     /** @type {DrawMatrices} */ #drawMatrices;
-    
+
     /**
      * 
      * @param {GLXDrawerConstructorParams} params 
@@ -1481,7 +1494,7 @@ class GLXDrawer {
         SIGNALS.subscribe(params.applicationSignalWorkspace.main, (signal) => {
             if (signal.data == GLXApplicationInfoTypes.BOOTED) {
                 this.#setupAutoRender();
-                this.renderScene()
+                this.renderScene();
             }
             if (signal.data == GLXApplicationInfoTypes.TEXTURE_READY) {
                 this.#drawMatrices = this.#computeDrawMatrices();
@@ -1489,7 +1502,9 @@ class GLXDrawer {
             }
         });
 
-        this.renderLoop();
+        if (this.#renderingMode === RenderingModes.HYBRID) {
+            this.renderLoop();
+        }
     }
 
     get currentRenderingMode() {
@@ -1589,16 +1604,16 @@ class GLXDrawer {
             this.#logger.info("render loop off");
         }
     }
-    
+
     renderScene() {
         this.#logger.info('rendering scene...');
         let gl = this.#glXEnvironment.glContext;
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
-        
+
         this.#renderLights();
         this.#clearGlBuffers();
-        
+
         this.drawScene({
             projectionMatrix: this.#drawMatrices.viewProjection,
             cameraMatrix: this.#drawMatrices.camera,
@@ -1801,7 +1816,7 @@ class GLXDrawer {
             0,
             gl.DEPTH_COMPONENT,
             gl.UNSIGNED_INT,
-            null); 
+            null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -1810,12 +1825,12 @@ class GLXDrawer {
         let depthFramebuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, depthFramebuffer);
         gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,      
-            gl.DEPTH_ATTACHMENT, 
+            gl.FRAMEBUFFER,
+            gl.DEPTH_ATTACHMENT,
             gl.TEXTURE_2D,
             depthTexture,
             0);
-            
+
         let unusedTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, unusedTexture);
         gl.texImage2D(
@@ -1834,7 +1849,7 @@ class GLXDrawer {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        
+
         gl.framebufferTexture2D(
             gl.FRAMEBUFFER,
             gl.COLOR_ATTACHMENT0,
@@ -1844,16 +1859,6 @@ class GLXDrawer {
         return pair(depthTexture, depthFramebuffer);
     }
 
-    /**
-     * 
-     * @param {Signal<GLXApplicationInfoTypes>} signal 
-     */
-    #onApplicationAddedSpriteSignal(signal) {
-        if (signal.data === GLXApplicationInfoTypes.ADDED_SPRITE) {
-            this.#setupAutoRenderForSprites();
-        }
-    }
-    
     #renderLightFrustum() {
         let gl = this.#glXEnvironment.glContext;
         let viewMatrix = M4.inverse(this.#computeCameraMatrix())
@@ -1872,7 +1877,7 @@ class GLXDrawer {
         WebGLUtils.drawBufferInfo(gl, this.#cubeLinesBufferInfo, gl.LINES);
         this.#logger.info("light frustum rendered")
     }
-    
+
     #renderLights() {
         let gl = this.#glXEnvironment.glContext;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.#textureWithBuffer.second);
@@ -1894,7 +1899,7 @@ class GLXDrawer {
     #setupAutoRender() {
         this.#setupAutoRenderForCamera();
         this.#setupAutoRenderForShadownLight();
-        SIGNALS.subscribe(this.#applicationSignalWorkspace.main, this.#onApplicationAddedSpriteSignal.bind(this));
+        this.#setupAutoRenderForSprites();
         this.#logger.info('auto render setup complete');
     }
 
@@ -1910,7 +1915,7 @@ class GLXDrawer {
                 light: lightMatrices,
                 texture: this.#computeTextureMatrix(lightMatrices)
             }
-            
+
             if (this.#renderingMode === RenderingModes.SIGNAL) {
                 this.renderScene();
             }
@@ -1930,7 +1935,7 @@ class GLXDrawer {
                 camera: cameraMatrix,
                 viewProjection: this.#computeViewProjectionMatrix(cameraMatrix)
             }
-            
+
             if (this.#renderingMode === RenderingModes.SIGNAL) {
                 this.renderScene();
             }
@@ -1949,7 +1954,7 @@ class GLXDrawer {
             if (!this.#spriteSubscriptions.has(spriteName)) {
                 let onSpriteChange = () => {
                     this.#drawMatrices.sprite.set(spriteName, this.#computeSpriteMatrix(sprite));
-                    
+
                     if (this.#renderingMode === RenderingModes.SIGNAL) {
                         this.renderScene();
                     }
@@ -2260,7 +2265,7 @@ export function start(appStart) {
     let mainSignalDescriptor = SIGNALS.register(signalWorkspace.main);
     ON_TEXTURE_READY = (objName, imgUrl) => {
         logger.info(`texture ready for '${objName}' with image url ${imgUrl}`)
-        mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.TEXTURE_READY});
+        mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.TEXTURE_READY });
     }
 
     /** @type {GLXApplicationParams} */ let params = {
@@ -2280,7 +2285,7 @@ export function start(appStart) {
         logger.info('running application main');
         app.main();
     }
-    
+
     mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.BOOTED })
 }
 

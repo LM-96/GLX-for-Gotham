@@ -17,6 +17,10 @@ import { Angle, Point3D } from "./geometry";
 import { Logger } from "./logjsx";
 import { SignalDescriptor } from "./signals";
 
+export type ControlsRuntime = {
+    currentSprite: GLXSprite | undefined
+}
+
 export declare type DrawMatrices = {
     camera: number[],
     light: LightMatrices,
