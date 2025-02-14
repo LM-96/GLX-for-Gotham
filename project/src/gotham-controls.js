@@ -4,6 +4,7 @@ import {
     ifNotNullOrUndefined,
     isNotNullOrUndefined
 } from "./glx-model.js";
+import { Logger } from "./logjsx.js";
 import { SIGNALS } from "./signals.js";
 
 /**
@@ -52,8 +53,6 @@ export class GothamDatGuiCotrolsHandler {
     /** @type {GLXControl<any>[]} */ #controls = [];
     /** @type {any} */ #settings = {};
     /** @type {SignalDescriptor<GLXControlInfo>|undefined} */ #signalDescriptor;
-    /** @type {SubscriptionToken[]} */ #targetSubscriptionTokens = [];
-
 
     /**
      * 
@@ -62,7 +61,6 @@ export class GothamDatGuiCotrolsHandler {
     setup(params) {
         this.#controls = params.controls;
         this.#signalDescriptor = params.controlsSignalDescriptor;
-        this.#targetSubscriptionTokens = [];
         this.#settings = controlsToSettings(this.#controls);
         this.#setupControls(this.#signalDescriptor);
     }
@@ -125,9 +123,11 @@ export class GothamKeyboardControlsHandler {
     /** @type {number} */ #previousX = 0;
     /** @type {number} */ #previousY = 0;
     /** @type {any} */ #settings = {};
+    /** @type {any} */ #pressedKeys = {};
     /** @type {Angle} */ #stepAngleSize = degrees(5);
     /** @type {number} */ #stepForwardSize = 6;
     /** @type {SignalDescriptor<GLXControlInfo>|undefined} */ #signalDescriptor;
+    /** @type {Logger} */ #logger = Logger.forName("KeyboardControls");
 
     /**
      * 
@@ -154,7 +154,10 @@ export class GothamKeyboardControlsHandler {
         this.#canvas.addEventListener('touchend', this.#onMouseTouchUp.bind(this));
         this.#canvas.addEventListener('touchstart', this.#onMouseTouchDown.bind(this));
         this.#canvas.addEventListener('touchmove', this.#onMouseMove.bind(this));
-        document.addEventListener('keydown', this.#onKeyDown.bind(this));
+
+        document.addEventListener("keydown", this.#onKeyDown.bind(this));
+        document.addEventListener("keyup", this.#onKeyUp.bind(this));
+        this.#update();
     }
 
     /**
@@ -188,27 +191,42 @@ export class GothamKeyboardControlsHandler {
 
     /**
      * 
-     * @param {KeyboardEvent} event
+     * @param {KeyboardEvent} event 
      */
     #onKeyDown(event) {
-        let keyMove = event.key;
-        switch (keyMove) {
-            case KeyMoves.ARROW_UP:
-                this.#forwardSprite(this.#stepForwardSize, degrees(this.#settings[GLXControlTypes.SPRITE_PHI]));
-                break;
+        this.#pressedKeys[event.key] = true;
+    }
 
-            case KeyMoves.ARROW_DOWN:
-                this.#forwardSprite(-this.#stepForwardSize, degrees(this.#settings[GLXControlTypes.SPRITE_PHI]));
-                break;
+    /**
+     * 
+     * @param {KeyboardEvent} event 
+     */
+    #onKeyUp(event) {
+        this.#pressedKeys[event.key] = false;
+    }
 
-            case KeyMoves.ARROW_LEFT:
+    #update() {
+        try {
+            const currentAngle = degrees(this.#settings[GLXControlTypes.SPRITE_PHI]);
+
+            if (this.#pressedKeys["ArrowUp"]) {
+                this.#forwardSprite(this.#stepForwardSize, currentAngle);
+            }
+            if (this.#pressedKeys["ArrowDown"]) {
+                this.#forwardSprite(-this.#stepForwardSize, currentAngle);
+            }
+
+            if (this.#pressedKeys["ArrowLeft"]) {
                 this.#turnSprite(this.#stepAngleSize);
-                break;
-
-            case KeyMoves.ARROW_RIGHT:
+            }
+            if (this.#pressedKeys["ArrowRight"]) {
                 this.#turnSprite(this.#stepAngleSize.transform(AngleMath.multiplyBy(-1)));
-                break;
+            }
+        } catch (err) {
+            this.#logger.error("error handling kwyboard event", err);
         }
+
+        requestAnimationFrame(this.#update.bind(this));
     }
 
     /**
@@ -259,9 +277,13 @@ export class GothamKeyboardControlsHandler {
 
             let currentPhi = degrees(this.#settings[GLXControlTypes.SPRITE_PHI]);
             let nextPhi = currentPhi.transform(AngleMath.sum(radians(dX)));
-            console.log(`CURRENT PHI: ${currentPhi.degreesValue}, NEXT PHI: ${nextPhi.degreesValue}`)
+            this.#signalDescriptor?.trigger({
+                data: {
+                    type: GLXControlTypes.SPRITE_PHI,
+                    value: nextPhi.degreesValue
+                }
+            });
 
-            this.#turnSprite(nextPhi);
             this.#forwardSprite(dY, nextPhi);
             event.preventDefault();
         }
