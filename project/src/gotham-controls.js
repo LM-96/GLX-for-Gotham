@@ -112,7 +112,7 @@ export class GothamDatGuiCotrolsHandler {
 }
 
 
-export class GothamKeyboardControlsHandler {
+export class GothamKeyboardMouseTouchControlsHandler {
 
     // @ts-ignore
     /** @type {HTMLCanvasElement}  */ #canvas;
