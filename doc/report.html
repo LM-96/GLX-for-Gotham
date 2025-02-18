@@ -1,7 +1,1198 @@
-<!doctype html>
+<!-- Progetto ALLL -->
 
-<html lang="en">
+<!doctype html>
+<html>
+
 <head>
-    <title>Gotham - FCG Report</title>
+	<title>GLX for Gotham App - FCG Report</title>
+	<style>
+		h1 {
+			color: rgb(232, 229, 229);
+			font-size: 50px;
+		}
+
+		h1,
+		h2,
+		h3 {
+			color: rgb(4, 12, 59);
+			position: relative;
+			text-align: center;
+		}
+
+		p,
+		ul,
+		li {
+			margin-left: 20px;
+			margin-right: 20px;
+			font-size: 20px;
+		}
+
+		body {
+			font-family: 'Geneva', 'Helvetica', 'Arial', sans-serif;
+			background-color: rgba(41, 54, 118, 0.42);
+			max-width: 100%;
+			overflow-x: hidden;
+		}
+
+		div {
+			width: 100%;
+		}
+
+		.centered {
+			justify-content: center;
+			display: flex;
+		}
+
+		.section {
+			border: 1px solid black;
+			border-radius: 10px;
+			display: table;
+			align-items: center;
+			margin: auto;
+			background-color: rgba(226, 230, 246, 0.42);
+		}
+
+		.hs {
+			background-color: rgba(41, 54, 118, 0.38);
+		}
+
+		.hs2 {
+			background-color: rgba(76, 118, 41, 0.38);
+		}
+
+		img {
+			margin: 5px;
+		}
+
+		ks {
+			font-family: "Arial";
+			font-weight: bold;
+			color: #0000CD;
+			font-size: 90%;
+		}
+
+		em {
+			font-family: "Arial";
+			font-size: 80%;
+			font-weight: bold;
+			border-style: solid;
+			border-color: #abe876;
+			color: #1632cc;
+		}
+
+		kc {
+			font-family: "Arial";
+			font-weight: bold;
+			color: #008000;
+			font-size: 90%;
+		}
+
+		pre {
+			font-family: "Consolas";
+			font-size: 85%;
+			background-color: #f5f5f5;
+			border: 1.5px solid silver;
+			padding: 5px;
+		}
+
+		m {
+			font-family: "Helvetica";
+			line-height: 100%;
+			font-size: 75%;
+		}
+
+		k {
+			color: #990000;
+			font-weight: bold;
+			font-size: 90%;
+		}
+
+		a,
+		a:visited,
+		a:hover,
+		a:active {
+			color: inherit;
+		}
+
+		.api-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin: 1.5em 0;
+			background-color: rgba(226, 230, 246, 0.42);
+			/* Match section background */
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+		}
+
+		.api-table th {
+			background-color: rgba(41, 54, 118, 0.38);
+			/* Match header background */
+			padding: 12px 15px;
+			text-align: left;
+			font-weight: 600;
+			border-bottom: 2px solid rgba(41, 54, 118, 0.2);
+			color: rgb(4, 12, 59);
+			/* Match heading color */
+		}
+
+		.api-table td {
+			padding: 12px 15px;
+			border-bottom: 1px solid rgba(41, 54, 118, 0.2);
+			vertical-align: top;
+		}
+
+		.api-table code {
+			background-color: rgba(245, 245, 245, 0.7);
+			padding: 2px 4px;
+			border-radius: 4px;
+			font-family: 'Consolas', 'Monaco', monospace;
+			font-size: 0.9em;
+			color: #333;
+		}
+
+		.api-table tr:hover {
+			background-color: rgba(41, 54, 118, 0.1);
+		}
+
+		.api-table td:first-child {
+			width: 40%;
+		}
+
+		pre {
+			font-family: "Consolas", monospace;
+			font-size: 14px;
+			background-color: rgba(41, 54, 118, 0.1);
+			border: 1.5px solid rgba(41, 54, 118, 0.2);
+			padding: 12px;
+			border-radius: 4px;
+			line-height: 1.4;
+			color: #1a1a1a;
+		}
+
+		code {
+			font-family: "Consolas", monospace;
+			font-size: 18px;
+			padding: 2px 6px;
+			border-radius: 4px;
+			color: #1a1a1a;
+		}
+	</style>
+
 </head>
-</html>
+
+<body>
+	<h1>GLX for Gotham APP</h1>
+	<h2>Final Project - Fundamentals of Computer Graphics</h2>
+	<h3>By Luca Marchegiani</h3>
+	<h3>Computer Science Engineering - Master Degree</h3>
+
+	<div class="centered">
+		<img src="images\Blender\immagine7.png" height="600">
+	</div>
+
+	<h2 style="text-align: left;padding-left: 50px">Index</h2>
+	<ol>
+		<li><a href="#introduction">Introduction and Context</a></li>
+		<li><a href="#ambient_scene">Ambient and Scene</a></li>
+		<li><a href="#lights">Lights and Shadows</a></li>
+		<li><a href="#movable_objects">Movable Objects</a></li>
+		<li><a href="#user_interaction">User Interaction</a></li>
+		<li><a href="#fast_project_overwiev">Fast Application Project Overview</a>
+			<ul>
+				<li><a href="#typescript_use">The use of Typescript</a></li>
+				<li><a href="#entities">The main entities of the application</a></li>
+				<li><a href="#decorators_and_main">Decorators and Main Class</a></li>
+				<li><a href="#signals">Signals</a> </li>
+			</ul>
+		</li>
+	</ol>
+
+	<br>
+
+	<h2 class="hs" id="introduction">Introduction and Context</h2>
+	<div class="section">
+		<h2 class="hs2" id="glx_introduction">GLX introduction</h2>
+		<p>
+			<b>GLX</b> is a small framework entirely developed by me under the following guideline:
+		</p>
+		<p>
+		<ul>
+			<li>based on top of <i>WebGL</i>, entirely written in <i>Javascript</i>, provides a <i>simple</i> a
+				nd <i>fast</i> way to draw and render 3D objects into the <i>WebGL</i> context</li>
+			<li>attempts to follow a <i>functional</i>, <i>reactive</i> and <i>decoupled</i> approach</li>
+			<li>provides an easy way to define a <i>3D world</i> in which objects live and move (<i>sprites</i>)</li>
+			<li>defines an easy way to manage the <i>camera</i> and also <i>lights</i> and <i>shadows</i></li>
+			</li>
+			<li>allows the developer to code in a <i>declarative</i> way, allowing to specify what there is in his
+				world and how his components interact between them, reducing boilerplate code, focusing on the
+				application logic</li>
+		</ul>
+		</p>
+		<p>
+			GLX has been used to develop <b>GothamAPP</b>, the main application of this project.<br>
+			Please be aware that the application is still in its early stages and there are still many
+			things to be improved and added. Nevertheless, you can have a clear view on how GLX works and the potential
+			it has.
+		</p>
+		<h2 class="hs2" id="gotham_city">Gotham City</h2>
+		<p>
+			Gotham city is one of the fictional cities of the DC Comics Universe and has always been one of the most
+			wished destinations of the lovers of <i>Batman</i>, the famous super-hero who saved the world lots of
+			times!<br>
+			The aim of this <i>simple</i> application is to realize the dream of who wishes to visit and explore this
+			city,
+			being in the shoes of the amazing super-hero Batman.<br><br>
+		</p>
+		<p style="text-align: center"><b>Who does not wish to be Batman driving the BatMoto through the street of
+				Gotham!?</b></p>
+
+	</div>
+	<br>
+	<br>
+	<h2 class="hs" id="ambient_scene">Ambient and Scene</h2>
+	<div class="section">
+		<div class="centered">
+			<table>
+				<tr>
+					<th><img src="images\Blender\immagine.png" height="200"></th>
+					<th><img src="images\Blender\immagine2.png" height="200"></th>
+				</tr>
+				<tr>
+					<th><img src="images\Blender\immagine3.png" height="200"></th>
+					<th><img src="images\Blender\immagine4.png" height="200"></th>
+				</tr>
+			</table>
+		</div>
+
+		<p>
+			The representation of Gotham has been developed as an <ks>oval circuit</ks> textured with the roadways
+			and the colored buildings with a <i>glass effect</i> to evidence the gloomy colors of Gotham.<br>
+			In addition, lots of decorations have been added inside the scene:
+		</p>
+		<ul>
+			<li>a <kc>huge logo</kc> of Batman that has also been painted;</li>
+			<li>the personalized <kc>BatSignaler</kc> on the top of the smaller building;</li>
+			<li>
+				<kc>streetlights</kc> near the road;
+			</li>
+			<li>a small <kc>garden</kc> with a three.</li>
+		</ul>
+		<p>
+			To conclude this fast overview, the scene has also <kc>the picture of the <i>creator</i></kc> on the face of
+			the small building, as shown in the picture above.
+		</p>
+	</div>
+	<br>
+	<br>
+	<h2>Lights and Shadows</h2>
+	<div class="section" id="lights">
+		<div class="centered">
+			<table>
+				<tr>
+					<th><img src="images\shadows.jpg" height="300"></th>
+					<th><img src="images\shadows_2.jpg" height="300"></th>
+				</tr>
+			</table>
+		</div>
+		<p>
+			As mentioned above, GLX has been equipped with a single light source realized using <i>WebGL</i>, by putting
+			a <kc>directional ambient light</kc> inside the world, in order to simulate the one of a sun.
+			Thanks to the <i>right</i> menu in GothamAPP, it is possible to configure all the parameters of the
+			light.<br>
+			The scene is automatically updated each time the user set one of the available option,
+			but this mechanism will be clarified soon.
+		</p>
+
+	</div>
+
+	<br>
+	<br>
+	<h2 class="hs" id="movable_objects">Movable objects</h2>
+	<div class="section">
+		<div class="centered">
+			<table>
+				<tr>
+					<th><img src="images\Blender\immagine5.png" height="300"></th>
+					<th><img src="images\Blender\immagine6.png" height="300"></th>
+				</tr>
+			</table>
+		</div>
+
+		<p>
+			GLX allows the developer to defined <em>sprites</em>: objects in the <i>3D world</i> that have a position,
+			a scale and a polar rotation. These objects can be transformed into the world thanks to geometrical
+			operation
+			(like translations, scales or rotations).
+		</p>
+
+		<p>
+			The main character of the scene is <kc>Batman</kc> on his <ks>BatMoto</ks> that has been realized
+			using <i>Blender</i> and manipulating multiple <var>obj</var>s items that have been loaded and
+			managed.<br><br>
+
+			Every object thas been colored using a dark style like and <i>Batman</i> has been adapted to assume
+			the position of who is driving a motorbike.<br><br>
+
+			Actually, all the original objects that compose <i>Batmain</i> have been bundled into one single
+			<var>obj</var> that is atomically used and managed from the application:
+			<ks>Batman is indeed loaded in GothamAPP thanks to the sprite managing mechanism offered by GLX and
+				managed using the controls provided by GLX</ks>.<br><br>
+
+			Anyway, in future developments it will be possible
+			to handle the separate parts: this will let to move the wheel as in real life.
+			In addition, it will be possible and reasonable to <i>develop a mechanism of collisions handling</i> with
+			the other objects of the scene.<br>
+			The actual version of the application only use a <k>trivial position-constrained system</k> that constrains
+			the main subject to stay inside the world without going outside of a fixed parallelepiped.<br><br>
+
+			By summaring, we have <ks>two <code>obj</code>s</ks> that are currently loaded by the application: one for
+			<i>Batman</i> and the other for the world.<br><br>
+
+			To conclude, in the future it will be appropriated to add the <i>physics of the movements</i> that is
+			currently missed (the object simply move thanks to the interaction with the user, following some trivial
+			events that allows only to move back and forward and to rotate).<br><br>
+
+			<em>
+				In line with the appliction's standard flow, <i>Batman</i> should be the only object capable of being
+				moved
+				through the interactions. Howevent, it is also possible to move the world - and also other objects that
+				can
+				be added - using the menu, while this functionality remains enabled. In fact, GLX provides a way to
+				select
+				and manage the active, and GothamAPP enables this feature in the graphical interface.
+			</em><br>
+		</p>
+	</div>
+
+	<br>
+	<br>
+	<h2 class="hs" id="user_interaction">User Interaction</h2>
+	<div class="section">
+		<p>
+			The user can interact with the application both on <kc>desktop</kc> and <kc>mobile</kc> by using:
+		</p>
+		<ul>
+			<li>the <k>keyboard</k> with the directional arrows;</li>
+			<li>the <k>mouse</k>;</li>
+			<li>the <k>touchscreen</k> (for mobile).</li>
+		</ul>
+		<h3>Desktop Version</h3>
+		<div class="centered">
+			<img src="images\desktop_version.png" height="400">
+		</div>
+		<br>
+		<h3>Mobile Version</h3>
+		<div class="centered">
+			<img src="images\mobile_version.png" height="400">
+		</div>
+		<p>
+			The user can move the motorbike by using the following <em>keys</em>:
+		</p>
+		<ul>
+			<li>
+				<k>&#x2191;</k>: move forward
+			</li>
+			<li>
+				<k>&#x2193;</k>: move backward
+			</li>
+			<li>
+				<k>&#x2190;</k>: turn left
+			</li>
+			<li>
+				<k>&#x2192;</k>: turn right
+			</li>
+		</ul>
+		<p>
+			Instead, he can also use the mouse:
+		</p>
+		<ul>
+			<li>
+				<k>clicking and moving up</k> to move forward
+			</li>
+			<li>
+				<k>clicking and moving down</k> to move backward
+			</li>
+			<li>
+				<k>clicking and moving right</k> to turn left
+			</li>
+			<li>
+				<k>clicking and moving left</k> to turn right
+			</li>
+		</ul>
+		<p>
+			For the mobile version, the controls are the same of the mouse but with the touch instead of the click.
+			By summarising, the motorbike can be moved:
+		</p>
+		<div class="centered">
+			<table style="border: 1px solid black">
+				<tr>
+					<th></th>
+					<th style="padding: 10px">
+						<k>KEYBOARD</k>
+					</th>
+					<th style="padding: 10px">
+						<k>MOUSE</k>
+					</th>
+					<th style="padding: 10px">
+						<k>TOUCH</k>
+					</th>
+				</tr>
+				<tr>
+					<th style="padding: 5px">
+						<ks>MOVE FORWARD</ks>
+					</th>
+					<th style="padding: 5px">Press &#x2191;</th>
+					<th style="padding: 5px">Click and move UP</th>
+					<th style="padding: 5px">Touch and move UP</th>
+				</tr>
+				<tr>
+					<th style="padding: 5px">
+						<ks>MOVE BACKWARD</ks>
+					</th>
+					<th style="padding: 5px">Press &#x2193;</th>
+					<th style="padding: 5px">Click and move DOWN</th>
+					<th style="padding: 5px">Touch and move DOWN</th>
+				</tr>
+				<tr>
+					<th style="padding: 5px">
+						<ks>TURN LEFT</ks>
+					</th>
+					<th style="padding: 5px">Press &#x2190;</th>
+					<th style="padding: 5px">Click and move RIGHT</th>
+					<th style="padding: 5px">Touch and move RIGHT</th>
+				</tr>
+				<tr>
+					<th style="padding: 5px">
+						<ks>TURN RIGHT</ks>
+					</th>
+					<th style="padding: 5px">Press &#x2192;</th>
+					<th style="padding: 5px">Click and move LEFT</th>
+					<th style="padding: 5px">Touch and move LEFT</th>
+				</tr>
+			</table>
+		</div>
+
+
+		<p>
+			In addition to the controls with mouse, keyboard and touchscreen, the application is also provided with a
+			rich <ks>menu</ks> that works perfectly about the settings, but that has some problems of <i>style</i>.
+			Even if there are some styling details that have to be improved, the menu works perfectly, allowing the user
+			to manipulate lots of parameters of the <i>camera</i>, the <i>lights and the shadows</i> and the
+			<i>objects</i>
+			that are present into the scene.<br><br>
+		</p>
+
+		<div class="centered">
+			<table>
+				<tr>
+					<th><img src="images/menu_1.png" width="400"></th>
+					<th><img src="images/menu_2.png" width="400"></th>
+					<th><img src="images/menu_3.png" width="400"></th>
+				</tr>
+			</table>
+		</div>
+
+		<p>The menu is composed by multiple <i>parts</i> that offer lots of functionality to the user :</p>
+		<ul>
+			<li><b>the <em>draw</em> button</b> to force the draw of the scene</li>
+			<li><b>the <em>log</em> option</b> that allows the user to see the log of the application into the console
+			</li>
+			<li><b>the <em>rendering mode</em> option</b> to switch the rendering mode of the application</li>
+			<li>
+				<b>the <em>camera</em> section</b> that is composed by:
+				<ul>
+			</li>
+			<li>
+				<ks><i>cameraman_work_mode</i></ks> sets the mode the camera man has to position the camera on the
+				scene to make the user watching or following the target
+			</li>
+			<li>the <ks>target</ks> object that is targeted by the camera when <i>cameraman</i>
+				or <i>look_at</i> or <i>follow</i></li> are set
+			<li>
+				<ks><i>look_at</i></ks> the option that forces the camera to watch the target object;
+				this option can not be activated if <i>cameraman</i> is not in <var>DISMISSED</var> mode
+			</li>
+			<li>
+				<ks><i>follow</i></ks> the option that forces the camera to follow the translations of
+				the target object (but not the rotation); this option automatically activates <i>look_at</i>
+				and can not be activated if <i>cameraman</i> is not in <var>DISMISSED</var> mode
+			</li>
+			<li>
+				<ks><i>cam_man_high</i></ks>, <ks><i>cam_man_distance</i></ks> and <ks><i>cam_man_phase/i></ks>
+				to set the high of the camera, the distance and the pahse it must have from the object when
+				the cameraman is working
+			</li>
+			<li>
+				<ks><i>cam_x</i></ks>, <ks><i>cam_y</i></ks> and <ks><i>cam_z</i></ks> that allows
+				to set the position of the camera
+			</li>
+			<li>
+				<ks><i>cam_up_x</i></ks>, <ks><i>cam_up_y</i></ks> and <ks><i>cam_up_z</i></ks> that allows
+				to set the UP vector of the camera
+			</li>
+			<li>
+				<ks><i>z_near</i></ks> and <ks><i>z_far</i></ks> for the relative parameter
+			</li>
+			<li>
+				<ks><i>fov</i></ks> for the field of view
+			</li>
+			<li>
+				<ks><i>target_x</i></ks>, <ks><i>target_y</i></ks> and <ks><i>target_z</i></ks>
+				dedicated to the point targeted by the camera
+			</li>
+		</ul>
+		</li>
+		<li><b>the <em>light</em></b> section that is composed by:
+			<ul>
+				<li>
+					<ks><i>shadows</i></ks> and <ks><i>frustum</i></ks> to activate and deactivate the
+					<i>shadows</i> and the <i>frustum</i>
+				</li>
+				<li>
+					<ks><i>light_x</i></ks>, <ks><i>light_y</i></ks> and <ks><i>light_z</i></ks> to set
+					the position of the source of the light
+				</li>
+				<li>
+					<ks><i>light_target_x</i></ks>, <ks><i>light_target_y</i></ks> and <ks><i>light_target_z</i></ks>
+					to set the target the light has to point
+				</li>
+				<li>
+					<ks><i>light_fov</i></ks> for the field of view of the light
+				<li>
+					<ks><i>light_near</i></ks> and <ks><i>light_far</i></ks> for the relative parameter of the light
+				</li>
+				<li>
+					<ks><i>bias</i></ks> to set the bias for the shadow
+				</li>
+				<li>
+					<ks><i>spotlight</i></ks> to activate or de-activate the spotlight of the light<i></i>
+				</li>
+				<li>
+					<ks><i>light_weight</i></ks> and <ks><i>light_height</i></ks> for the weight and the height of the
+					light
+				</li>
+			</ul>
+		</li>
+		<li>
+			<b>the <em>objects</em> section</b> that is composed by:
+			<ul>
+				<li>the <ks>curr_sprite</ks> that is the sprite that will be affected by the following options of the
+					menu
+				<li>
+					<ks><i>hidden</i></ks> to hide the <var>curr_sprite</var>
+				</li>
+				<li>
+					<ks><i>sprite_x</i></ks>, <ks><i>sprite_y</i></ks> and <ks><i>sprite_z</i></ks> to change the
+					position
+					of the <var>curr_sprite</var>
+				</li>
+				<li>
+					<ks><i>sprite_scale_x</i></ks>, <ks><i>sprite_scale_y</i></ks> and <ks><i>sprite_scale_z</i></ks>
+					that
+					lets to modify the scale of the <var>curr:sprite</var>
+				</li>
+				<li>
+					<ks><i>sprite_psi</i></ks>, <ks><i>sprite_delta</i></ks> and <ks><i>sprite_phi</i></ks> to rotate
+					the
+					object respectively around the <i>x-axis</i>, <i>y-axis</i>, <i>z-axis</i>
+				</li>
+			</ul>
+			</ul>
+
+			<p>
+				To conclude the user interaction, it's also important to say that the application has been provided with
+				lots of <var>log prints</var> that can be inspected using the developer tools.
+				As already said, the log can be disabled using the proper button on the menu.
+			</p>
+	</div>
+
+	<h2 class="hs" id="fast_project_overwiev">Fast Application Prject Overview</h2>
+	<div class="section">
+		<p>
+			We discussed the functionality this application offers to the user, but since this is a course of the degree
+			of <i>Computer Science Engineering</i>, it's also important to give some details about the model and the
+			implementation of the software. Moreover, until now I didn't give a clear separation between GLX and how
+			GothamAPP uses it to realize the final system.
+		</p>
+
+		<h2 class="hs2" id="modern_javascript_approach">A modern approach to Javascript</h2>
+		<p>
+			The requirements of the project are strict: <b>only Javascript is allowed and only some libraries</b>
+			furnished by the teacher.
+			I personally don't like many aspect of Javascript, starting from <b>the absence of the types</b> that can
+			cause
+			many confusions, making clean code harder to organize and understand.
+			This is, indeed, one of the main reason why Typescript was invented.
+		</p>
+		<p>
+			Anyway, I couldn't use Typescript due to the requirements. Nevertheless, I decided to boost the use of
+			Javascript following
+			a modern approach based on <a href="https://jsdoc.app/tags-type"><em>JSDoc typing</em></a> and
+			<a href="https://www.typescriptlang.org/docs/handbook/2/type-declarations.html"><em>Typescript declaration
+					file</em></a>,
+			as suggested in <a href="https://dev.to/samuel-braun/boost-your-javascript-with-jsdoc-typing-3hb3"><em>this
+					article</em></a>.
+			As remark, typescript declaration file are used from <a href="https://eslint.org/"><em>eslint</em></a> and
+			the IDE (like
+			<i>Visual Studio Code</i>) in order to perform type checking for the variables and functions and show
+			warnings.
+			It means that <u>they could be omitted or deleted and the project will continue to work normally</u>,
+			<b>but their use is actually strongly suggested</b>.
+		</p>
+		<p>
+			Moreover, I also decided to use an <i>object-oriented</i> approach when possible, since
+			<a href="https://www.w3schools.com/js/js_classes.asp">classes</a> are part of Javascript since <i>ES6</i>.
+		</p>
+
+		<h2 class="hs2" id="signals">Signals</h2>
+		<p>
+			As I said, GLX attempts to be a <b>reactive</b> framework with principles coming from the <b>functional</b>
+			programming.<br>
+			For this reason, one of the main concept that drives GLX is the concept of <ks>signal</ks>: <u>events that
+				can be triggered
+				by a source and received by other entities in a <i>pub-sub</i> model</u>. This opens the door to the
+			<a href="https://en.wikipedia.org/wiki/Event-driven_programming"><em>event-driven programming</em></a>, also
+			introducing a remarked level of <ks>decoupling</ks> between components.<br><br>
+
+			The foundamental aspects are:
+		</p>
+		<ul>
+			<li><i>components</i> or <i>entities</i>
+				<kc>fire</kc> events (I'm calling them <em>signals</em>
+				to not be confused with the Javascript events) as the information emitted by a <ks>source</ks> with some
+				<ks>data</ks>
+			</li>
+			<li><i>components</i> or <i>entities</i>
+				<kc>handle</kc> the signals that are emitted
+			</li>
+			<li>a system (middleware) that manages the <kc>subscriptions</kc> between the emitters and the handler
+				components (in a decoupled way)</li>
+		</ul>
+		<p>
+			All the code about the signal framework can be found here:
+			<a
+				href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/signals.js"><em>signals.js</em></a>.<br>
+
+			The system has a global point of subscription and registration for the signals (the object
+			<code>SIGNALS</code>,
+			singleton instance of the class <em><code>SignalBroker</code></em>):
+		<table class="api-table">
+			<thead>
+				<tr>
+					<th>Method</th>
+					<th>Description</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>
+						<code>register&lt;D&gt;(signalName: string): SignalDescriptor&lt;D&gt;</code>
+					</td>
+					<td>
+						Registers the signal and returns the <code>SignalDescriptor</code>, an object that
+						enables event firing
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>subscribe&lt;D&gt;(signalName: string, action: SignalConsumer&lt;D&gt;): SubscriptionToken</code>
+					</td>
+					<td>
+						Subscribes to the signal specified by <code>signalName</code>, registering the action to
+						be invoked on event occurrence. Returns a token for unsubscription
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>unsubscribe(token: SubscriptionToken)</code>
+					</td>
+					<td>
+						Cancels and removes the subscription associated with the given <code>token</code>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		</p>
+
+		<p>
+			Without going into the details, it is easy to summarize the key point with the integration in the
+			application:
+		</p>
+		<ul>
+			<li>
+				each signal is associated with a <k>name</k> that is the only information needed to subscribe into a
+				signal flow
+			</li>
+			<li>
+				<ks>each loaded <code>Sprite</code> instance is automatically attached to signal system and fires a
+					specific event</ks> when its position has been changed, or its position or the scale
+			</li>
+			<li>
+				<ks>the camera and the shadow light manager fires also events</ks> when a parameter changes
+			</li>
+			<li>
+				<ks>GLX allows to control an application via signal</ks> by interposing a middleware that enables the
+				controls
+			</li>
+		</ul>
+
+		<p>
+			The composition of all the <code>signalName</code> of a GLX application is called <em>application signal
+				workspace</em>.
+			I will soon give a fast overview of the signals available in an application workspace.
+		</p>
+
+		<h2 class="hs2" id="logging">Logging</h2>
+		<p>
+			Javascript provides a trivial logging system throw the <code>console</code> object.<br>
+			In order to provide a kind of complete logging system, I developed a pretty smmall and contained library to
+			log messages,
+			considering also logging levels.<br><br>
+			All the code about the signal framework can be found here:
+			<a
+				href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/logjsx.js"><em>logjsx.js</em></a>.<br>
+		</p>
+		<p>
+			Using the library it's quietly easy: simply, you need to obtain an instance of the <code>Logger</code>
+			interface via
+		<pre><code>let logger = Logger.forName('myComponent');</code></pre>
+		</p>
+		<p>
+			Thanks to that, all the printed messages will be prefixed with the name of the component; moreover, you can
+			print messages with different logging levels: <code>info</code>, <code>warning</code>, <code>debug</code>
+			and <code>error</code>. You can call these methods on the <code>logger</code> instance.
+			The core components of GLX have been equipped with a <code>Logger</code> and prints some useful log that can
+			also
+			be disabled from the menu as shown.
+		</p>
+
+		<h2 class="hs2" id="geometry">Geometry</h2>
+		<p>
+			GLX endeavors to provide a <b>functional</b> approach to define the geometry of the objects in the scene.
+			For this reason, I needed some classes to represent the different geometric entities that compose the scene
+			(for example
+			the position of the object).<br>
+			To accomplish this purpose, I developed a small library whose code can be found here:
+			<a
+				href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/geometry.js"><em>geometry.js</em></a>.<br><br>
+
+			<ks>All the classes in that library follow some of the main principles of the functional programming:
+				they are all immutable object than can be computed by composition, by applying functions.</ks>
+		</p>
+		<p>
+			The main entities of the libraries are:
+		<table class="api-table">
+			<thead>
+				<tr>
+					<th>Class</th>
+					<th>Description</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>
+						<code>Angle</code>
+					</td>
+					<td>
+						Represents an angle with its unit (radians or degrees)
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>Point3D</code>
+					</td>
+					<td>
+						A cartesian 3D point in the space with three coordinates
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		</p>
+		<p>
+			I also developed some builder function to easily create instances of these classes:
+		<table class="api-table">
+			<thead>
+				<tr>
+					<th>Function</th>
+					<th>Description</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>
+						<code>function angle(value: number, unit: AngleUnit): Angle</code>
+					</td>
+					<td>
+						Creates and returns an angle with the given value and in the given unit
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>function degrees(value: number): Angle</code>
+					</td>
+					<td>
+						Creates and returns an angle considering the given value in degrees
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>function point3D(x: number, y: number, z: number): Point3D</code>
+					</td>
+					<td>
+						Creates and returns a point in the 3D world with the given coordinates
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>function radians(value: number): Angle</code>
+					</td>
+					<td>
+						Creates and returns an angle considering the given value in radians
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		</p>
+		<p>
+			Please refers the typescript declaration file for additional details:
+			<a
+				href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/geometry.d.ts"><em>geometry.d.ts</em></a>.<br><br>
+		</p>
+
+		<h2 class="hs2" id="glx_model">GLX Model</h2>
+		<p>
+			The model of the GLX framwork is placed into
+			<a
+				href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/glx-model.js"><em>glx-model.js</em></a>.<br><br>
+			This <i>package</i> contains classes that are used as model for the framework and they are perfectly
+			integrated with the signal system: <ks>generally when a property of a model class changes its value, 
+				a signal is triggered</ks>.<br><br>
+
+			To reach this aim, almost all the model classes are equipped with a portion of the application signal
+			workspace that
+			they have to manage.
+		</p>
+
+		<p>
+			<em>GLXSprite</em>: represents a sprite
+
+		<table class="api-table">
+			<thead>
+				<tr>
+					<th>Property</th>
+					<th>Fired signal</th>
+					<th>Data</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>
+						<code>readonly name: string</code>
+					</td>
+					<td></td>
+					<td></td>
+				</tr>
+				<tr>
+					<td>
+						<code>readonly signalWorkspace: GLXSpriteSignalWorkspace</code>
+					</td>
+					<td></td>
+					<td></td>
+				</tr>
+				<tr>
+					<td>
+						<code>position: Point3D</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].[name].position</code>
+					</td>
+					<td>
+						<code>Change&lt;Point3D&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>rotation: Trio&lt;Angle&gt;</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].[name].rotation</code>
+					</td>
+					<td>
+						<code>Change&lt;Trio&lt;Angle&gt;&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>scale: Trio&lt;number&gt;</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].[name].scale</code>
+					</td>
+					<td>
+						<code>Change&lt;Trio&lt;number&gt;&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>hidden: boolean</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].[name].hidden</code>
+					</td>
+					<td>
+						<code>Change&lt;boolean&gt;</code>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		</p>
+
+		<p>
+			<em>GLXCamera</em>: represents the camera
+
+		<table class="api-table">
+			<thead>
+				<tr>
+					<th>Property</th>
+					<th>Fired signal</th>
+					<th>Data</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>
+						<code>fov: Angle</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].camera.fov</code>
+					</td>
+					<td>
+						<code>Change&lt;Angle&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>position: Point3D</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].camera.position</code>
+					</td>
+					<td>
+						<code>Change&lt;Point3D&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>targetPosition: Point3D</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].camera.target</code>
+					</td>
+					<td>
+						<code>Change&lt;Point3D&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>up: Trio&lt;number&gt;</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].camera.up</code>
+					</td>
+					<td>
+						<code>Change&lt;Trio&lt;number&gt;&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>zFar: number</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].camera.zfar</code>
+					</td>
+					<td>
+						<code>Change&lt;number&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>zNear: number</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].camera.znear</code>
+					</td>
+					<td>
+						<code>Change&lt;number&gt;</code>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		</p>
+
+		<p>
+			<em>GLXShadowLight</em>: represents the shadows and the lights
+
+		<table class="api-table">
+			<thead>
+				<tr>
+					<th>Property</th>
+					<th>Fired signal</th>
+					<th>Data</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>
+						<code>bias: number</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.bias</code>
+					</td>
+					<td>
+						<code>Change&lt;number&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>lightFar: number</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.far</code>
+					</td>
+					<td>
+						<code>Change&lt;number&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>lightFov: Angle</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.fov</code>
+					</td>
+					<td>
+						<code>Change&lt;Angle&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>lightFrustum: boolean</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.frustum</code>
+					</td>
+					<td>
+						<code>Change&lt;boolean&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>isShadowEnabled: boolean</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.shadowEnabled</code>
+					</td>
+					<td>
+						<code>Change&lt;boolean&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>isSpotlight: boolean</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.spotlight</code>
+					</td>
+					<td>
+						<code>Change&lt;boolean&gt;</code>
+					</td>
+
+				</tr>
+				<tr>
+					<td>
+						<code>lightDirection: Trio&lt;number&gt;</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.direction</code>
+					</td>
+					<td>
+						<code>Change&lt;Trio&lt;number&gt;&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>lightPosition: Point3D</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.position</code>
+					</td>
+					<td>
+						<code>Change&lt;Point3D&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>lightTarget: Point3D</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.target</code>
+					</td>
+					<td>
+						<code>Change&lt;Point3D&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>lightUp: Trio&lt;number&gt;</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.up</code>
+					</td>
+					<td>
+						<code>Change&lt;Trio&lt;number&gt;&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>lightNear: number</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.near</code>
+					</td>
+					<td>
+						<code>Change&lt;number&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>projectionHeight: number</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.projectionHeight</code>
+					</td>
+					<td>
+						<code>Change&lt;number&gt;</code>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<code>projectionWidth: number</code>
+					</td>
+					<td>
+						<code>GLX.[applicationName].shadowLight.projectionWidth</code>
+					</td>
+					<td>
+						<code>Change&lt;number&gt;</code>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		</p>
+
+		<p>
+			These classes are the most important of this <i>package</i>, but for further details please have a look to 
+			<a href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/glx-model.d.ts"><em>glx-model.d.ts</em></a>.<br><br>
+		</p>
+
+	</div>
+
+</body>
