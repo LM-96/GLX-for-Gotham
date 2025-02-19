@@ -222,12 +222,12 @@
 	<div class="section">
 		<h2 class="hs2" id="glx_introduction">GLX introduction</h2>
 		<p>
-			<b>GLX</b> is a small framework entirely developed by me under the following guideline:
+			<b>GLX</b> is a small framework entirely developed by me under the following guidelines:
 		</p>
 		<p>
 		<ul>
-			<li>based on top of <i>WebGL</i>, entirely written in <i>Javascript</i>, provides a <i>simple</i> a
-				nd <i>fast</i> way to draw and render 3D objects into the <i>WebGL</i> context</li>
+			<li>based on top of <i>WebGL</i>, entirely written in <i>Javascript</i>, provides a <i>simple</i> and 
+				<i>fast</i> way to draw and render 3D objects into the <i>WebGL</i> context</li>
 			<li>attempts to follow a <i>functional</i>, <i>reactive</i> and <i>decoupled</i> approach</li>
 			<li>provides an easy way to define a <i>3D world</i> in which objects live and move (<i>sprites</i>)</li>
 			<li>defines an easy way to manage the <i>camera</i> and also <i>lights</i> and <i>shadows</i></li>
@@ -246,8 +246,7 @@
 		<h2 class="hs2" id="gotham_city">Gotham City</h2>
 		<p>
 			Gotham city is one of the fictional cities of the DC Comics Universe and has always been one of the most
-			wished destinations of the lovers of <i>Batman</i>, the famous super-hero who saved the world lots of
-			times!<br>
+			wished destinations of the lovers of <i>Batman</i>, the famous super-hero who saved the world many times!<br>
 			The aim of this <i>simple</i> application is to realize the dream of who wishes to visit and explore this
 			city,
 			being in the shoes of the amazing super-hero Batman.<br><br>
@@ -328,7 +327,7 @@
 		</div>
 
 		<p>
-			GLX allows the developer to defined <em>sprites</em>: objects in the <i>3D world</i> that have a position,
+			GLX allows the developer to define <em>sprites</em>: objects in the <i>3D world</i> that have a position,
 			a scale and a polar rotation. These objects can be transformed into the world thanks to geometrical
 			operation
 			(like translations, scales or rotations).
@@ -337,9 +336,7 @@
 		<p>
 			The main character of the scene is <kc>Batman</kc> on his <ks>BatMoto</ks> that has been realized
 			using <i>Blender</i> and manipulating multiple <var>obj</var>s items that have been loaded and
-			managed.<br><br>
-
-			Every object thas been colored using a dark style like and <i>Batman</i> has been adapted to assume
+			managed. Every object thas been colored using a dark style and <i>Batman</i> has been adapted to assume
 			the position of who is driving a motorbike.<br><br>
 
 			Actually, all the original objects that compose <i>Batmain</i> have been bundled into one single
@@ -348,13 +345,13 @@
 				managed using the controls provided by GLX</ks>.<br><br>
 
 			Anyway, in future developments it will be possible
-			to handle the separate parts: this will let to move the wheel as in real life.
+			to handle each parts separately: this will let to move the wheel as in real life.
 			In addition, it will be possible and reasonable to <i>develop a mechanism of collisions handling</i> with
 			the other objects of the scene.<br>
-			The actual version of the application only use a <k>trivial position-constrained system</k> that constrains
+			The actual version of the application uses only a <k>trivial position-constrained system</k> that constrains
 			the main subject to stay inside the world without going outside of a fixed parallelepiped.<br><br>
 
-			By summaring, we have <ks>two <code>obj</code>s</ks> that are currently loaded by the application: one for
+			By summaring, we have <ks>two objects</ks> that are currently loaded by the application: one for
 			<i>Batman</i> and the other for the world.<br><br>
 
 			To conclude, in the future it will be appropriated to add the <i>physics of the movements</i> that is
@@ -484,11 +481,10 @@
 
 		<p>
 			In addition to the controls with mouse, keyboard and touchscreen, the application is also provided with a
-			rich <ks>menu</ks> that works perfectly about the settings, but that has some problems of <i>style</i>.
-			Even if there are some styling details that have to be improved, the menu works perfectly, allowing the user
+			rich <ks>menu</ks> that works perfectly about the settings, allowing the user
 			to manipulate lots of parameters of the <i>camera</i>, the <i>lights and the shadows</i> and the
-			<i>objects</i>
-			that are present into the scene.<br><br>
+			<i>objects</i> that are present into the scene.<br><br>
+			To realize the menu I used the <a href="https://github.com/dataarts/dat.gui"><em>dat.gui</em></a> library.
 		</p>
 
 		<div class="centered">
@@ -501,7 +497,7 @@
 			</table>
 		</div>
 
-		<p>The menu is composed by multiple <i>parts</i> that offer lots of functionality to the user :</p>
+		<p>The menu is composed by multiple <i>parts</i> that offer lots of functionality to the user:</p>
 		<ul>
 			<li><b>the <em>draw</em> button</b> to force the draw of the scene</li>
 			<li><b>the <em>log</em> option</b> that allows the user to see the log of the application into the console
@@ -527,7 +523,7 @@
 				and can not be activated if <i>cameraman</i> is not in <var>DISMISSED</var> mode
 			</li>
 			<li>
-				<ks><i>cam_man_high</i></ks>, <ks><i>cam_man_distance</i></ks> and <ks><i>cam_man_phase/i></ks>
+				<ks><i>cam_man_high</i></ks>, <ks><i>cam_man_distance</i></ks> and <ks><i>cam_man_phase</i></ks>
 				to set the high of the camera, the distance and the pahse it must have from the object when
 				the cameraman is working
 			</li>
@@ -574,7 +570,7 @@
 					<ks><i>bias</i></ks> to set the bias for the shadow
 				</li>
 				<li>
-					<ks><i>spotlight</i></ks> to activate or de-activate the spotlight of the light<i></i>
+					<ks><i>spotlight</i></ks> to activate or de-activate the spotlight of the light
 				</li>
 				<li>
 					<ks><i>light_weight</i></ks> and <ks><i>light_height</i></ks> for the weight and the height of the
@@ -628,14 +624,13 @@
 		<p>
 			The requirements of the project are strict: <b>only Javascript is allowed and only some libraries</b>
 			furnished by the teacher.
-			I personally don't like many aspect of Javascript, starting from <b>the absence of the types</b> that can
-			cause
-			many confusions, making clean code harder to organize and understand.
+			I personally don't like many aspects of Javascript, starting from <b>the absence of the types</b> that can
+			cause many confusions, making clean code harder to organize and understand.
 			This is, indeed, one of the main reason why Typescript was invented.
 		</p>
 		<p>
 			Anyway, I couldn't use Typescript due to the requirements. Nevertheless, I decided to boost the use of
-			Javascript following
+			Javascript by following
 			a modern approach based on <a href="https://jsdoc.app/tags-type"><em>JSDoc typing</em></a> and
 			<a href="https://www.typescriptlang.org/docs/handbook/2/type-declarations.html"><em>Typescript declaration
 					file</em></a>,
@@ -643,14 +638,15 @@
 					article</em></a>.
 			As remark, typescript declaration file are used from <a href="https://eslint.org/"><em>eslint</em></a> and
 			the IDE (like
-			<i>Visual Studio Code</i>) in order to perform type checking for the variables and functions and show
+			<i>Visual Studio Code</i>) in order to perform type checking for the variables and the functions and show
 			warnings.
 			It means that <u>they could be omitted or deleted and the project will continue to work normally</u>,
 			<b>but their use is actually strongly suggested</b>.
 		</p>
 		<p>
 			Moreover, I also decided to use an <i>object-oriented</i> approach when possible, since
-			<a href="https://www.w3schools.com/js/js_classes.asp">classes</a> are part of Javascript since <i>ES6</i>.
+			<a href="https://www.w3schools.com/js/js_classes.asp">classes</a> are part of Javascript since <i>ES6</i> and an organization
+			of the code by <a href="https://www.w3schools.com/js/js_modules.asp"><em>modules</em></a>.
 		</p>
 
 		<h2 class="hs2" id="signals">Signals</h2>
@@ -674,7 +670,7 @@
 			<li><i>components</i> or <i>entities</i>
 				<kc>handle</kc> the signals that are emitted
 			</li>
-			<li>a system (middleware) that manages the <kc>subscriptions</kc> between the emitters and the handler
+			<li>a system (middleware) manages the <kc>subscriptions</kc> between the emitters and the handler
 				components (in a decoupled way)</li>
 		</ul>
 		<p>
@@ -734,7 +730,7 @@
 			</li>
 			<li>
 				<ks>each loaded <code>Sprite</code> instance is automatically attached to signal system and fires a
-					specific event</ks> when its position has been changed, or its position or the scale
+					specific event</ks> when its position has been changed, or its rotation or the scale
 			</li>
 			<li>
 				<ks>the camera and the shadow light manager fires also events</ks> when a parameter changes
@@ -743,6 +739,7 @@
 				<ks>GLX allows to control an application via signal</ks> by interposing a middleware that enables the
 				controls
 			</li>
+			<li>the application fires some system signals to notify the boot completion or the sprite load</li>
 		</ul>
 
 		<p>
@@ -753,7 +750,7 @@
 
 		<h2 class="hs2" id="logging">Logging</h2>
 		<p>
-			Javascript provides a trivial logging system throw the <code>console</code> object.<br>
+			Javascript provides a trivial logging system through the <code>console</code> object.<br>
 			In order to provide a kind of complete logging system, I developed a pretty smmall and contained library to
 			log messages,
 			considering also logging levels.<br><br>
@@ -786,7 +783,8 @@
 				href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/geometry.js"><em>geometry.js</em></a>.<br><br>
 
 			<ks>All the classes in that library follow some of the main principles of the functional programming:
-				they are all immutable object than can be computed by composition, by applying functions.</ks>
+				they are all immutable object than can be computed by composition, by applying functions.</ks> This also let to
+				place these objects within signals without any problem of concurrency.
 		</p>
 		<p>
 			The main entities of the libraries are:
@@ -1259,7 +1257,7 @@
 		<h2 class="hs2" id="loop-vs-signal">Render Loop vs Signal</h2>
 		<p>
 			While showing the menu of GothamApp, I spoke about <i>rendering mode</i>: the <code>GLXDrawer</code> indeed uses
-			WebGL to render the scende. But it has been developed with two methods: <code>renderLoop</code> and <code>renderScene</code>.
+			WebGL to render the scene. But it has been developed with two rendering methods: <code>renderLoop</code> and <code>renderScene</code>.
 			Both methods are used to render the scene, but they have different purposes:
 			<table class="api-table">
 				<thead>
@@ -1310,12 +1308,12 @@
 		</p>
 
 		<p>
-			Indeed, one of the main purpose I dediced to go to the implementation of a <i>signal</i> mechanism it's to try
+			Indeed, one of the main reason I decided to go through the implementation of a <i>signal</i> mechanism it's to try
 			to replace the render loop with something dynamic: a render called only <i>by need</i>.
 			<ks>This didn't work well because of performance problems the render loop naturally solves</ks>, anyway
 			it's a great start point for something hybrid.<br><br>
 
-			In fact, the hybrid rendering mode seems to be winning: the computation of the WebGLX matrices is computed only
+			In fact, the hybrid rendering mode seems to be winning: the computation of the WebGLX matrices is triggered only
 			when something effectively change, but the render is performed into a loop, avoiding loss of efficiency.
 			Anyway, this still leak of efficiency if the application does not change it's element so often: we have a continuous
 			loop even if nothing changes.
