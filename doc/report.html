@@ -191,17 +191,27 @@
 
 	<h2 style="text-align: left;padding-left: 50px">Index</h2>
 	<ol>
-		<li><a href="#introduction">Introduction and Context</a></li>
+		<li><a href="#introduction">Introduction and Context</a>
+			<ul>
+				<li><a href="#glx_introduction">GLX Introduction</a></li>
+				<li><a href="#gotham_city">Gotham City</a></li>
+			</ul>
+		</li>
 		<li><a href="#ambient_scene">Ambient and Scene</a></li>
 		<li><a href="#lights">Lights and Shadows</a></li>
 		<li><a href="#movable_objects">Movable Objects</a></li>
 		<li><a href="#user_interaction">User Interaction</a></li>
 		<li><a href="#fast_project_overwiev">Fast Application Project Overview</a>
 			<ul>
-				<li><a href="#typescript_use">The use of Typescript</a></li>
-				<li><a href="#entities">The main entities of the application</a></li>
-				<li><a href="#decorators_and_main">Decorators and Main Class</a></li>
-				<li><a href="#signals">Signals</a> </li>
+				<li><a href="#modern_javascript_approach">A Modern Approach to Javascript</a></li>
+				<li><a href="#signals">Signals</a></li>
+				<li><a href="#logging">Logging</a></li>
+				<li><a href="#geometry">Geometry</a></li>
+				<li><a href="#glx_model">GLX Model</a></li>
+				<li><a href="#glx-core">GLX Core</a></li>
+				<li><a href="#loop-vs-signal">Render Loop vs Signal</a></li>
+				<li><a href="#gotham-app">Final Overview</a></li>
+				<li><a href="#gotham-app">GothamApp</a></li>
 			</ul>
 		</li>
 	</ol>
@@ -864,7 +874,7 @@
 			<a
 				href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/glx-model.js"><em>glx-model.js</em></a>.<br><br>
 			This <i>package</i> contains classes that are used as model for the framework and they are perfectly
-			integrated with the signal system: <ks>generally when a property of a model class changes its value, 
+			integrated with the signal system: <ks>generally when a property of a model class changes its value,
 				a signal is triggered</ks>.<br><br>
 
 			To reach this aim, almost all the model classes are equipped with a portion of the application signal
@@ -1189,9 +1199,150 @@
 		</p>
 
 		<p>
-			These classes are the most important of this <i>package</i>, but for further details please have a look to 
-			<a href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/glx-model.d.ts"><em>glx-model.d.ts</em></a>.<br><br>
+			These classes are the most important of this <i>package</i>, but for further details please have a look to
+			<a
+				href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/glx-model.d.ts"><em>glx-model.d.ts</em></a>.<br><br>
 		</p>
+
+		<h2 class="hs2" id="glx-core">GLX Core</h2>
+		<p>
+			The core <i>package</i> is the most important of the GLX framweork and it defines
+		<ul>
+			<li>the class <em><code>GLXCameraMan</code></em>: the camera man that allow to realize business logic over
+				the camera an application is equipped to</li>
+			<li>the class <em><code>GLXDrawer</code></em>: responsible for rendering and drawing the scene using
+				<i>WebGL</i>
+			</li>
+			<li>the class <em><code>GLXApplication</code></em>: the main base class an application that wants to use GLX
+				has to inherit from</li>
+			<li>the function <em><code>start</code></em>: the function that lets to boot a GLX application</li>
+		</ul>
+		</p>
+
+		<p>
+			You can find all the code at
+			<a
+				href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/glx-core.js"><em>glx-core.js</em></a>.<br><br>
+		</p>
+		<p>
+			<ks>The <code>GLXApplication</code> class is a <i>middleware</i> that orchestrate all the components a GLX
+			application is equipped to and enable the controls through the signal system</ks>.<br>
+			The signal to control the application is <em><code>GLX.[applicationName].gui_settings</code></em> and the data
+			that is passed is:
+			<pre><code>type GLXControlInfo = {
+	readonly type: GLXControlType,
+	readonly value: any
+}</code></pre>
+		</p>
+		<p>
+			You can find more details about <code>GLXControlInfo</code> at
+			<a
+				href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/glx-model.d.ts"><em>glx-model.d.ts</em></a>.<br><br>
+		</p>
+		<p>
+			To create an application using GLX, the developer has to:
+			<ol>
+				<li>create his own <i>html</i> file with a canvas, the shaders and including the modules of GLX (see
+					<a href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/index.html"><em>index.html</em></a>)
+				</li>
+				<li>create the main Javascript file defining its application class that <ks>must extends
+						<code>GLXApplication</code>
+					</ks>: in the <code>main()</code> method, the developer can also
+					provide further configuration (see
+					<a href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/gotham.js"><em>gotham.js</em></a>)
+				</li>
+				<li>call the <code>start()</code> with its application class and the params (like the canvas element name,
+					the name of the shaders, and so on...</li>
+			</ol>
+		</p>
+
+		<h2 class="hs2" id="loop-vs-signal">Render Loop vs Signal</h2>
+		<p>
+			While showing the menu of GothamApp, I spoke about <i>rendering mode</i>: the <code>GLXDrawer</code> indeed uses
+			WebGL to render the scende. But it has been developed with two methods: <code>renderLoop</code> and <code>renderScene</code>.
+			Both methods are used to render the scene, but they have different purposes:
+			<table class="api-table">
+				<thead>
+					<tr>
+						<th>Method</th>
+						<th>Description</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td><code>renderScene</code></td>
+						<td>Render the scene at once, looking the state of the model classes of the application (camera, 
+							light, shadow, sprites)</td>
+					</tr>
+					<tr>
+						<td><code>renderLoop</code></td>
+						<td>Render the scene, and then schedule the next render realizing the render loop until the rendering
+							mode of the drawer is set to <code>RenderingModes.HYBRID</code>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</p>
+
+		<p>
+			So, there are two rendering modes in GLX:
+			<table class="api-table">
+				<thead>
+					<tr>
+						<th>Rendering mode</th>
+						<th>Description</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td><code>RenderingModes.SIGNAL</code></td>
+						<td>The drawer calculates the drawing matrices and renders the scene when <ks>an event of an object 
+							model of its application is fired</ks></td>
+					</tr>
+					<tr>
+						<td><code>RenderingModes.HYBRID</code></td>
+						<td>The drawer <ks>executes the render loop autonomously</ks>, but the calculation of the drawing
+						matrices is performed dynamically when an event of an object model of its application is fired
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</p>
+
+		<p>
+			Indeed, one of the main purpose I dediced to go to the implementation of a <i>signal</i> mechanism it's to try
+			to replace the render loop with something dynamic: a render called only <i>by need</i>.
+			<ks>This didn't work well because of performance problems the render loop naturally solves</ks>, anyway
+			it's a great start point for something hybrid.<br><br>
+
+			In fact, the hybrid rendering mode seems to be winning: the computation of the WebGLX matrices is computed only
+			when something effectively change, but the render is performed into a loop, avoiding loss of efficiency.
+			Anyway, this still leak of efficiency if the application does not change it's element so often: we have a continuous
+			loop even if nothing changes.
+		</p>
+
+		<h2 class="hs2" id="gotham-app">Final Overview</h2>
+		<div class="centered">
+			<img src="images\glx-structure.drawio.png" height="1200">
+		</div>
+
+		<h2 class="hs2" id="gotham-app">GothamApp</h2>
+		<p>
+			By putting all the elements together, we now have the complete overview to understand the GothamAPP application:
+			you can meet the code at
+			<a href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/gotham.js"><em>gotham.js</em></a>.<br>
+		</p>
+		<p>
+			In addition, to show the decoupling allowed by the signal system, I decided to develop the controls in 
+			a separate Javascript file at 
+			<a href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/gotham-controls.js"><em>gotham-controls.js</em></a>.<br><br>
+			Notice that the controls can easily be integrated in GLX by following the interface defined in the typescript declaration 
+			file of <a href="https://github.com/LM-96/GLX-for-Gotham/blob/main/project/src/glx-core.d.ts"><em>glx-core.d.ts</em></a>, 
+			but you can also implements your own without constraint out of the signals. To meet the requirements,
+			<a href="https://github.com/dataarts/dat.gui"><em>dat.gui</em></a> has been used as framework.
+		</p>
+
+		
 
 	</div>
 
