@@ -15,7 +15,7 @@ class GothamApp extends GLXApplication {
 
     batMoto = this.glxSprite({
         name: 'batmoto',
-        path: './assets/objs/batmoto.obj',
+        path: './assets/objs/batmoto',
         position: position(170, -131, 1),
         rotation: rotation(degrees(0), degrees(0), degrees(90)),
         scale: scale(0.3, 0.3, 0.3),
@@ -27,7 +27,7 @@ class GothamApp extends GLXApplication {
 
     world = this.glxSprite({
         name: 'world',
-        path: './assets/objs/city.obj',
+        path: './assets/objs/city',
         scale: scale(0.7, 0.7, 0.7)
     });
 

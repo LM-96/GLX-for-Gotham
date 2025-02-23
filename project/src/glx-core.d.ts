@@ -6,6 +6,7 @@ import {
     GLXCameraSettings,
     GLXControl,
     GLXControlInfo,
+    GLXShadowLight,
     GLXShadowLightSettings, 
     GLXSprite,
     GLXSpriteSettings,
@@ -34,6 +35,8 @@ export declare class GLXApplication {
     readonly cameraMan: GLXCameraMan;
     readonly logger: Logger;
     readonly signalWorkspace: GLXApplicationSignalWorkspace;
+    readonly spriteLoaders: Function[];
+    readonly spriteManager: GLXSpriteManager;
 
     glxSprite(load: MeshSpriteLoad);
     main();
@@ -115,14 +118,14 @@ export type GLXEnvironment = {
 
 export type GLXSpriteCreation = {
     readonly name: string;
-    readonly glData: any;
+    readonly glData: () => any;
     readonly signalWorkspace: GLXSpriteSignalWorkspace;
     readonly settings?: Partial<GLXSpriteSettings>;
 }
 
 export type GLXSpriteData = {
     readonly sprite: Sprite;
-    readonly glData: any;
+    readonly glData: () => any;
 }
 
 declare class GLXSpriteManager {

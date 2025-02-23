@@ -28,6 +28,9 @@ import {
     loggingEnabled
 } from "./logjsx.js";
 import { SIGNALS } from "./signals.js";
+import * as THREE from "three";
+import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
 
 /**
  * @template T
@@ -204,6 +207,8 @@ export class GLXApplication {
     /** @type {GLXDrawer} */ drawer;
     /** @type {GLXSpriteManager} */ #spriteManager;
     /** @type {GLXApplicationSignalWorkspace}*/ #signalWorkspace;
+    /** @type {MTLLoader} */ #mtlLoader = new MTLLoader();
+    /** @type {Function[]} */ #spriteLoaders = [];
 
     /**
      * 
@@ -240,23 +245,42 @@ export class GLXApplication {
         return this.#signalWorkspace;
     }
 
+    get spriteLoaders() {
+        return Object.freeze(this.#spriteLoaders);
+    }
+
+    get spriteManager() {
+        return this.#spriteManager;
+    }
+
     /**
      * 
      * @param {MeshSpriteLoad} load 
      */
     glxSprite(load) {
-        let data = loadObjX(this.#glxEnvironment.glContext, load.name, load.path);
-        this.drawer.initSpriteData(data);
-        let sprite = this.#spriteManager.createSprite({
+        /** @type {GLXSprite} */ let sprite;
+        /** @type {THREE.Group | undefined} */ let threeData = undefined;
+
+        sprite = this.#spriteManager.createSprite({
             name: load.name,
-            glData: data,
+            glData: () => threeData,
             signalWorkspace: this.#signalWorkspace.spriteName(load.name),
             settings: { ...load }
-        })
+        });
 
-        this.#logger.info('loaded mesh: ', load);
+        this.#spriteLoaders.push(() => {
+            this.#mtlLoader.load(`${load.path}.mtl`, (/** @type {any} */ materials) => {
+                materials.preload();
+                let objLoader = new OBJLoader();
+                objLoader.setMaterials(materials);
+                objLoader.load(`${load.path}.obj`, (/** @type {THREE.Group} */ loadedObj) => {
+                    threeData = loadedObj;
+                    this.#logger.info('loaded obj: ', loadedObj);
+                    this.#mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.ADDED_SPRITE });
+                })
+            });
+        });
 
-        this.#mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.ADDED_SPRITE });
         return sprite;
     }
 
@@ -1451,53 +1475,53 @@ export class GLXCameraMan {
 }
 
 class GLXDrawer {
-
-    /** @type {number} */ static #DEPTH_TEXTURE_SIZE = 512;
-
     /** @type {GLXApplicationSignalWorkspace} */ #applicationSignalWorkspace;
-    /** @type {GLXCamera} */ #camera;
-    /** @type {any} */ #cubeLinesBufferInfo;
-    /** @type {import("./glx-core").GLXEnvironment} */ #glXEnvironment;
     /** @type {Logger} */ #logger
     /** @type {RenderingMode} */ #renderingMode;
-    /** @type {GLXShadowLight} */ #shadowLightManager;
-    /** @type {SharedUniforms} */ #sharedUniforms;
     /** @type {GLXDrawerSignalDescriptor} */ #signalDescriptor;
     /** @type {import("./glx-core").GLXSpriteManager} */ #spriteManager;
     /** @type {Map<string, SubscriptionToken[]>} */ #spriteSubscriptions;
-    /** @type {Pair<WebGLTexture, WebGLFramebuffer>} */ #textureWithBuffer;
 
-    /** @type {DrawMatrices} */ #drawMatrices;
+    /** @type {THREE.Scene} */ #threeScene;
+    /** @type {THREE.AmbientLight} */ #threeAmbientLight;
+    /** @type {THREE.SpotLight} */ #threeSpotLight;
+    /** @type {boolean} */ #isSpotlightAdded;
+    /** @type {THREE.PerspectiveCamera} */ #threeCamera;
+    /** @type {THREE.WebGLRenderer} */ #threeRenderer;
 
     /**
      * 
      * @param {GLXDrawerConstructorParams} params 
      */
     constructor(params) {
-        this.#applicationSignalWorkspace = params.applicationSignalWorkspace;
-        this.#signalDescriptor = this.#buildSignalDescriptor(this.#applicationSignalWorkspace);
-        this.#camera = params.camera
-        this.#glXEnvironment = params.glxEnvironment;
-        this.#renderingMode = params.renderingMode ?? RenderingModes.HYBRID;
-        this.#shadowLightManager = params.shadowLightManager;
-        this.#spriteManager = params.spriteManager;
-        this.#sharedUniforms = params.sharedUniforms;
-        this.#cubeLinesBufferInfo = this.#buildCubeLinesBufferInfo();
-        this.#spriteSubscriptions = new Map();
-        this.#textureWithBuffer = this.#createTexture();
-        this.#renderingMode = params.renderingMode;
-
         this.#logger = Logger.forName(`GLXDrawer[${params.applicationName}]`)
             .enabledOn(params.logEnabled);
-        this.#drawMatrices = this.#computeDrawMatrices();
+
+        this.#applicationSignalWorkspace = params.applicationSignalWorkspace;
+        this.#signalDescriptor = this.#buildSignalDescriptor(this.#applicationSignalWorkspace);
+        this.#renderingMode = params.renderingMode ?? RenderingModes.HYBRID;
+        this.#spriteManager = params.spriteManager;
+        this.#spriteSubscriptions = new Map();
+        this.#renderingMode = params.renderingMode;
+
+        this.#threeScene = new THREE.Scene();
+        this.#threeCamera = this.#buildThreeCamera(params);
+        this.#threeRenderer = this.#buildThreeRenderer(params);
+
+        this.#threeAmbientLight = this.#buildThreeAmbientLight(params);
+        this.#threeScene.add(this.#threeAmbientLight);
+
+        this.#isSpotlightAdded = params.shadowLightManager.isSpotlight;
+        this.#threeSpotLight = this.#buildThreeSpotLight(params);
+        if (this.#isSpotlightAdded) {
+            this.#threeScene.add(this.#threeSpotLight);
+        }
+
+        this.#setupAutoRender();
+
 
         SIGNALS.subscribe(params.applicationSignalWorkspace.main, (signal) => {
             if (signal.data == GLXApplicationInfoTypes.BOOTED) {
-                this.#setupAutoRender();
-                this.renderScene();
-            }
-            if (signal.data == GLXApplicationInfoTypes.TEXTURE_READY) {
-                this.#drawMatrices = this.#computeDrawMatrices();
                 this.renderScene();
             }
         });
@@ -1527,138 +1551,20 @@ class GLXDrawer {
         }
     }
 
-    /**
-     * 
-     * @param {DrawSceneContext} drawSceneContext 
-     */
-    drawScene(drawSceneContext) {
-        let gl = this.#glXEnvironment.glContext;
-        let viewMatrix = M4.inverse(drawSceneContext.cameraMatrix)
-        gl.useProgram(drawSceneContext.programInfo.program)
-        WebGLUtils.setUniforms(drawSceneContext.programInfo, {
-            u_view: viewMatrix,
-            u_projection: drawSceneContext.projectionMatrix,
-            u_bias: this.#shadowLightManager.bias,
-            u_textureMatrix: drawSceneContext.textureMatrix,
-            u_projectedTexture: this.#textureWithBuffer.first,
-            u_lightDirection: drawSceneContext.lightMatrix.slice(8, 11),
-        });
-        gl.uniform1f(gl.getUniformLocation(drawSceneContext.programInfo.program, "mesh"), 1.);
-
-        for (let glxSprite of this.#spriteManager.getAllGLXSpritesData()) {
-            this.drawSprite({
-                programInfo: drawSceneContext.programInfo,
-                sprite: glxSprite.sprite,
-                glData: glxSprite.glData
-            })
-        }
-
-        this.#logger.info('scene drawn');
-    }
-
-    /**
-     * 
-     * @param {DrawSpriteContext} drawSpriteContext 
-     */
-    drawSprite(drawSpriteContext) {
-        let clear = drawSpriteContext.clear ?? false;
-        let gl = this.#glXEnvironment.glContext;
-        if (clear) {
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        }
-        if (!drawSpriteContext.sprite.hidden) {
-            let u_world = this.#drawMatrices.sprite.get(drawSpriteContext.sprite.name) ??
-                this.#computeSpriteMatrix(drawSpriteContext.sprite);
-
-            for (let { bufferInfo, material } of drawSpriteContext.glData.parts) {
-                WebGLUtils.setBuffersAndAttributes(gl, drawSpriteContext.programInfo, bufferInfo);
-                WebGLUtils.setUniforms(drawSpriteContext.programInfo, {
-                    u_colorMult: [1, 1, 1, 1],
-                    u_color: [1, 1, 1, 1],
-                    u_world: u_world,
-                }, material);
-                WebGLUtils.drawBufferInfo(gl, bufferInfo);
-            }
-
-            this.#logger.info(`drawn sprite '${drawSpriteContext.sprite.name}'`)
-        } else {
-            this.#logger.info(`sprite '${drawSpriteContext.sprite.name}' is hidden, draw skipped`)
-        }
-
-    }
-
-    /**
-     * 
-     * @param {any} data 
-     */
-    initSpriteData(data) {
-        data.u_world = M4.identity();
-    }
-
     renderLoop() {
         this.renderScene();
 
         if (this.#renderingMode === RenderingModes.HYBRID) {
-            setTimeout(this.renderLoop.bind(this), 10);
+            requestAnimationFrame(this.renderLoop.bind(this));
         } else {
             this.#logger.info("render loop off");
         }
     }
 
     renderScene() {
-        this.#logger.info('rendering scene...');
-        let gl = this.#glXEnvironment.glContext;
-        gl.enable(gl.CULL_FACE);
-        gl.enable(gl.DEPTH_TEST);
-
-        this.#renderLights();
-        this.#clearGlBuffers();
-
-        this.drawScene({
-            projectionMatrix: this.#drawMatrices.viewProjection,
-            cameraMatrix: this.#drawMatrices.camera,
-            lightMatrix: this.#drawMatrices.light.world,
-            textureMatrix: this.#drawMatrices.texture,
-            programInfo: this.#glXEnvironment.getProgramInfo('main')
-        })
-
-        if (this.#shadowLightManager.lightFrustum) {
-            this.#renderLightFrustum();
-        }
-
+        console.log('AAAAAA', this.#threeScene)
+        this.#threeRenderer.render(this.#threeScene, this.#threeCamera);
         this.#logger.info('render complete');
-    }
-
-    #buildCubeLinesBufferInfo() {
-        return WebGLUtils.createBufferInfoFromArrays(
-            this.#glXEnvironment.glContext, {
-            position: [
-                -1, -1, -1,
-                1, -1, -1,
-                -1, 1, -1,
-                1, 1, -1,
-                -1, -1, 1,
-                1, -1, 1,
-                -1, 1, 1,
-                1, 1, 1,
-            ],
-            indices: [
-                0, 1,
-                1, 3,
-                3, 2,
-                2, 0,
-
-                4, 5,
-                5, 7,
-                7, 6,
-                6, 4,
-
-                0, 4,
-                1, 5,
-                3, 7,
-                2, 6,
-            ],
-        });
     }
 
     /**
@@ -1672,228 +1578,79 @@ class GLXDrawer {
         }
     }
 
-    #clearGlBuffers() {
-        let gl = this.#glXEnvironment.glContext;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        gl.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        this.#logger.info("framebuffer, color buffer and depth buffer clean");
-    }
-
-    #computeCameraMatrix() {
-        return M4.lookAt(
-            this.#camera.position.map(Math3D.toImmutableArray()),
-            this.#camera.targetPosition.map(Math3D.toImmutableArray()),
-            trioToJsVector(this.#camera.up)
-        );
+    /**
+     * 
+     * @param {GLXDrawerConstructorParams} params 
+     * @returns {THREE.AmbientLight}
+     */
+    #buildThreeAmbientLight(params) {
+        let light = new THREE.AmbientLight();
+        return light;
     }
 
     /**
      * 
-     * @returns {DrawMatrices}
+     * @param {GLXDrawerConstructorParams} params 
+     * @returns {THREE.PerspectiveCamera}
      */
-    #computeDrawMatrices() {
-        let cameraMatrix = this.#computeCameraMatrix();
-        let lightMatrices = {
-            projection: this.#computeLightProjectionMatrix(),
-            world: this.#computeLightWorldMatrix()
-        }
-        return {
-            camera: cameraMatrix,
-            light: lightMatrices,
-            sprite: new Map(),
-            texture: this.#computeTextureMatrix(lightMatrices),
-            viewProjection: this.#computeViewProjectionMatrix(cameraMatrix)
-        }
+    #buildThreeCamera(params) {
+        let camera = new THREE.PerspectiveCamera(
+            params.camera.fov.radiansValue, params.glxEnvironment.aspectRatio, params.camera.zNear, params.camera.zFar);
+        camera.position.x = params.camera.position.x;
+        camera.position.y = params.camera.position.y;
+        camera.position.z = params.camera.position.z;
+        camera.lookAt(params.camera.targetPosition.x, params.camera.targetPosition.y, params.camera.targetPosition.z);
+        camera.up.x = params.camera.up.first;
+        camera.up.y = params.camera.up.second;
+        camera.up.z = params.camera.up.third;
+
+        return camera;
     }
 
     /**
      * 
-     * @returns {number[]}
+     * @param {GLXDrawerConstructorParams} params 
+     * @returns {THREE.WebGLRenderer}
      */
-    #computeLightWorldMatrix() {
-        let lightPosition = this.#shadowLightManager.lightPosition;
-        let lightTarget = this.#shadowLightManager.lightTarget;
-        let lightUp = this.#shadowLightManager.lightUp;
-        return M4.lookAt(
-            [lightPosition.x, lightPosition.y, lightPosition.z],
-            [lightTarget.x, lightTarget.y, lightTarget.z],
-            [lightUp.first, lightUp.second, lightUp.third],
-        );
-    }
-
-    /**
-     * 
-     * @returns {number[]}
-     */
-    #computeLightProjectionMatrix() {
-        if (this.#shadowLightManager.isSpotlight) {
-            return M4.perspective(
-                this.#shadowLightManager.lightFov.radiansValue,
-                this.#shadowLightManager.projectionWidth / this.#shadowLightManager.projectionHeight,
-                this.#shadowLightManager.lightNear,
-                this.#shadowLightManager.lightFar)
-        } else {
-            let halfProjectionWidth = this.#shadowLightManager.projectionWidth / 2;
-            let halfProjectionHeight = this.#shadowLightManager.projectionHeight / 2;
-            return M4.orthographic(
-                -halfProjectionWidth, halfProjectionWidth,
-                -halfProjectionHeight, halfProjectionHeight,
-                this.#shadowLightManager.lightNear,
-                this.#shadowLightManager.lightFar)
-        }
-    }
-
-    /**
-     * 
-     * @param {GLXSprite} sprite 
-     */
-    #computeSpriteMatrix(sprite) {
-        let u_world = M4.identity();
-        let position = sprite.position;
-        let rotation = sprite.rotation;
-        let scale = sprite.scale;
-
-        u_world = M4.translate(u_world, position.x, position.y, position.z);
-        u_world = M4.xRotate(u_world, rotation.first.radiansValue);
-        u_world = M4.yRotate(u_world, rotation.second.radiansValue);
-        u_world = M4.zRotate(u_world, rotation.third.radiansValue);
-        u_world = M4.scale(u_world, scale.first, scale.second, scale.third);
-
-        this.#logger.info(`matrix computed for sprite ${sprite.name}`);
-        return u_world;
-    }
-
-    /**
-     * 
-     * @param {LightMatrices} lightMatrices
-     * @returns {number[]}
-     */
-    #computeTextureMatrix(lightMatrices) {
-        let textureMatrix = M4.identity();
-        textureMatrix = M4.translate(textureMatrix, 0.5, 0.5, 0.5);
-        textureMatrix = M4.scale(textureMatrix, 0.5, 0.5, 0.5);
-        textureMatrix = M4.multiply(textureMatrix, lightMatrices.projection);
-        textureMatrix = M4.multiply(
-            textureMatrix,
-            M4.inverse(lightMatrices.world));
-        this.#logger.info("texture matrix calculated");
-
-        return textureMatrix;
-    }
-
-    /**
-     * 
-     * @param {number[]} cameraMatrix 
-     * @returns {number[]}
-     */
-    #computeViewProjectionMatrix(cameraMatrix) {
-        this.#updateProjectionMatrix()
-        this.#updateViewMatrix(cameraMatrix)
-        let viewProjectionMatrix = M4.multiply(this.#sharedUniforms.u_projection,
-            this.#sharedUniforms.u_view)
-        this.#logger.info("view projection matrix calculated");
-
-        return viewProjectionMatrix;
-    }
-
-    /**
-     * 
-     * @returns {Pair<WebGLTexture, WebGLFramebuffer>}
-     */
-    #createTexture() {
-        let gl = this.#glXEnvironment.glContext;
-        let depthTexture = gl.createTexture();
-        let depthTextureSize = GLXDrawer.#DEPTH_TEXTURE_SIZE;
-        gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-        gl.texImage2D(
-            gl.TEXTURE_2D,
-            0,
-            gl.DEPTH_COMPONENT,
-            depthTextureSize,
-            depthTextureSize,
-            0,
-            gl.DEPTH_COMPONENT,
-            gl.UNSIGNED_INT,
-            null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        let depthFramebuffer = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, depthFramebuffer);
-        gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,
-            gl.DEPTH_ATTACHMENT,
-            gl.TEXTURE_2D,
-            depthTexture,
-            0);
-
-        let unusedTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, unusedTexture);
-        gl.texImage2D(
-            gl.TEXTURE_2D,
-            0,
-            gl.RGBA,
-            depthTextureSize,
-            depthTextureSize,
-            0,
-            gl.RGBA,
-            gl.UNSIGNED_BYTE,
-            null,
-        );
-
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            unusedTexture,
-            0);
-        return pair(depthTexture, depthFramebuffer);
-    }
-
-    #renderLightFrustum() {
-        let gl = this.#glXEnvironment.glContext;
-        let viewMatrix = M4.inverse(this.#computeCameraMatrix())
-        gl.useProgram(this.#glXEnvironment.getProgramInfo('color').program)
-        WebGLUtils.setBuffersAndAttributes(gl,
-            this.#glXEnvironment.getProgramInfo('color'),
-            this.#cubeLinesBufferInfo);
-
-        const mat = M4.multiply(this.#drawMatrices.light.world, M4.inverse(this.#drawMatrices.light.projection));
-        WebGLUtils.setUniforms(this.#glXEnvironment.getProgramInfo('color'), {
-            u_color: [1, 1, 1, 1],
-            u_view: viewMatrix,
-            u_projection: this.#sharedUniforms.u_projection,
-            u_world: mat,
+    #buildThreeRenderer(params) {
+        let renderer = new THREE.WebGLRenderer({
+            canvas: params.glxEnvironment.canvas,
+            context: params.glxEnvironment.glContext
         });
-        WebGLUtils.drawBufferInfo(gl, this.#cubeLinesBufferInfo, gl.LINES);
-        this.#logger.info("light frustum rendered")
+
+        renderer.setClearColor(new THREE.Color(0x000000));
+        return renderer;
     }
 
-    #renderLights() {
-        let gl = this.#glXEnvironment.glContext;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.#textureWithBuffer.second);
-        gl.viewport(0, 0, GLXDrawer.#DEPTH_TEXTURE_SIZE, GLXDrawer.#DEPTH_TEXTURE_SIZE);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    /**
+     * 
+     * @param {GLXDrawerConstructorParams} params 
+     * @returns {THREE.SpotLight}
+     */
+    #buildThreeSpotLight(params) {
+        let light = new THREE.SpotLight();
 
-        if (this.#shadowLightManager.isShadowEnabled) {
-            this.drawScene({
-                projectionMatrix: this.#drawMatrices.light.projection,
-                cameraMatrix: this.#drawMatrices.light.world,
-                lightMatrix: this.#drawMatrices.light.world,
-                textureMatrix: M4.identity(),
-                programInfo: this.#glXEnvironment.getProgramInfo('color')
-            })
-            this.#logger.info("shadows rendered");
-        };
+        light.position.x = params.shadowLightManager.lightPosition.x;
+        light.position.y = params.shadowLightManager.lightPosition.y;
+        light.position.z = params.shadowLightManager.lightPosition.z;
+        light.target.position.x = params.shadowLightManager.lightTarget.x;
+        light.target.position.y = params.shadowLightManager.lightTarget.y;
+        light.target.position.z = params.shadowLightManager.lightTarget.z;
+        light.up.set(params.shadowLightManager.lightUp.first,
+            params.shadowLightManager.lightUp.second,
+            params.shadowLightManager.lightUp.third);
+        light.shadow.camera.near = params.shadowLightManager.lightNear;
+        light.shadow.camera.far = params.shadowLightManager.lightFar;
+        light.castShadow = params.shadowLightManager.isShadowEnabled;
+        light.shadow.bias = params.shadowLightManager.bias;
+
+        return light;
+    }
+
+    #renderOnSignal() {
+        if (this.#renderingMode === RenderingModes.SIGNAL) {
+            this.renderScene();
+        }
     }
 
     #setupAutoRender() {
@@ -1904,94 +1661,179 @@ class GLXDrawer {
     }
 
     #setupAutoRenderForShadownLight() {
-        let onShadowLightChange = () => {
-            let lightMatrices = {
-                projection: this.#computeLightProjectionMatrix(),
-                world: this.#computeLightWorldMatrix()
+        let lightSignals = this.#applicationSignalWorkspace.shadowLight;
+
+        SIGNALS.subscribe(lightSignals.bias, (/** @type {Signal<Change<number>} */ signal) => {
+            this.#threeSpotLight.shadow.bias = signal.data.to;
+            this.#renderOnSignal();
+        });
+
+        SIGNALS.subscribe(lightSignals.isShadowEnabled, (/** @type {Signal<Change<boolean>} */ signal) => {
+            this.#threeSpotLight.castShadow = signal.data.to;
+            this.#renderOnSignal();
+        });
+
+        SIGNALS.subscribe(lightSignals.isSpotlight, (/** @type {Signal<Change<boolean>} */ signal) => {
+            let isSpotlight = signal.data.to;
+            if (isSpotlight && !(this.#isSpotlightAdded)) {
+                this.#threeScene.add(this.#threeSpotLight);
+                this.#isSpotlightAdded = true;
             }
 
-            this.#drawMatrices = {
-                ...this.#drawMatrices,
-                light: lightMatrices,
-                texture: this.#computeTextureMatrix(lightMatrices)
+            if (!isSpotlight && this.#isSpotlightAdded) {
+                this.#threeScene.remove(this.#threeSpotLight);
+                this.#isSpotlightAdded = false;
             }
+            this.#renderOnSignal();
+        });
 
-            if (this.#renderingMode === RenderingModes.SIGNAL) {
-                this.renderScene();
-            }
-        }
+        SIGNALS.subscribe(lightSignals.lightPosition, (/** @type {Signal<Change<Point3D>>} */ signal) => {
+            let position = signal.data.to;
+            this.#threeSpotLight.position.x = position.x;
+            this.#threeSpotLight.position.y = position.y;
+            this.#threeSpotLight.position.z = position.z;
+            this.#renderOnSignal();
+        });
 
-        for (let shadowLightSignal of Object.values(this.#applicationSignalWorkspace.shadowLight)) {
-            SIGNALS.subscribe(shadowLightSignal, onShadowLightChange.bind(this));
-        }
+        SIGNALS.subscribe(lightSignals.lightTarget, (/** @type {Signal<Change<Point3D>>} */ signal) => {
+            let target = signal.data.to;
+            this.#threeSpotLight.target.position.x = target.x;
+            this.#threeSpotLight.target.position.y = target.y;
+            this.#threeSpotLight.target.position.z = target.z;
+            this.#renderOnSignal();
+        });
+
+        SIGNALS.subscribe(lightSignals.lightFar, (/** @type {Signal<Change<number>>} */ signal) => {
+            this.#threeSpotLight.shadow.camera.far = signal.data.to;
+            this.#renderOnSignal();
+        });
+
+        SIGNALS.subscribe(lightSignals.lightNear, (/** @type {Signal<Change<number>>} */ signal) => {
+            this.#threeSpotLight.shadow.camera.near = signal.data.to;
+            this.#renderOnSignal();
+        });
+
+        SIGNALS.subscribe(lightSignals.lightDirection, (/** @type {Signal<Change<number>>} */ signal) => {
+            this.#threeSpotLight.shadow.camera.near = signal.data.to;
+            this.#renderOnSignal();
+        });
+
         this.#logger.info('shadow light signal subscribed');
     }
 
     #setupAutoRenderForCamera() {
-        let onCameraChange = () => {
-            let cameraMatrix = this.#computeCameraMatrix();
-            this.#drawMatrices = {
-                ...this.#drawMatrices,
-                camera: cameraMatrix,
-                viewProjection: this.#computeViewProjectionMatrix(cameraMatrix)
-            }
+        let cameraSignals = this.#applicationSignalWorkspace.camera;
+        SIGNALS.subscribe(cameraSignals.fovChanges, (/** @type {Signal<Change<Angle>>} */ signal) => {
+            this.#threeCamera.fov = signal.data.to.radiansValue;
+            this.#threeCamera.updateProjectionMatrix();
+            this.#renderOnSignal();
+        });
 
-            if (this.#renderingMode === RenderingModes.SIGNAL) {
-                this.renderScene();
-            }
-        }
+        SIGNALS.subscribe(cameraSignals.zNearChanges, (/** @type {Signal<Change<number>>} */ signal) => {
+            this.#threeCamera.near = signal.data.to;
+            this.#threeCamera.updateProjectionMatrix();
+            this.#renderOnSignal();
+        });
 
-        for (let cameraSignal of Object.values(this.#applicationSignalWorkspace.camera)) {
-            SIGNALS.subscribe(cameraSignal, onCameraChange.bind(this));
-        }
+        SIGNALS.subscribe(cameraSignals.zFarChanges, (/** @type {Signal<Change<number>>} */ signal) => {
+            this.#threeCamera.far = signal.data.to
+            this.#threeCamera.updateProjectionMatrix();
+            this.#renderOnSignal();
+        });
+
+        SIGNALS.subscribe(cameraSignals.positionChanges, (/** @type {Signal<Change<Point3D>>} */ signal) => {
+            let position = signal.data.to;
+            this.#threeCamera.position.x = position.x;
+            this.#threeCamera.position.y = position.y;
+            this.#threeCamera.position.z = position.z;
+            this.#renderOnSignal();
+        });
+
+        SIGNALS.subscribe(cameraSignals.targetChanges, (/** @type {Signal<Change<Point3D>>} */ signal) => {
+            let target = signal.data.to;
+            this.#threeCamera.lookAt(target.x, target.y, target.z);
+            this.#renderOnSignal();
+        });
+
+        SIGNALS.subscribe(cameraSignals.upChanges, (/** @type {Signal<Change<Trio<number>>>} */ signal) => {
+            let up = signal.data.to
+            this.#threeCamera.up.x = up.first;
+            this.#threeCamera.up.y = up.second;
+            this.#threeCamera.up.z = up.third;
+            this.#renderOnSignal();
+        });
+
         this.#logger.info('camera signal subscribed');
     }
 
     #setupAutoRenderForSprites() {
-        for (let /** @type {GLXSprite} */ sprite of this.#spriteManager.getAllSprites()) {
-            let spriteName = sprite.name;
+        SIGNALS.subscribe(this.#applicationSignalWorkspace.main, (signal) => {
+            if (signal.data == GLXApplicationInfoTypes.ADDED_SPRITE) {
+                for (let /** @type {GLXSpriteData} */ spriteData of this.#spriteManager.getAllGLXSpritesData()) {
+                    /** @type {GLXSprite} */ let sprite = spriteData.sprite;
+                    let spriteName = spriteData.sprite.name;
+                    /** @type {THREE.Group} */ let threeNode = spriteData.glData();
 
-            if (!this.#spriteSubscriptions.has(spriteName)) {
-                let onSpriteChange = () => {
-                    this.#drawMatrices.sprite.set(spriteName, this.#computeSpriteMatrix(sprite));
+                    if (isNotNullOrUndefined(threeNode) && !this.#spriteSubscriptions.has(spriteName)) {
+                        threeNode.position.x = sprite.position.x;
+                        threeNode.position.y = sprite.position.y;
+                        threeNode.position.z = sprite.position.z;
+                        threeNode.rotation.x = sprite.rotation.first.radiansValue;
+                        threeNode.rotation.y = sprite.rotation.second.radiansValue;
+                        threeNode.rotation.z = sprite.rotation.third.radiansValue;
+                        threeNode.scale.x = sprite.scale.first;
+                        threeNode.scale.y = sprite.scale.second;
+                        threeNode.scale.z = sprite.scale.third;
+                        threeNode.visible = !sprite.hidden;
 
-                    if (this.#renderingMode === RenderingModes.SIGNAL) {
-                        this.renderScene();
+                        this.#threeScene.add(threeNode);
+
+                        /** @type {SubscriptionToken[]} */ let subscriptions = [];
+                        let spriteSignalWorkspace = this.#applicationSignalWorkspace.spriteName(spriteName);
+                        subscriptions.push(SIGNALS.subscribe(
+                            spriteSignalWorkspace.positionChange, (/** @type {Signal<Change<Point3D>>} */ signal) => {
+                                let position = signal.data.to;
+                                threeNode.position.x = position.x;
+                                threeNode.position.y = position.y;
+                                threeNode.position.z = position.z;
+
+                                this.#renderOnSignal();
+                            }));
+
+                        subscriptions.push(SIGNALS.subscribe(
+                            spriteSignalWorkspace.rotationChange, (/** @type {Signal<Change<Trio<Angle>>>} */ signal) => {
+                                let rotation = signal.data.to;
+                                threeNode.rotation.x = rotation.first.radiansValue;
+                                threeNode.rotation.y = rotation.second.radiansValue;
+                                threeNode.rotation.z = rotation.third.radiansValue;
+
+                                this.#renderOnSignal();
+                            }));
+
+                        subscriptions.push(SIGNALS.subscribe(
+                            spriteSignalWorkspace.scaleChange, (/** @type {Signal<Change<Trio<Number>>>} */ signal) => {
+                                let rotation = signal.data.to;
+                                threeNode.scale.x = rotation.first;
+                                threeNode.scale.y = rotation.second;
+                                threeNode.scale.z = rotation.third;
+
+                                this.#renderOnSignal();
+                            }));
+
+                        subscriptions.push(SIGNALS.subscribe(
+                            spriteSignalWorkspace.hiddenChange, (/** @type {Signal<Change<boolean>>} */ signal) => {
+                                threeNode.visible = !signal.data.to;
+
+                                this.#renderOnSignal();
+                            }));
+
+                        this.#spriteSubscriptions.set(spriteName, subscriptions);
+                        this.#logger.info(`signal of sprite '${spriteName}' subscribed`);
                     }
                 }
-
-                /** @type {SubscriptionToken[]} */ let subscriptions = [];
-                let spriteSignalWorkspace = this.#applicationSignalWorkspace.spriteName(spriteName);
-                subscriptions.push(SIGNALS.subscribe(
-                    spriteSignalWorkspace.positionChange, onSpriteChange.bind(this)));
-                subscriptions.push(SIGNALS.subscribe(
-                    spriteSignalWorkspace.rotationChange, onSpriteChange.bind(this)));
-                subscriptions.push(SIGNALS.subscribe(
-                    spriteSignalWorkspace.scaleChange, onSpriteChange.bind(this)));
-                subscriptions.push(SIGNALS.subscribe(
-                    spriteSignalWorkspace.hiddenChange, onSpriteChange.bind(this)));
-
-                this.#spriteSubscriptions.set(spriteName, subscriptions);
-                this.#logger.info(`signal of sprite '${spriteName}' subscribed`);
             }
-        }
+        });
     }
-
-
-    /**
-     * 
-     * @param {number[]} cameraMatrix 
-     */
-    #updateViewMatrix(cameraMatrix) {
-        this.#sharedUniforms.u_view = M4.inverse(cameraMatrix);
-    }
-
-    #updateProjectionMatrix() {
-        this.#sharedUniforms.u_projection = M4.perspective(
-            this.#camera.fov.transform(AngleMath.asRadians()).value,
-            this.#glXEnvironment.aspectRatio, this.#camera.zNear, this.#camera.zFar);
-    }
-
 }
 
 class GLXEnvironment {
@@ -2007,7 +1849,6 @@ class GLXEnvironment {
     constructor(element, webGLShaders) {
         this.#canvas = this.#getCanvasElement(element);
         this.#gl = this.#getGl();
-        this.#checkDepthTextureExtension();
         this.#programInfo = this.#buildProgramInfos(webGLShaders);
     }
 
@@ -2074,13 +1915,6 @@ class GLXEnvironment {
         return programInfos;
     }
 
-    #checkDepthTextureExtension() {
-        let ext = this.#gl.getExtension('WEBGL_depth_texture');
-        if (!ext) {
-            throw alertedError('WEBGL_depth_texture is required to work');
-        }
-    }
-
     /**
      * 
      * @param {HTMLElement} element 
@@ -2099,7 +1933,7 @@ class GLXEnvironment {
      * @returns {WebGLRenderingContext}
      */
     #getGl() {
-        let gl = this.#canvas.getContext('webgl');
+        let gl = this.#canvas.getContext('webgl2');
         if (gl !== null) {
             return gl;
         }
@@ -2263,10 +2097,6 @@ export function start(appStart) {
     let glxEnv = createWebglEnvironment(appStart.canvasElementName, mapShaders(appStart.webGLShaders));
     let signalWorkspace = new GLXApplicationSignalWorkspace(appName);
     let mainSignalDescriptor = SIGNALS.register(signalWorkspace.main);
-    ON_TEXTURE_READY = (objName, imgUrl) => {
-        logger.info(`texture ready for '${objName}' with image url ${imgUrl}`)
-        mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.TEXTURE_READY });
-    }
 
     /** @type {GLXApplicationParams} */ let params = {
         applicationName: appName,
@@ -2281,12 +2111,26 @@ export function start(appStart) {
     mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.CONSTRUCTED });
     logger.info('application instantiated');
 
-    if (isNotNullOrUndefined(app.main)) {
-        logger.info('running application main');
-        app.main();
-    }
+    let spriteLoaders = app.spriteLoaders;
+    let loadedSprite = 0;
+    let subscriptionToken = SIGNALS.subscribe(signalWorkspace.main, (/** @type {Signal<GLXApplicationInfoType>} */ signal) => {
+        if (signal.data === GLXApplicationInfoTypes.ADDED_SPRITE) {
+            loadedSprite++;
+            if (loadedSprite === spriteLoaders.length) {
+                SIGNALS.unsubscribe(subscriptionToken);
+                if (isNotNullOrUndefined(app.main)) {
+                    logger.info('running application main');
+                    app.main();
+                }
 
-    mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.BOOTED })
+                mainSignalDescriptor.trigger({ data: GLXApplicationInfoTypes.BOOTED })
+            }
+        }
+    });
+
+    for (let spriteLoader of spriteLoaders) {
+        spriteLoader();
+    }
 }
 
 /**
